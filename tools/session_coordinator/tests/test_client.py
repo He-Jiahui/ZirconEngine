@@ -20,6 +20,46 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 class CoordinatorClientTests(unittest.TestCase):
+    def test_repository_preflight_uses_bounded_identity_endpoint(self) -> None:
+        client = CoordinatorClient(
+            "http://127.0.0.1:43123",
+            "runtime-secret",
+            expected_repository_key="repository-a",
+        )
+        with mock.patch.object(
+            CoordinatorClient,
+            "_request",
+            return_value={"repository_key": "repository-a"},
+        ) as request:
+            client._verify_endpoint_repository()
+
+        request.assert_called_once_with("GET", "/identity")
+
+    def test_repository_preflight_falls_back_to_health_for_predecessor_daemon(self) -> None:
+        client = CoordinatorClient(
+            "http://127.0.0.1:43123",
+            "runtime-secret",
+            expected_repository_key="repository-a",
+            control_timeout_seconds=45.0,
+        )
+        with mock.patch.object(
+            CoordinatorClient,
+            "_request",
+            side_effect=(
+                CoordinatorClientError("not_found", "predecessor has no identity endpoint"),
+                {"repository_key": "repository-a"},
+            ),
+        ) as request:
+            client._verify_endpoint_repository()
+
+        self.assertEqual(
+            [
+                mock.call("GET", "/identity"),
+                mock.call("GET", "/health", timeout_seconds=45.0),
+            ],
+            request.call_args_list,
+        )
+
     def test_command_request_status_uses_named_read_only_endpoint(self) -> None:
         client = CoordinatorClient(
             "http://127.0.0.1:43123", "", reconciliation_timeout_seconds=0
@@ -379,6 +419,7 @@ class CoordinatorClientTests(unittest.TestCase):
     def test_get_overtakes_late_post_without_proving_not_accepted(self) -> None:
         repository_key = "repository-a"
         post_received = threading.Event()
+        request_status_received = threading.Event()
         allow_post = threading.Event()
         post_completed = threading.Event()
         state: dict[str, object] = {"postCount": 0, "requestId": None}
@@ -389,6 +430,7 @@ class CoordinatorClientTests(unittest.TestCase):
                     self._write_json(200, {"status": "ok", "repository_key": repository_key})
                     return
                 if self.path.startswith("/command/requests/"):
+                    request_status_received.set()
                     self._write_json(
                         404,
                         {
@@ -435,18 +477,16 @@ class CoordinatorClientTests(unittest.TestCase):
             expected_repository_key=repository_key,
             timeout_seconds=0.1,
             command_timeout_seconds=0.05,
-            reconciliation_timeout_seconds=0.05,
+            reconciliation_timeout_seconds=1.0,
         )
         try:
             with self.assertRaises(CoordinatorClientError) as rejected:
                 client.command("baseline.scan")
 
             self.assertTrue(post_received.is_set())
+            self.assertTrue(request_status_received.is_set())
             self.assertEqual("command_post_timeout", rejected.exception.code)
             self.assertEqual("unknown", rejected.exception.details["submission"])
-            self.assertEqual(
-                "command_request_not_found", rejected.exception.details["lastQueryError"]
-            )
             self.assertEqual(0, state["postCount"])
 
             allow_post.set()

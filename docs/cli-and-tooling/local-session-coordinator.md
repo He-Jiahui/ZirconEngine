@@ -196,24 +196,24 @@ Run the Windows entrypoint from the repository root:
 .\tools\zircon-session.ps1 status -Json
 ```
 
-The wrapper starts Python in a hidden window only when the health endpoint is unavailable. A repository-scoped named mutex serializes automatic startup, and callers probe the fixed health endpoint while a successor is publishing `runtime.json`; this prevents a descriptor-publication gap during a controlled restart from spawning competing daemon wrappers. The shared coordinator binds the fixed loopback endpoint `127.0.0.1:6518` and writes the port, PID and instance metadata to `.codex/state/session-coordinator/runtime.json`; local clients still read that descriptor to reject stale instances. Isolated test coordinators explicitly request an OS-assigned port. The control service is deliberately token-free: all requests from this loopback-only listener are local control requests, so a browser tab remains usable after a daemon restart.
+The wrapper starts Python in a hidden window only when the health endpoint is unavailable. A repository-scoped named mutex serializes automatic startup, and callers probe the fixed health endpoint while a successor is publishing `runtime.json`; this prevents a descriptor-publication gap during a controlled restart from spawning competing daemon wrappers. The shared coordinator binds the fixed loopback endpoint `127.0.0.1:6518` and writes the port, PID, instance metadata and a fresh per-instance bearer capability to `.codex/state/session-coordinator/runtime.json`. Local CLI, tray and hook clients read that descriptor, authenticate every legacy command and runtime-only control request, and use the bounded `/identity` projection to reject a stale or foreign endpoint. A controlled rollover rotates the capability; a client tracking the already-confirmed rollover reloads the successor descriptor and continues querying the same durable action ID without replaying preview or confirmation. Isolated test coordinators explicitly request an OS-assigned port.
 
 Schema version 16 completes the permissioned controlled-action protocol on top of the read-only workflow facade. It closes `action_kind` at the database boundary and installs compatibility triggers for databases that already applied the early v15 action tables. The runtime descriptor also records the daemon `instance_id`, `started_at`, and supported `control_api_versions`, allowing local clients to reject credentials created by a previous daemon instance. Detailed operator guidance lives in [Workflow Control Center](workflow-control-center.md); module contracts live in [Control Plane](../tools/session_coordinator/control-plane.md) and [Workflow Read Model](../tools/session_coordinator/workflows.md).
 
 Open the local control surface or inspect the same coherent snapshot from the terminal:
 
 ```powershell
-Start-Process "http://127.0.0.1:6518/"
+.\tools\zircon-session.ps1 ui open
 .\tools\zircon-session.ps1 control snapshot -Json
 ```
 
-The root URL redirects to `/ui/`. The browser does not need a bearer token, bootstrap ticket, cookie, or CSRF value. The only supported exposure boundary is the exact IPv4 loopback listener; do not proxy or publish the control port to another host.
+The browser never receives the runtime bearer. `ui open` uses the authenticated local client to issue a 30-second, single-use Observer ticket and opens `/ui/bootstrap/{ticket}` without printing the ticket. Successful consumption creates an `HttpOnly`, `SameSite=Strict` cookie scoped to `/control`; browser requests also require the loopback Host/Origin boundary and mutations require the session CSRF value. A daemon restart invalidates the ticket, cookie and elevation grants. Do not open the root URL directly, proxy the listener, or publish the control port to another host.
 
 All mutable coordinator data remains under `.codex/state/session-coordinator/`:
 
 - `coordinator.sqlite3`: WAL database for Sessions, events, baseline epochs, object indexes, snapshots, attributions, leases and patches;
 - `objects/`: zlib-compressed SHA-256 objects;
-- `runtime.json`: local connection descriptor with the fixed loopback endpoint;
+- `runtime.json`: local connection descriptor with the fixed loopback endpoint and per-instance bearer capability; diagnostics and browser payloads omit the capability;
 - `coordinator.lock`: single-instance ownership.
 
 The service validates the active Git branch. A checkout that is not on `main` is diagnostic/read-only: health, Session list and Session show remain available, while mutations fail with `not_on_main`.

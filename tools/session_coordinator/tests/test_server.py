@@ -1263,6 +1263,7 @@ class ServerTests(unittest.TestCase):
                             "host": "127.0.0.1",
                             "port": foreign_running.httpd.server_address[1],
                             "repository_key": expected.repository_key,
+                            "token": foreign_running.token,
                         }
                     ),
                     encoding="utf-8",
@@ -1301,36 +1302,38 @@ class ServerTests(unittest.TestCase):
                         (os.getpid(),),
                     )
 
-                original_health = application.health
-                health_calls = 0
-                health_lock = threading.Lock()
-                first_health_complete = threading.Event()
+                original_identity = application.identity
+                identity_calls = 0
+                identity_lock = threading.Lock()
+                first_identity_complete = threading.Event()
 
-                def delayed_health() -> dict[str, object]:
-                    nonlocal health_calls
-                    with health_lock:
-                        health_calls += 1
-                        ordinal = health_calls
+                def delayed_identity() -> dict[str, object]:
+                    nonlocal identity_calls
+                    with identity_lock:
+                        identity_calls += 1
+                        ordinal = identity_calls
                     if ordinal == 1:
                         time.sleep(0.3)
                     try:
-                        return original_health()
+                        return original_identity()
                     finally:
                         if ordinal == 1:
-                            first_health_complete.set()
+                            first_identity_complete.set()
 
                 client = CoordinatorClient(
                     running.base_url,
-                    "",
+                    running.token,
                     expected_repository_key=config.repository_key,
                     timeout_seconds=0.1,
                     command_timeout_seconds=2,
                 )
-                with mock.patch.object(application, "health", side_effect=delayed_health):
+                with mock.patch.object(
+                    application, "identity", side_effect=delayed_identity
+                ):
                     registered = client.command(
                         "session.register", {"session_id": "recovered-session"}
                     )
-                    self.assertTrue(first_health_complete.wait(1))
+                    self.assertTrue(first_identity_complete.wait(1))
 
                 with application.database.connect() as connection:
                     count = connection.execute(
@@ -1338,7 +1341,7 @@ class ServerTests(unittest.TestCase):
                     ).fetchone()[0]
 
             self.assertEqual("recovered-session", registered["session"]["session_id"])
-            self.assertEqual(2, health_calls)
+            self.assertEqual(2, identity_calls)
             self.assertEqual(1, count)
 
     def test_isolated_config_disables_host_artifact_sweeps(self) -> None:
@@ -1857,7 +1860,7 @@ class ServerTests(unittest.TestCase):
                 )
             )
 
-    def test_local_health_and_session_commands_accept_requests_without_token(self) -> None:
+    def test_local_health_identity_and_session_commands_require_runtime_token(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
@@ -1867,6 +1870,7 @@ class ServerTests(unittest.TestCase):
             with RunningCoordinator.start(config) as running:
                 client = CoordinatorClient.from_runtime(config)
                 health = client.health()
+                identity = client._request("GET", "/identity")
                 registered = client.command(
                     "session.register",
                     {"session_id": "session-a", "write_scope": ["owned.txt"]},
@@ -1880,6 +1884,19 @@ class ServerTests(unittest.TestCase):
                 heartbeat = client.command("session.heartbeat", {"session_id": "session-a"})
 
                 self.assertEqual("ok", health["status"])
+                self.assertEqual(
+                    {
+                        "instance_id",
+                        "process_creation_time",
+                        "repository_key",
+                        "schema_version",
+                        "status",
+                    },
+                    set(identity),
+                )
+                self.assertEqual(config.repository_key, identity["repository_key"])
+                self.assertNotIn("supervision", identity)
+                self.assertNotIn("token", identity)
                 self.assertEqual("registered", registered["session"]["status"])
                 self.assertEqual("active", active["session"]["status"])
                 self.assertTrue(claimed["lease"]["acquired"])
@@ -1891,10 +1908,14 @@ class ServerTests(unittest.TestCase):
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                response = urllib.request.urlopen(request, timeout=2)
-                self.assertEqual(200, response.status)
-                self.assertIn("sessions", json.loads(response.read()))
-                response.close()
+                with self.assertRaises(urllib.error.HTTPError) as rejected:
+                    urllib.request.urlopen(request, timeout=2)
+                self.assertEqual(401, rejected.exception.code)
+                self.assertEqual(
+                    "unauthorized",
+                    json.loads(rejected.exception.read())["error"]["code"],
+                )
+                rejected.exception.close()
 
     def test_baseline_attribution_requires_the_session_live_lease(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -2891,7 +2912,7 @@ class ServerTests(unittest.TestCase):
                     return []
 
                 timed_client = CoordinatorClient(
-                    running.base_url, "", command_timeout_seconds=0.05
+                    running.base_url, running.token, command_timeout_seconds=0.05
                 )
                 action_worker = threading.Thread(target=hold_control_action, daemon=True)
                 action_worker.start()

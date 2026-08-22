@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 import tempfile
 from contextlib import redirect_stdout
@@ -155,6 +156,66 @@ class DeferredActionClientTests(unittest.TestCase):
 
         self.assertEqual(succeeded, result)
         self.assertEqual(4, request.call_count)
+
+    def test_rollover_status_poll_refreshes_successor_runtime_token(self) -> None:
+        executing = {
+            "actionId": "action-a",
+            "status": "executing",
+            "result": None,
+        }
+        succeeded = {
+            "actionId": "action-a",
+            "status": "succeeded",
+            "result": {"successorInstanceId": "daemon-b"},
+        }
+        calls: list[tuple[str, str, str]] = []
+        with tempfile.TemporaryDirectory() as directory:
+            runtime_path = Path(directory) / "runtime.json"
+            runtime_path.write_text(
+                json.dumps(
+                    {
+                        "host": "127.0.0.1",
+                        "port": 6518,
+                        "token": "successor-secret",
+                        "repository_key": "repository-a",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            client = CoordinatorClient(
+                "http://127.0.0.1:6518",
+                "predecessor-secret",
+                expected_repository_key="repository-a",
+                runtime_path=runtime_path,
+                command_timeout_seconds=1.0,
+            )
+
+            def request(current, method, path, payload=None):
+                calls.append((current.token, method, path))
+                if path == "/control/v1/actions/preview":
+                    return self._preview()
+                if path.endswith("/confirm"):
+                    return {"action": executing}
+                if current.token == "predecessor-secret":
+                    raise CoordinatorClientError(
+                        "unauthorized", "successor rejected predecessor token"
+                    )
+                return {"action": succeeded}
+
+            with (
+                mock.patch.object(CoordinatorClient, "control_request", new=request),
+                mock.patch("tools.session_coordinator.client.time.sleep", return_value=None),
+            ):
+                result = client.execute_control_action(
+                    "service.rollover",
+                    {"timeoutSeconds": 30},
+                    reason="follow the durable action across credential rotation",
+                )
+
+        self.assertEqual(succeeded, result)
+        self.assertEqual(1, sum(path.endswith("/confirm") for _, _, path in calls))
+        self.assertEqual("successor-secret", calls[-1][0])
+        self.assertEqual("/control/v1/actions/action-a", calls[-1][2])
 
     def test_non_rollover_action_identity_mismatch_is_not_retried(self) -> None:
         executing = {

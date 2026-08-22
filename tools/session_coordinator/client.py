@@ -7,7 +7,8 @@ import time
 import urllib.error
 import urllib.request
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any
 
 from .config import CoordinatorConfig
@@ -49,6 +50,7 @@ class CoordinatorClient:
     base_url: str
     token: str
     expected_repository_key: str | None = None
+    runtime_path: Path | None = None
     timeout_seconds: float = 3.0
     control_timeout_seconds: float = 30.0
     command_timeout_seconds: float = 300.0
@@ -89,6 +91,7 @@ class CoordinatorClient:
             base_url=f"http://{host}:{port}",
             token=token,
             expected_repository_key=config.repository_key,
+            runtime_path=config.runtime_path,
             command_timeout_seconds=_environment_timeout_seconds(
                 "ZIRCON_COORDINATOR_COMMAND_TIMEOUT_SECONDS", 300.0
             ),
@@ -297,6 +300,7 @@ class CoordinatorClient:
                 "invalid_response", "Coordinator action confirmation omitted its result"
             )
         deadline = time.monotonic() + self.command_timeout_seconds
+        polling_client = self
         while action.get("status") in _PENDING_ACTION_STATUSES:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
@@ -307,14 +311,20 @@ class CoordinatorClient:
                 )
             time.sleep(min(_ACTION_POLL_INTERVAL_SECONDS, remaining))
             try:
-                detail = self.control_request("GET", f"/control/v1/actions/{action_id}")
+                detail = polling_client.control_request(
+                    "GET", f"/control/v1/actions/{action_id}"
+                )
             except CoordinatorClientError as error:
-                if kind != "service.rollover" or error.code not in {
+                recoverable = kind == "service.rollover" and error.code in {
                     "offline",
                     "command_timeout",
                     "action_instance_mismatch",
-                }:
+                    "unauthorized",
+                }
+                if not recoverable:
                     raise
+                if error.code == "unauthorized":
+                    polling_client = polling_client._refresh_runtime_client()
                 continue
             action = detail.get("action")
             if not isinstance(action, dict):
@@ -360,7 +370,61 @@ class CoordinatorClient:
     def _verify_endpoint_repository(self) -> None:
         if self.expected_repository_key is None:
             return
-        self._require_expected_repository(self._request("GET", "/health"))
+        try:
+            identity = self._request("GET", "/identity")
+        except CoordinatorClientError as error:
+            if error.code != "not_found":
+                raise
+            identity = self._request(
+                "GET", "/health", timeout_seconds=self.control_timeout_seconds
+            )
+        self._require_expected_repository(identity)
+
+    def _refresh_runtime_client(self) -> "CoordinatorClient":
+        if self.runtime_path is None:
+            raise CoordinatorClientError(
+                "offline",
+                "Coordinator successor descriptor is unavailable",
+                details={"transport": "descriptor_absent"},
+            )
+        deadline = time.monotonic() + _RUNTIME_DESCRIPTOR_RETRY_SECONDS
+        while True:
+            try:
+                runtime = json.loads(self.runtime_path.read_text(encoding="utf-8"))
+                host = str(runtime["host"])
+                port = int(runtime["port"])
+                token = str(runtime["token"])
+                descriptor_key = runtime.get("repository_key")
+                if (
+                    descriptor_key is not None
+                    and self.expected_repository_key is not None
+                    and descriptor_key != self.expected_repository_key
+                ):
+                    raise CoordinatorClientError(
+                        "repository_mismatch",
+                        "Coordinator successor descriptor belongs to another repository",
+                        details={
+                            "expectedRepositoryKey": self.expected_repository_key,
+                            "actualRepositoryKey": descriptor_key,
+                        },
+                    )
+                if not token:
+                    raise ValueError("runtime token is empty")
+                return replace(
+                    self,
+                    base_url=f"http://{host}:{port}",
+                    token=token,
+                )
+            except CoordinatorClientError:
+                raise
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                if time.monotonic() >= deadline:
+                    raise CoordinatorClientError(
+                        "offline",
+                        "Coordinator successor descriptor is unavailable",
+                        details={"transport": "descriptor_absent"},
+                    ) from error
+                time.sleep(_RUNTIME_DESCRIPTOR_POLL_INTERVAL_SECONDS)
 
     def _require_expected_repository(self, health: dict[str, Any]) -> None:
         if self.expected_repository_key is None:

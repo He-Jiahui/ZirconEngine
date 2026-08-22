@@ -147,6 +147,7 @@ class ControlRecoveryTests(unittest.TestCase):
             )
             running = RunningCoordinator.start(config)
             try:
+                running.httpd.application.lifecycle.allow_global_shutdown = True
                 client = CoordinatorClient.from_runtime(config)
                 preview = client.control_request(
                     "POST",

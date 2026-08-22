@@ -670,6 +670,15 @@ class CoordinatorApplication:
             "codex_sync": self.codex_worker.snapshot(),
         }
 
+    def identity(self) -> dict[str, Any]:
+        return {
+            "status": "ok",
+            "repository_key": self.repository_identity.key,
+            "instance_id": self.instance_id,
+            "process_creation_time": self.process_identity.creation_time,
+            "schema_version": LATEST_SCHEMA_VERSION,
+        }
+
     def _codex_sync_writable(self) -> bool:
         if self.read_only:
             return False
@@ -2509,6 +2518,9 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
             self.server.control_http.handle(self)
             return
         if not self._authorized():
+            return
+        if self.path == "/identity":
+            self._write_json(HTTPStatus.OK, self.server.application.identity())
             return
         if self.path == "/health":
             self._write_json(HTTPStatus.OK, self.server.application.health())
