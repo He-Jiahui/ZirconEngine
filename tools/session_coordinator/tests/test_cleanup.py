@@ -15,6 +15,7 @@ from tools.session_coordinator.cargo_jobs import (
     TargetPathPolicy,
 )
 from tools.session_coordinator.cleanup import CleanupService
+from tools.session_coordinator.cleanup_deletion import begin_target_deletion
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
@@ -72,6 +73,32 @@ class CleanupTests(unittest.TestCase):
                 build_config=build_config,
             ),
         )
+
+    def record_validation_copy(
+        self,
+        job_root: Path,
+        *,
+        status: str = "materialized",
+        job_id: str = "validation-copy",
+    ) -> str:
+        job_root.mkdir(parents=True, exist_ok=True)
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO validation_copies(
+                       job_id, session_id, job_root, source_root, target_root,
+                       head_commit, manifest_json, status, created_at,
+                       external_sources_json
+                   ) VALUES (?, 'session-a', ?, ?, ?, 'head', '[]', ?, ?, '[]')""",
+                (
+                    job_id,
+                    str(job_root),
+                    str(job_root / "source"),
+                    str(job_root / "workspace"),
+                    status,
+                    utc_text(),
+                ),
+            )
+        return job_id
 
     def cleanup_events(self, event_type: str) -> list[dict[str, object]]:
         with self.database.connect() as connection:
@@ -146,6 +173,99 @@ class CleanupTests(unittest.TestCase):
             target_dir=job.target_dir,
             owner_job_id=job.job_id,
         )
+
+    def test_immediate_cleanup_refuses_parent_of_materialized_validation_copy(self) -> None:
+        job = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "copy-parent",
+        )
+        marker = Path(job.target_dir) / "keep.txt"
+        marker.write_text("keep", encoding="utf-8")
+        self.jobs.release(job.job_id, session_id="session-a")
+        copy_root = Path(job.target_dir) / "validation-copy"
+        copy_id = self.record_validation_copy(copy_root)
+
+        result = self.cleanup.cleanup_job_now(job.job_id)
+
+        self.assertEqual((), result.deleted)
+        self.assertEqual(
+            ("validation_copy_overlap",), tuple(item.code for item in result.denied)
+        )
+        self.assertIn(copy_id, result.denied[0].message)
+        self.assertEqual("keep", marker.read_text(encoding="utf-8"))
+        with self.database.connect() as connection:
+            self.assertEqual(
+                0,
+                connection.execute(
+                    "SELECT COUNT(*) FROM cleanup_reservations WHERE reservation_kind='cargo'"
+                ).fetchone()[0],
+            )
+            self.assertEqual(
+                "materialized",
+                connection.execute(
+                    "SELECT status FROM validation_copies WHERE job_id=?", (copy_id,)
+                ).fetchone()[0],
+            )
+        denial = self.cleanup_events("cleanup.validation_copy_overlap_denied")[-1]
+        self.assertEqual("validation_copy_overlap", denial["code"])
+        self.assertEqual("prompt_cleanup", denial["trigger"])
+        self.assertEqual(job.target_dir, denial["target_dir"])
+        self.assertEqual(copy_id, denial["validation_copy"]["job_id"])
+        self.assertEqual(str(copy_root), denial["validation_copy"]["path"])
+
+    def test_immediate_cleanup_refuses_child_of_materialized_validation_copy(self) -> None:
+        copy_parent = self.target_root / "copy-owner"
+        copy_parent.mkdir()
+        job = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.CHECK,
+            requested_target=copy_parent / "cargo-child",
+        )
+        marker = Path(job.target_dir) / "keep.txt"
+        marker.write_text("keep", encoding="utf-8")
+        self.jobs.release(job.job_id, session_id="session-a")
+        self.record_validation_copy(copy_parent)
+
+        result = self.cleanup.cleanup_job_now(job.job_id)
+
+        self.assertEqual((), result.deleted)
+        self.assertEqual(
+            ("validation_copy_overlap",), tuple(item.code for item in result.denied)
+        )
+        self.assertEqual("keep", marker.read_text(encoding="utf-8"))
+
+    def test_removed_and_nonoverlapping_validation_copies_do_not_block_cleanup(self) -> None:
+        removed_job = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "removed-copy-target",
+        )
+        self.jobs.release(removed_job.job_id, session_id="session-a")
+        self.record_validation_copy(
+            Path(removed_job.target_dir),
+            status="removed",
+            job_id="removed-validation-copy",
+        )
+
+        removed_result = self.cleanup.cleanup_job_now(removed_job.job_id)
+
+        self.assertEqual((removed_job.target_dir,), removed_result.deleted)
+
+        unrelated_job = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.TEST,
+            requested_target=self.target_root / "unrelated-cargo-target",
+        )
+        self.jobs.release(unrelated_job.job_id, session_id="session-a")
+        self.record_validation_copy(
+            self.target_root / "independent-validation-copy",
+            job_id="independent-validation-copy",
+        )
+
+        unrelated_result = self.cleanup.cleanup_job_now(unrelated_job.job_id)
+
+        self.assertEqual((unrelated_job.target_dir,), unrelated_result.deleted)
 
     def test_superseded_ephemeral_record_never_deletes_a_retained_pool(self) -> None:
         ephemeral = self.jobs.acquire(
@@ -557,6 +677,26 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(Path(released.target_dir).exists())
         self.assertTrue(any(item.code == "active_process" for item in result.denied))
 
+    def test_pressure_eviction_refuses_materialized_validation_copy_overlap(self) -> None:
+        released = self.acquire_reusable(
+            CargoLaneKind.TEST,
+            requested_target=self.target_root / "pressure-copy-parent",
+        )
+        marker = Path(released.target_dir) / "keep.txt"
+        marker.write_text("keep", encoding="utf-8")
+        self.jobs.release(released.job_id, session_id="session-a")
+        self.record_validation_copy(Path(released.target_dir))
+
+        result = self.cleanup.evict_idle_pools_under_pressure()
+
+        self.assertEqual((), result.deleted)
+        self.assertTrue(
+            any(item.code == "validation_copy_overlap" for item in result.denied)
+        )
+        self.assertEqual("keep", marker.read_text(encoding="utf-8"))
+        denial = self.cleanup_events("cleanup.validation_copy_overlap_denied")[-1]
+        self.assertEqual("pressure_eviction", denial["trigger"])
+
     def test_orphaned_ephemeral_pool_is_retried_and_deleted(self) -> None:
         job = self.jobs.acquire(
             "session-a", CargoLaneKind.CHECK, owner_pid=9999
@@ -592,6 +732,36 @@ class CleanupTests(unittest.TestCase):
 
         self.assertEqual((first.target_dir,), applied.deleted)
         self.assertTrue(Path(second.target_dir).exists())
+
+    def test_cleanup_apply_rechecks_validation_copy_created_after_plan(self) -> None:
+        job = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "planned-copy-parent",
+        )
+        marker = Path(job.target_dir) / "keep.txt"
+        marker.write_text("keep", encoding="utf-8")
+        self.jobs.release(job.job_id, session_id="session-a")
+        cleanup_time = datetime.now(UTC) + timedelta(days=2)
+        plan = self.cleanup.plan(now=cleanup_time, older_than_hours=1)
+        self.assertEqual((job.target_dir,), plan.candidates)
+        self.record_validation_copy(Path(job.target_dir))
+
+        applied = self.cleanup.apply(plan, now=cleanup_time)
+
+        self.assertEqual((), applied.deleted)
+        self.assertTrue(
+            any(item.code == "validation_copy_overlap" for item in applied.denied)
+        )
+        self.assertEqual("keep", marker.read_text(encoding="utf-8"))
+        with self.database.connect() as connection:
+            self.assertEqual(
+                0,
+                connection.execute(
+                    "SELECT COUNT(*) FROM cleanup_reservations WHERE reservation_kind='cargo'"
+                ).fetchone()[0],
+            )
+        denial = self.cleanup_events("cleanup.validation_copy_overlap_denied")[-1]
+        self.assertEqual("explicit_plan", denial["trigger"])
 
     def test_cleanup_reservation_blocks_overlapping_reacquire_without_writer_lock(self) -> None:
         job = self.acquire_reusable(CargoLaneKind.CHECK)
@@ -687,6 +857,68 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(completed["recovered"])
         self.assertFalse(Path(job.target_dir).exists())
         self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+
+    def test_service_restart_blocks_interrupted_deletion_owned_by_validation_copy(self) -> None:
+        job = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "restart-copy-parent",
+        )
+        marker = Path(job.target_dir) / "keep.txt"
+        marker.write_text("keep", encoding="utf-8")
+        self.jobs.release(job.job_id, session_id="session-a")
+        copy_id = self.record_validation_copy(Path(job.target_dir))
+        key = job.target_dir.replace("/", "\\").casefold()
+        with self.database.transaction() as connection:
+            rows = connection.execute(
+                "SELECT * FROM cargo_jobs WHERE target_key=?", (key,)
+            ).fetchall()
+            connection.execute(
+                "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, ?)",
+                (key, job.target_dir, utc_text()),
+            )
+            begin_target_deletion(
+                connection,
+                trigger="pressure_eviction",
+                target_key=key,
+                target_dir=job.target_dir,
+                owner=rows[-1],
+                overlapping_jobs=rows,
+                process_alive=lambda _pid: False,
+            )
+
+        self.assertEqual(1, self.cleanup.recover_reservations())
+
+        self.assertEqual("keep", marker.read_text(encoding="utf-8"))
+        self.assertEqual("failed", self.jobs.get(job.job_id).cleanup_status.value)
+        completed = self.cleanup_events("cleanup.target_deletion_completed")[-1]
+        self.assertEqual("blocked_by_validation_copy_after_restart", completed["result"])
+        self.assertIn(copy_id, completed["error"])
+        denial = self.cleanup_events("cleanup.validation_copy_overlap_denied")[-1]
+        self.assertEqual("restart_recovery", denial["trigger"])
+        self.assertEqual(copy_id, denial["validation_copy"]["job_id"])
+        with self.database.connect() as connection:
+            self.assertEqual(
+                0,
+                connection.execute(
+                    "SELECT COUNT(*) FROM cleanup_reservations WHERE target_key=?", (key,)
+                ).fetchone()[0],
+            )
+            self.assertEqual(
+                "materialized",
+                connection.execute(
+                    "SELECT status FROM validation_copies WHERE job_id=?", (copy_id,)
+                ).fetchone()[0],
+            )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET status='removed', removed_at=? WHERE job_id=?",
+                (utc_text(), copy_id),
+            )
+
+        retried = self.cleanup.cleanup_job_now(job.job_id)
+
+        self.assertEqual((job.target_dir,), retried.deleted)
+        self.assertFalse(Path(job.target_dir).exists())
 
     def test_service_restart_keeps_reservation_when_interrupted_deletion_fails(self) -> None:
         job = self.acquire_reusable(CargoLaneKind.CHECK)

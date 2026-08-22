@@ -9,6 +9,7 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from .cargo_jobs import target_identity, targets_overlap
 from .models import utc_text
 
 
@@ -22,6 +23,70 @@ class DeletionEvidence:
     owner_session_id: str
     before: dict[str, object]
     executor: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationCopyOverlap:
+    job_id: str
+    status: str
+    path_kind: str
+    path: str
+
+    @property
+    def message(self) -> str:
+        return (
+            f"Validation copy {self.job_id} ({self.status}) owns "
+            f"{self.path_kind} {self.path}"
+        )
+
+
+def overlapping_validation_copy(
+    connection: sqlite3.Connection,
+    target_key: str,
+) -> ValidationCopyOverlap | None:
+    rows = connection.execute(
+        """SELECT job_id, status, job_root, target_root
+           FROM validation_copies
+           WHERE status <> 'removed'
+           ORDER BY created_at, job_id"""
+    ).fetchall()
+    for row in rows:
+        for path_kind in ("job_root", "target_root"):
+            path = str(row[path_kind])
+            if targets_overlap(target_key, target_identity(path)):
+                return ValidationCopyOverlap(
+                    job_id=str(row["job_id"]),
+                    status=str(row["status"]),
+                    path_kind=path_kind,
+                    path=path,
+                )
+    return None
+
+
+def record_validation_copy_overlap_denial(
+    connection: sqlite3.Connection,
+    *,
+    trigger: str,
+    target_key: str,
+    target_dir: str,
+    overlap: ValidationCopyOverlap,
+) -> None:
+    _insert_event(
+        connection,
+        "cleanup.validation_copy_overlap_denied",
+        {
+            "code": "validation_copy_overlap",
+            "trigger": trigger,
+            "target_key": target_key,
+            "target_dir": target_dir,
+            "validation_copy": {
+                "job_id": overlap.job_id,
+                "status": overlap.status,
+                "path_kind": overlap.path_kind,
+                "path": overlap.path,
+            },
+        },
+    )
 
 
 def begin_target_deletion(

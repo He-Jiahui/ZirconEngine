@@ -28,6 +28,8 @@ from .cleanup_deletion import (
     complete_target_deletion,
     complete_interrupted_target_deletion,
     interrupted_target_deletions,
+    overlapping_validation_copy,
+    record_validation_copy_overlap_denial,
 )
 from .models import CoordinatorError, utc_text
 from .snapshots import ObjectStore
@@ -413,6 +415,36 @@ class CleanupService:
             target_text = str(evidence["target_dir"])
             try:
                 target = self.cargo_jobs.target_policy.validate(target_text)
+                with self.database.transaction() as connection:
+                    copy_overlap = overlapping_validation_copy(connection, target_key)
+                    if copy_overlap is not None:
+                        record_validation_copy_overlap_denial(
+                            connection,
+                            trigger="restart_recovery",
+                            target_key=target_key,
+                            target_dir=target_text,
+                            overlap=copy_overlap,
+                        )
+                        complete_interrupted_target_deletion(
+                            connection,
+                            evidence,
+                            result="blocked_by_validation_copy_after_restart",
+                            error=copy_overlap.message,
+                        )
+                        connection.execute(
+                            """UPDATE cargo_jobs
+                               SET cleanup_status='failed', cleanup_error=?
+                               WHERE target_key=?""",
+                            (copy_overlap.message, target_key),
+                        )
+                        connection.execute(
+                            """DELETE FROM cleanup_reservations
+                               WHERE target_key=? AND reservation_kind='cargo'""",
+                            (target_key,),
+                        )
+                if copy_overlap is not None:
+                    reconciled.append(str(evidence["deletion_id"]))
+                    continue
                 existed = target.exists()
                 if existed:
                     shutil.rmtree(target)
@@ -514,6 +546,9 @@ class CleanupService:
         """Delete a non-reusable lane immediately after ownership has ended."""
         job = self.cargo_jobs.get(job_id)
         retry_failed_target = job.cleanup_status is CargoCleanupStatus.FAILED
+        cleanup_trigger = (
+            "retry_failed_cleanup" if retry_failed_target else "prompt_cleanup"
+        )
         if (
             job.cleanup_policy is not CargoCleanupPolicy.DELETE_ON_RELEASE
             and not retry_failed_target
@@ -589,6 +624,21 @@ class CleanupService:
                     ),
                 )
                 return CleanupResult((), ())
+            copy_overlap = overlapping_validation_copy(connection, key)
+            if copy_overlap is not None:
+                record_validation_copy_overlap_denial(
+                    connection,
+                    trigger=cleanup_trigger,
+                    target_key=key,
+                    target_dir=str(target),
+                    overlap=copy_overlap,
+                )
+                denial = CleanupDenial(
+                    str(target),
+                    "validation_copy_overlap",
+                    copy_overlap.message,
+                )
+                return CleanupResult((), (denial,))
             connection.execute(
                 "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, ?)",
                 (key, str(target), utc_text()),
@@ -596,11 +646,7 @@ class CleanupService:
             owner = next(row for row in all_rows if row["job_id"] == job_id)
             deletion_evidence = begin_target_deletion(
                 connection,
-                trigger=(
-                    "retry_failed_cleanup"
-                    if retry_failed_target
-                    else "prompt_cleanup"
-                ),
+                trigger=cleanup_trigger,
                 target_key=key,
                 target_dir=str(target),
                 owner=owner,
@@ -861,6 +907,25 @@ class CleanupService:
                                 str(target),
                                 "cleanup_already_reserved",
                                 "Cargo pool is already reserved for cleanup",
+                            )
+                        )
+                        continue
+                    copy_overlap = overlapping_validation_copy(
+                        connection, target_key
+                    )
+                    if copy_overlap is not None:
+                        record_validation_copy_overlap_denial(
+                            connection,
+                            trigger="pressure_eviction",
+                            target_key=target_key,
+                            target_dir=str(target),
+                            overlap=copy_overlap,
+                        )
+                        denied.append(
+                            CleanupDenial(
+                                str(target),
+                                "validation_copy_overlap",
+                                copy_overlap.message,
                             )
                         )
                         continue
@@ -1179,6 +1244,23 @@ class CleanupService:
                             target_text,
                             "cleanup_already_reserved",
                             "Cargo lane is already reserved by another cleanup",
+                        )
+                    )
+                    continue
+                copy_overlap = overlapping_validation_copy(connection, key)
+                if copy_overlap is not None:
+                    record_validation_copy_overlap_denial(
+                        connection,
+                        trigger="explicit_plan",
+                        target_key=key,
+                        target_dir=target_text,
+                        overlap=copy_overlap,
+                    )
+                    denied.append(
+                        CleanupDenial(
+                            target_text,
+                            "validation_copy_overlap",
+                            copy_overlap.message,
                         )
                     )
                     continue
