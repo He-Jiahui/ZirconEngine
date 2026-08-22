@@ -58,6 +58,7 @@ class WorkContinuationService:
                    END AS wait_kind
             FROM sessions
             WHERE plan_path IS NOT NULL
+              AND session_role='primary'
               AND (
                   status IN ('waiting_validation', 'waiting_lease')
                   OR (

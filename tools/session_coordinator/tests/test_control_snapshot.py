@@ -206,28 +206,33 @@ class ControlSnapshotTests(unittest.TestCase):
         )
         self.assertEqual("external", snapshot["sessions"][0]["waitKind"])
 
-    def test_waiting_sessions_pull_distinct_unowned_code_failures_when_same_plan_is_done(
+    def test_waiting_sessions_pull_distinct_unowned_code_failures_when_their_plans_are_done(
         self,
     ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
-            primary = repo / "docs" / "plans" / "tooling" / "01-primary.md"
-            primary.parent.mkdir(parents=True)
-            primary.write_text(
-                "# Primary\n\n"
-                "## M1 — Main work\n\n"
-                "### Implementation slices\n\n"
-                "- [x] Complete the primary edit.\n",
-                encoding="utf-8",
-            )
+            plan_paths = {
+                "waiting-first": "docs/plans/tooling/01-primary.md",
+                "waiting-second": "docs/plans/tooling/02-secondary.md",
+            }
+            for plan_path in plan_paths.values():
+                plan = repo / plan_path
+                plan.parent.mkdir(parents=True, exist_ok=True)
+                plan.write_text(
+                    "# Primary\n\n"
+                    "## M1 — Main work\n\n"
+                    "### Implementation slices\n\n"
+                    "- [x] Complete the primary edit.\n",
+                    encoding="utf-8",
+                )
             database = Database(root / "state.sqlite3")
             migrate(database)
             sessions = SessionService(database, repo)
-            for session_id in ("waiting-first", "waiting-second"):
+            for session_id, plan_path in plan_paths.items():
                 sessions.register(
                     session_id=session_id,
-                    plan_path="docs/plans/tooling/01-primary.md",
+                    plan_path=plan_path,
                 )
                 sessions.set_status(session_id, SessionStatus.ACTIVE)
                 sessions.set_status(session_id, SessionStatus.WAITING_VALIDATION)
@@ -304,7 +309,7 @@ class ControlSnapshotTests(unittest.TestCase):
                 },
                 {
                     "sessionId": "waiting-second",
-                    "planPath": "docs/plans/tooling/01-primary.md",
+                    "planPath": "docs/plans/tooling/02-secondary.md",
                     "waitKind": "external",
                     "candidate": {
                         "kind": "unowned_failure",
@@ -317,6 +322,86 @@ class ControlSnapshotTests(unittest.TestCase):
                 }
             ],
             snapshot["experience"]["continuations"],
+        )
+
+    def test_reviewer_wait_does_not_receive_a_write_continuation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            plan_path = "docs/plans/tooling/01-primary.md"
+            plan = repo / plan_path
+            plan.parent.mkdir(parents=True)
+            plan.write_text(
+                "# Primary\n\n"
+                "## M1 — Main work\n\n"
+                "### Implementation slices\n\n"
+                "- [x] Complete the primary edit.\n",
+                encoding="utf-8",
+            )
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="waiting-primary", plan_path=plan_path)
+            sessions.set_status("waiting-primary", SessionStatus.ACTIVE)
+            sessions.set_status("waiting-primary", SessionStatus.WAITING_VALIDATION)
+            sessions.register(
+                session_id="waiting-reviewer",
+                plan_path=plan_path,
+                session_role="reviewer",
+                parent_session_id="waiting-primary",
+            )
+            sessions.set_status("waiting-reviewer", SessionStatus.ACTIVE)
+            sessions.set_status("waiting-reviewer", SessionStatus.WAITING_VALIDATION)
+            with database.transaction() as connection:
+                connection.executemany(
+                    """
+                    INSERT INTO failure_nodes(
+                        lifecycle_key, artifact_path, kind, status, created_at, resolved_at,
+                        summary_slug, origin_plan, fixing_plan, origin_child_dir,
+                        fixing_child_dir, priority, imported_at
+                    ) VALUES (?, ?, 'failure', 'open', ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        (
+                            "first-code-work",
+                            "docs/plans/runtime/02/failure-code.md",
+                            "2026-07-17T11:00:00+00:00",
+                            "repair-runtime-command-path",
+                            plan_path,
+                            "docs/plans/runtime/02-code.md",
+                            "docs/plans/tooling/01",
+                            "docs/plans/runtime/02",
+                            10,
+                            "2026-07-17T11:00:00+00:00",
+                        ),
+                        (
+                            "second-code-work",
+                            "docs/plans/runtime/03/failure-code.md",
+                            "2026-07-17T12:00:00+00:00",
+                            "repair-render-command-path",
+                            plan_path,
+                            "docs/plans/runtime/03-render.md",
+                            "docs/plans/tooling/01",
+                            "docs/plans/runtime/03",
+                            20,
+                            "2026-07-17T12:00:00+00:00",
+                        ),
+                    ),
+                )
+
+            snapshot = ControlSnapshotService(
+                database,
+                WorkflowProjectionService(),
+                lambda _connection: {"status": "ok"},
+                repo_root=repo,
+            ).build()
+
+        self.assertEqual(
+            ["waiting-primary"],
+            [
+                item["sessionId"]
+                for item in snapshot["experience"]["continuations"]
+            ],
         )
 
     def test_active_session_keeps_validation_continuation_while_reservation_is_pending(
