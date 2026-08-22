@@ -324,7 +324,17 @@ class CoordinatorClient:
                 if not recoverable:
                     raise
                 if error.code == "unauthorized":
-                    polling_client = polling_client._refresh_runtime_client()
+                    try:
+                        polling_client = polling_client._refresh_runtime_client()
+                    except CoordinatorClientError as refresh_error:
+                        descriptor_gap = (
+                            polling_client.runtime_path is not None
+                            and refresh_error.code == "offline"
+                            and refresh_error.details.get("transport")
+                            == "descriptor_absent"
+                        )
+                        if not descriptor_gap:
+                            raise
                 continue
             action = detail.get("action")
             if not isinstance(action, dict):

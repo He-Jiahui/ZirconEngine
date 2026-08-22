@@ -19,6 +19,7 @@ related_code:
   - tools/session_coordinator/tests/test_client.py
   - tools/session_coordinator/tests/test_control_http.py
   - tools/session_coordinator/tests/test_control_recovery.py
+  - tools/session_coordinator/tests/test_deferred_action_client.py
   - tools/session_coordinator/tests/test_runtime_descriptor.py
   - tools/session_coordinator/tests/test_server.py
 ---
@@ -41,12 +42,17 @@ related_code:
 - Managed r1 ticket `27660d876ed640d0bffa030e8d8b4fd8` correctly failed because its validation-copy dependency roots omitted the existing plan-handoff validator; no source behavior failed and the copy was not reused.
 - Managed r2 ticket `8a4d7238f3174339b77f21dd22f9e6f1` retained source manifest `bc49375c5de599d23ef5df86c467db77a0318de3c2305a7195d7d9b88e09bdaa`, added only the validator dependency root, and passed 130/130 from copy job `f0d134938e3c4227a92291454b795901` with exit 0 in 382.657s.
 - Managed r3 ticket `9f27ed02b50540e2a62b4976a438bfa5` exposed one deterministic-test defect: the late-POST reconciliation case asserted the final polling diagnostic even though an earlier status GET had already returned and a last-millisecond retry could time out. The production client is unchanged; the test now uses a direct Handler event to prove the GET overtakes the blocked POST while submission remains unknown, and passed 10/10 independent-process repetitions.
+- Managed r4 ticket `8207f4f1e5464f499d055ccb169400ab` passed the final nine-path manifest `f613395374b8038a9367085693506ba95d57bf031e0848bd36106acb1680549c`: 130/130, job `9d4d05b64b2543fcbf8e0f6ad4a6c077`, exit 0 in 378.553s. Candidate `b3bf654d18a34d2f890e0e0b59fdd6f5` integrated commit `b674450632e152ef265e7f6d0fcca93d978e814d`.
+- Live post-commit rollover action `93b59d2cec6c43c0bc18d655884c17b0` succeeded once, with successor `7b0fe09b6cdb48229a1ffdd14d722a31` healthy on schema 65. The caller nevertheless exited after 134 seconds: its first successor-token refresh observed a descriptor gap longer than the private two-second retry window and propagated `offline/descriptor_absent`, even though the same durable action completed successfully.
+- RED r5: `test_rollover_status_poll_survives_successor_descriptor_gap` injects one typed descriptor absence before the successor token becomes available. The pre-r5 client aborts on that first absence instead of preserving the original action poll.
 
 ## 最低共享层根因
 
 RunningCoordinator publishes an empty runtime token, CoordinatorClient sends no bearer, CoordinatorRequestHandler._authorized always succeeds, and ControlPlaneHttp marks every loopback request runtime-authorized; this bypasses browser Origin/cookie/CSRF and runtime credential boundaries.
 
 初始 bearer hard-cutover 已进入 HEAD，但 client 仍把含完整 blocker 清单的 `/health` 当每次 control request 的身份探针，并把 bearer rotation 当不可恢复授权失败。认证边界正确后，这两个旧假设分别造成规模相关的 command preflight timeout 与 rollover 成功后的假失败。
+
+r4 token refresh still treated its private descriptor-read retry window as terminal for the entire confirmed action. Descriptor publication is a transient transport observation; only the outer action deadline may terminate same-action reconciliation.
 
 ## 架构修复验收
 
@@ -57,6 +63,7 @@ RunningCoordinator publishes an empty runtime token, CoordinatorClient sends no 
 - Focused control HTTP, client, runtime descriptor, server, security matrix, and control recovery suites pass after hard cutover.
 - Repository identity preflight has a bearer-authenticated constant-size projection; predecessor compatibility may fall back only on typed endpoint absence and uses the bounded control timeout.
 - A confirmed rollover may reload only the successor descriptor after typed `unauthorized`, then query the same action ID; it never repeats preview or confirmation.
+- A typed successor `descriptor_absent` observation keeps polling that same action until the outer command deadline; repository mismatch and clients without a runtime descriptor still fail immediately.
 
 ## 禁止临时方案
 
@@ -65,4 +72,4 @@ RunningCoordinator publishes an empty runtime token, CoordinatorClient sends no 
 
 ## 修复结果与回传
 
-Open state: production and focused tests implement per-instance bearer, bounded `/identity`, browser ticket/cookie/Origin/CSRF enforcement and same-action rollover token refresh. Live controlled rollover intent `7d857f28c5964cc8b32be8bd2b4422a5` succeeded from instance `d4a0ceae...` to `335e1fb2...`; successor is schema 65 / `read_write` / healthy, descriptor token length is 43, and the four stale `mvp-test-fixtures-*` cleanup reservations are absent. Local and immutable-copy security/client/server regressions are 130/130 green. A final manifest-bound ticket after this evidence update, scoped commit, WeCom receipt and post-commit rollover remain required before this record can become fixed.
+Open state: r4 integrated the authenticated identity/token-refresh hard cutover as commit `b674450632e152ef265e7f6d0fcca93d978e814d`; its one post-commit rollover reached healthy successor `7b0fe09b...` without replaying the action. The live descriptor-gap false failure is reproduced and its focused r5 client suites pass 34/34 locally. A new exact manifest-bound ticket, scoped r5 commit, WeCom receipt and one post-r5 controlled reload remain required before this record can become fixed.

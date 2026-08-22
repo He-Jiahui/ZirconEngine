@@ -217,6 +217,79 @@ class DeferredActionClientTests(unittest.TestCase):
         self.assertEqual("successor-secret", calls[-1][0])
         self.assertEqual("/control/v1/actions/action-a", calls[-1][2])
 
+    def test_rollover_status_poll_survives_successor_descriptor_gap(self) -> None:
+        executing = {
+            "actionId": "action-a",
+            "status": "executing",
+            "result": None,
+        }
+        succeeded = {
+            "actionId": "action-a",
+            "status": "succeeded",
+            "result": {"successorInstanceId": "daemon-b"},
+        }
+        predecessor = CoordinatorClient(
+            "http://127.0.0.1:6518",
+            "predecessor-secret",
+            runtime_path=Path("runtime.json"),
+            command_timeout_seconds=1.0,
+        )
+        successor = CoordinatorClient(
+            "http://127.0.0.1:6518",
+            "successor-secret",
+            runtime_path=Path("runtime.json"),
+            command_timeout_seconds=1.0,
+        )
+        calls: list[tuple[str, str]] = []
+
+        def request(current, method, path, payload=None):
+            calls.append((current.token, path))
+            if path == "/control/v1/actions/preview":
+                return self._preview()
+            if path.endswith("/confirm"):
+                return {"action": executing}
+            if current.token == "predecessor-secret":
+                raise CoordinatorClientError(
+                    "unauthorized", "successor rejected predecessor token"
+                )
+            return {"action": succeeded}
+
+        descriptor_absent = CoordinatorClientError(
+            "offline",
+            "Coordinator successor descriptor is unavailable",
+            details={"transport": "descriptor_absent"},
+        )
+        with (
+            mock.patch.object(CoordinatorClient, "control_request", new=request),
+            mock.patch.object(
+                CoordinatorClient,
+                "_refresh_runtime_client",
+                autospec=True,
+                side_effect=(descriptor_absent, successor),
+            ) as refresh,
+            mock.patch("tools.session_coordinator.client.time.sleep", return_value=None),
+        ):
+            result = predecessor.execute_control_action(
+                "service.rollover",
+                {"timeoutSeconds": 30},
+                reason="keep polling through the successor descriptor gap",
+            )
+
+        self.assertEqual(succeeded, result)
+        self.assertEqual(2, refresh.call_count)
+        self.assertEqual(1, sum(path.endswith("/confirm") for _, path in calls))
+        self.assertTrue(
+            all(
+                path in {
+                    "/control/v1/actions/preview",
+                    "/control/v1/actions/action-a/confirm",
+                    "/control/v1/actions/action-a",
+                }
+                for _, path in calls
+            )
+        )
+        self.assertEqual(("successor-secret", "/control/v1/actions/action-a"), calls[-1])
+
     def test_non_rollover_action_identity_mismatch_is_not_retried(self) -> None:
         executing = {
             "actionId": "action-a",
