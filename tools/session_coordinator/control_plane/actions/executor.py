@@ -442,6 +442,7 @@ class ActionExecutor:
         if kind in {
             ActionKind.SERVICE_STOP,
             ActionKind.SERVICE_RESTART,
+            ActionKind.SERVICE_ROLLOVER,
         }:
             if self.lifecycle is None:
                 raise CoordinatorError(

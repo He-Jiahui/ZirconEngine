@@ -270,7 +270,13 @@ class LifecycleService:
             )
             worker = threading.Thread(
                 target=self._complete_rollover,
-                args=(intent_id, action_id, actor, bool(result.get("waitingForCargo"))),
+                args=(
+                    intent_id,
+                    action_id,
+                    actor,
+                    bool(result.get("waitingForCargo")),
+                    time.monotonic() + timeout_seconds,
+                ),
                 name=f"zircon-lifecycle-rollover-{intent_id[:8]}",
                 daemon=True,
             )
@@ -598,11 +604,19 @@ class LifecycleService:
         action_id: str,
         actor: str,
         wait_for_cargo: bool,
+        deadline: float,
     ) -> None:
         """Wait for an existing Cargo tree without closing task admission or FIFO."""
         try:
             while wait_for_cargo and not self._closed.is_set():
                 if self._intent_cancelled(intent_id):
+                    return
+                if time.monotonic() >= deadline:
+                    self.supervision.fail_lifecycle(
+                        action_id,
+                        actor="daemon",
+                        error_code="lifecycle_rollover_timeout",
+                    )
                     return
                 result = self.supervision.arm_rollover(
                     intent_id,
@@ -611,7 +625,9 @@ class LifecycleService:
                 )
                 if not result.get("waitingForCargo"):
                     break
-                self._closed.wait(self.poll_seconds)
+                self._closed.wait(
+                    min(self.poll_seconds, max(0.0, deadline - time.monotonic()))
+                )
             if self._closed.is_set() or self._intent_cancelled(intent_id):
                 return
             self._shutdown_after_commit(LifecycleKind.ROLLOVER, action_id)

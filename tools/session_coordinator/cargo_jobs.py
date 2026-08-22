@@ -1881,6 +1881,18 @@ class CargoJobService:
         requested = self.target_policy.validate(requested_target) if requested_target else None
         target: Path | None = requested
         reused_from_job_id: str | None = None
+        if isinstance(owner_pid, bool) or (owner_pid is not None and owner_pid <= 0):
+            raise CoordinatorError(
+                "cargo_owner_pid_invalid", "Cargo lease owner PID must be a positive integer"
+            )
+        owner_creation_time = (
+            self._read_process_creation_time(owner_pid) if owner_pid is not None else None
+        )
+        owner_root_kind = (
+            CargoProcessRootKind.SUPERVISOR
+            if owner_pid is not None
+            else CargoProcessRootKind.CARGO
+        )
         now = utc_text()
         with self.database.transaction() as connection:
             self._require_admission_checkpoint(
@@ -2151,8 +2163,9 @@ class CargoJobService:
                     created_at, last_heartbeat_at, target_key, pid, reuse_key,
                     compatibility_json, compatibility_key, reuse_profile, cleanup_policy,
                     cleanup_status, reused_from_job_id, source_copy_job_id,
-                    source_copy_manifest_hash
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    source_copy_manifest_hash, root_process_creation_time,
+                    root_process_kind
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     job_id,
@@ -2178,6 +2191,8 @@ class CargoJobService:
                     reused_from_job_id,
                     source_copy_job_id,
                     source_copy_manifest_hash,
+                    owner_creation_time,
+                    owner_root_kind.value,
                 ),
             )
             if lane_reservation is not None:
@@ -2908,6 +2923,7 @@ class CargoJobService:
     ) -> tuple[int, ...]:
         if job.pid is None:
             return ()
+        root_identity_alive = True
         if job.root_process_creation_time is None:
             if job.status not in {
                 CargoJobStatus.LEASED,
@@ -2917,6 +2933,7 @@ class CargoJobService:
         else:
             observed_creation_time = self._read_process_creation_time(job.pid)
             if observed_creation_time is None:
+                root_identity_alive = False
                 if (
                     job.status
                     not in {CargoJobStatus.LEASED, CargoJobStatus.RUNNING}
@@ -2929,19 +2946,21 @@ class CargoJobService:
                     return ()
             elif observed_creation_time != job.root_process_creation_time:
                 return ()
+        cargo_descendants_only = (
+            job.status is CargoJobStatus.LEASED
+            or not include_supervisor_root
+            or not root_identity_alive
+        ) and (
+            job.root_process_kind is CargoProcessRootKind.SUPERVISOR
+            or job.status is CargoJobStatus.LEASED
+        )
         process_tree = (
             self.supervisor_cargo_pids
-            if (
-                not include_supervisor_root
-                and job.root_process_kind is CargoProcessRootKind.SUPERVISOR
-            )
+            if cargo_descendants_only
             else self.process_tree_pids
         )
         live_pids = {int(value) for value in process_tree(job.pid) if int(value) > 0}
-        if (
-            not include_supervisor_root
-            and job.root_process_kind is CargoProcessRootKind.SUPERVISOR
-        ):
+        if cargo_descendants_only:
             live_pids.discard(job.pid)
         return tuple(sorted(live_pids))
 
@@ -3151,7 +3170,10 @@ class CargoJobService:
             snapshot_job = self._from_row(snapshot)
             if snapshot_job.job_id in self._managed_collectors:
                 continue
-            live_pids = self._live_process_pids(snapshot_job)
+            live_pids = self._live_process_pids(
+                snapshot_job,
+                include_supervisor_root=snapshot_job.status is not CargoJobStatus.LEASED,
+            )
 
             # Re-read under a short write transaction.  A job may have
             # finished, been replaced, or acquired a new supervisor while the
@@ -3216,7 +3238,6 @@ class CargoJobService:
                 self._reported_health_timeouts.discard(job.job_id)
                 if (
                     row["status"] == CargoJobStatus.LEASED.value
-                    and job.pid is None
                     and (current_time - parse_utc(row["last_heartbeat_at"])).total_seconds()
                     <= leased_timeout_seconds
                 ):

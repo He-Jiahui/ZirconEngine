@@ -1278,7 +1278,8 @@ class SupervisionService:
 
         Live Cargo descendants defer the handoff while task admission stays open.
         Leased-but-unstarted jobs remain in SQLite so the successor preserves
-        their exact reservation and FIFO state.
+        their exact reservation and FIFO state, but they have no accepted Cargo
+        process identity and therefore cannot defer the handoff.
         """
         with self._transition_lock, self.database.transaction() as connection:
             intent = connection.execute(
@@ -1308,7 +1309,7 @@ class SupervisionService:
                 """
                 SELECT job_id, session_id, status, process_tree_live_pids_json
                 FROM cargo_jobs
-                WHERE status IN ('leased', 'running', 'orphaned')
+                WHERE status IN ('running', 'orphaned')
                 ORDER BY job_id
                 """
             ):

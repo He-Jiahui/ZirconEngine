@@ -944,7 +944,7 @@ class SupervisionActionTests(unittest.TestCase):
 
     def test_rollover_preserves_admission_and_unstarted_work_for_successor(self) -> None:
         """A code reload must not turn an empty process window into a global drain."""
-        self._insert_cargo_job("leased-job", status="leased", live_pids=[])
+        self._insert_cargo_job("leased-job", status="leased", live_pids=[4242])
         rolling = self._confirm(ActionKind.SERVICE_ROLLOVER)
 
         self.assertEqual("executing", rolling.status.value)
@@ -997,7 +997,7 @@ class SupervisionActionTests(unittest.TestCase):
                 "SELECT status, process_tree_live_pids_json FROM cargo_jobs WHERE job_id='leased-job'"
             ).fetchone()
         self.assertEqual("leased", job["status"])
-        self.assertEqual([], json.loads(job["process_tree_live_pids_json"]))
+        self.assertEqual([4242], json.loads(job["process_tree_live_pids_json"]))
         successor_snapshot = successor.snapshot()
         self.assertEqual("healthy", successor_snapshot.state.value)
         self.assertFalse(successor_snapshot.maintenance_hold)
@@ -1115,6 +1115,50 @@ class SupervisionActionTests(unittest.TestCase):
                 (rolling.action_id,),
             ).fetchone()
         self.assertEqual("awaiting_restart", armed["status"])
+
+    def test_waiting_rollover_can_be_cancelled_before_restart_is_armed(self) -> None:
+        self._insert_cargo_job("running-job", status="running", live_pids=[4242])
+        rolling = self._confirm(ActionKind.SERVICE_ROLLOVER)
+
+        cancelled = self.actions.cancel(
+            self.context,
+            rolling.action_id,
+            reason="operator cancelled deferred reload",
+        )
+
+        self.assertEqual("cancelled", cancelled.status.value)
+        self.assertEqual("healthy", self.supervision.snapshot().state.value)
+        self.assertFalse(self.shutdown.wait(0.1))
+        with self.database.connect() as connection:
+            intent = connection.execute(
+                "SELECT status, error_code FROM service_lifecycle_intents WHERE action_id=?",
+                (rolling.action_id,),
+            ).fetchone()
+        self.assertEqual("cancelled", intent["status"])
+        self.assertEqual("lifecycle_cancelled", intent["error_code"])
+
+    def test_waiting_rollover_reaches_a_durable_timeout(self) -> None:
+        self._insert_cargo_job("running-job", status="running", live_pids=[4242])
+        rolling = self._confirm(ActionKind.SERVICE_ROLLOVER, timeout=1)
+
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            record = self.actions.get(self.context, rolling.action_id)
+            if record.status.value == "failed":
+                break
+            time.sleep(0.01)
+        else:
+            self.fail("rollover action did not reach a durable timeout")
+
+        self.assertEqual("lifecycle_rollover_timeout", record.error_code)
+        self.assertFalse(self.shutdown.is_set())
+        with self.database.connect() as connection:
+            intent = connection.execute(
+                "SELECT status, error_code FROM service_lifecycle_intents WHERE action_id=?",
+                (rolling.action_id,),
+            ).fetchone()
+        self.assertEqual("failed", intent["status"])
+        self.assertEqual("lifecycle_rollover_timeout", intent["error_code"])
 
     def test_rollover_records_one_waiting_audit_until_live_cargo_changes(self) -> None:
         self._insert_cargo_job("running-job", status="running", live_pids=[4242])

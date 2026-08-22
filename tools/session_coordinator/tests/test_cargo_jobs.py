@@ -19,6 +19,7 @@ from tools.session_coordinator.cargo_jobs import (
     CargoJobService,
     CargoJobStatus,
     CargoLaneKind,
+    CargoProcessRootKind,
     TargetPathPolicy,
     target_identity,
 )
@@ -1426,6 +1427,35 @@ class CargoJobTests(unittest.TestCase):
 
         self.assertEqual((job.job_id,), tuple(item.job_id for item in orphaned))
         self.assertEqual(CargoJobStatus.ORPHANED, self.service.get(job.job_id).status)
+
+    def test_prestart_owner_is_a_proof_bound_supervisor_not_a_cargo_root(self) -> None:
+        self.service.process_tree_pids = lambda root_pid: (root_pid, 4242)
+        self.service.supervisor_cargo_pids = lambda _root_pid: ()
+
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.CHECK, owner_pid=9999
+        )
+
+        self.assertEqual(CargoProcessRootKind.SUPERVISOR, job.root_process_kind)
+        self.assertEqual("stable:9999", job.root_process_creation_time)
+        released = self.service.release(job.job_id, session_id="session-a")
+        self.assertEqual(CargoJobStatus.RELEASED, released.status)
+        self.assertEqual((), released.live_process_pids)
+
+    def test_recent_prestart_owner_survives_a_transient_empty_process_observation(self) -> None:
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.CHECK, owner_pid=9999
+        )
+        self.service.process_tree_pids = lambda _root_pid: ()
+        self.service.supervisor_cargo_pids = lambda _root_pid: ()
+
+        orphaned = self.service.reconcile_orphans(
+            now=datetime.now(UTC) + timedelta(minutes=1),
+            leased_timeout_seconds=300,
+        )
+
+        self.assertEqual((), orphaned)
+        self.assertEqual(CargoJobStatus.LEASED, self.service.get(job.job_id).status)
 
     def test_running_finish_and_release_preserve_job_audit(self) -> None:
         job = self.service.acquire("session-a", CargoLaneKind.WORKSPACE)
