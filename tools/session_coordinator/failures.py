@@ -1078,7 +1078,7 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
     def _fixed_content(
         self, content: str, resolution: FailureResolution, resolved_at: date
     ) -> str:
-        lines = content.splitlines()
+        lines = content.splitlines(keepends=True)
         if not lines or lines[0].strip() != "---":
             raise CoordinatorError("invalid_handoff", "Handoff is missing frontmatter")
         end = next(
@@ -1087,7 +1087,8 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
         )
         if end is None:
             raise CoordinatorError("invalid_handoff", "Handoff frontmatter is unterminated")
-        metadata_lines = lines[1:end]
+        newline = "\r\n" if "\r\n" in content else "\n"
+        metadata_lines = [line.rstrip("\r\n") for line in lines[1:end]]
         updates = {
             "handoff_kind": "fixed",
             "status": "fixed",
@@ -1105,24 +1106,100 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
         for key in ("handoff_kind", "status", "resolved_at"):
             if key not in found:
                 rewritten.append(f"{key}: {updates[key]}")
-        body = "\n".join(lines[end + 1 :])
-        heading = "## 修复结果与回传"
-        if heading not in body:
-            raise CoordinatorError("invalid_handoff", f"Handoff is missing {heading}")
-        prefix = body.split(heading, 1)[0].rstrip()
+        body_start = sum(len(line) for line in lines[: end + 1])
+        body = content[body_start:]
+        headings = self._markdown_level_two_headings(body)
+        heading_title = "修复结果与回传"
+        result_headings = [item for item in headings if item[0] == heading_title]
+        if not result_headings:
+            raise CoordinatorError(
+                "invalid_handoff", f"Handoff is missing ## {heading_title}"
+            )
+        if len(result_headings) != 1:
+            raise CoordinatorError(
+                "invalid_handoff", f"Handoff has duplicate ## {heading_title} sections"
+            )
+        _, heading_start, heading_end = result_headings[0]
+        next_heading_start = next(
+            (start for _, start, _ in headings if start > heading_start),
+            len(body),
+        )
         result = (
             f"- 根因：{resolution.root_cause.strip()}\n"
             f"- 架构修复：{resolution.architecture_fix.strip()}\n"
             f"- 验证：{resolution.validation.strip()}\n"
             f"- 回传：{resolution.return_summary.strip()}"
+        ).replace("\n", newline)
+        heading_has_newline = body[heading_start:heading_end].endswith(("\n", "\r"))
+        result_prefix = newline if heading_has_newline else newline * 2
+        result_suffix = newline * 2 if next_heading_start < len(body) else newline
+        fixed_body = (
+            body[:heading_end]
+            + result_prefix
+            + result
+            + result_suffix
+            + body[next_heading_start:]
         )
         return (
-            "---\n"
-            + "\n".join(rewritten)
-            + "\n---\n\n"
-            + prefix
-            + f"\n\n{heading}\n\n{result}\n"
+            "---"
+            + newline
+            + newline.join(rewritten)
+            + newline
+            + "---"
+            + newline
+            + fixed_body
         )
+
+    @staticmethod
+    def _markdown_level_two_headings(body: str) -> list[tuple[str, int, int]]:
+        headings: list[tuple[str, int, int]] = []
+        fence_character: str | None = None
+        fence_length = 0
+        offset = 0
+        for raw_line in body.splitlines(keepends=True):
+            line = raw_line.rstrip("\r\n")
+            fence_line = FailureGraphService._markdown_container_content(line)
+            if fence_character is not None:
+                closing = re.match(r"^ {0,3}(`{3,}|~{3,})[ \t]*$", fence_line)
+                if (
+                    closing is not None
+                    and closing.group(1)[0] == fence_character
+                    and len(closing.group(1)) >= fence_length
+                ):
+                    fence_character = None
+                    fence_length = 0
+                offset += len(raw_line)
+                continue
+            opening = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", fence_line)
+            if opening is not None and not (
+                opening.group(1)[0] == "`" and "`" in opening.group(2)
+            ):
+                fence_character = opening.group(1)[0]
+                fence_length = len(opening.group(1))
+                offset += len(raw_line)
+                continue
+            heading = re.match(r"^##(?=$|[ \t])(?P<title>.*)$", line)
+            if heading is not None:
+                title = heading.group("title").strip()
+                title = re.sub(r"[ \t]+#+[ \t]*$", "", title).strip()
+                headings.append((title, offset, offset + len(raw_line)))
+            offset += len(raw_line)
+        return headings
+
+    @staticmethod
+    def _markdown_container_content(line: str) -> str:
+        while True:
+            block_quote = re.match(r"^ {0,3}>[ \t]?", line)
+            if block_quote is not None:
+                line = line[block_quote.end() :]
+                continue
+            list_item = re.match(
+                r"^ {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]+|$)", line
+            )
+            if list_item is not None:
+                line = line[list_item.end() :]
+                continue
+            return line
 
     @staticmethod
     def _is_child_record_only(content: str) -> bool:

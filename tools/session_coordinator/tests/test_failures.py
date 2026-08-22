@@ -728,6 +728,77 @@ class FailureGraphTests(unittest.TestCase):
         self.assertIn("fixed-2026-07-16-child-record-only.md", receipt.read_text(encoding="utf-8"))
         self.assertEqual([], self.service.validator_errors())
 
+    def test_child_record_only_return_preserves_required_sections_after_result(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+        failure = self.fixture.add_handoff(origin, fixing, "section-preservation")
+        content = failure.read_text(encoding="utf-8")
+        content = content.replace(
+            "summary_slug:",
+            "plan_link_mode: child_record_only\nsummary_slug:",
+        ).replace(
+            "## 禁止临时方案\n\n- No fallback, alias, shim, or test bypass.\n\n"
+            "## 修复结果与回传\n\n待修复",
+            "## 修复结果与回传\n\n待修复\n\n"
+            "## 禁止临时方案\n\n- No fallback, alias, shim, or test bypass.",
+        )
+        content = content.replace(
+            "## 修复结果与回传\n\n待修复",
+            "```markdown\n## 修复结果与回传\n```\n\n"
+            "- ```markdown\n  ## 修复结果与回传\n  ```\n\n"
+            "> ```markdown\n> ## 修复结果与回传\n> ```\n\n"
+            "    ## 修复结果与回传\n\n"
+            "## 修复结果与回传\n\n待修复",
+        ).replace(
+            "- No fallback, alias, shim, or test bypass.",
+            "- No fallback, alias, shim, or test bypass.  \n"
+            "  Preserve this Markdown hard break.\n\n"
+            "## 后续证据\n\n- Preserve arbitrary trailing sections.",
+        )
+        self.assertLess(
+            content.rindex("## 修复结果与回传"),
+            content.index("## 禁止临时方案"),
+        )
+        expected_suffix = content[content.index("## 禁止临时方案") :]
+        failure.write_text(content, encoding="utf-8")
+        node = self.service.import_repository().nodes[0]
+
+        fixed = self.service.return_fixed(
+            node.lifecycle_key,
+            FailureResolution("root", "architecture", "validation", "return"),
+            resolved_at=date(2026, 7, 16),
+        )
+
+        fixed_content = fixed.read_text(encoding="utf-8")
+        self.assertEqual(
+            expected_suffix,
+            fixed_content[fixed_content.index("## 禁止临时方案") :],
+        )
+        self.assertEqual([], self.service.validator_errors())
+
+    def test_return_rejects_duplicate_real_result_sections(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+        failure = self.fixture.add_handoff(origin, fixing, "duplicate-result-section")
+        content = failure.read_text(encoding="utf-8").replace(
+            "## 修复结果与回传\n\n待修复",
+            "## 修复结果与回传\n\n待修复\n\n"
+            "## 修复结果与回传\n\nstale result",
+        )
+        failure.write_text(content, encoding="utf-8")
+        node = self.service.import_repository().nodes[0]
+
+        with self.assertRaises(CoordinatorError) as raised:
+            self.service.return_fixed(
+                node.lifecycle_key,
+                FailureResolution("root", "architecture", "validation", "return"),
+                resolved_at=date(2026, 7, 16),
+            )
+
+        self.assertEqual("invalid_handoff", raised.exception.code)
+        self.assertIn("duplicate", raised.exception.message)
+        self.assertTrue(failure.exists())
+
     def test_return_rolls_back_files_when_atomic_write_fails(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
         fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
