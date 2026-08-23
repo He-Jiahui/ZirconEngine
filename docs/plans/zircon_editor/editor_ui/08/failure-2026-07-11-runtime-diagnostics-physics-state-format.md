@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-intera
 fixing_plan: docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
 origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/08
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/tests/host/pane_presentation/
