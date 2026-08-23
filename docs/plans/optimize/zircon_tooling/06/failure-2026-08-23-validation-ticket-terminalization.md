@@ -14,6 +14,7 @@ related_code:
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_validation_tickets -v
   - validation ticket 9cc6e9bab31941b2b8aca8bfc0cd28fd
+  - candidate validation ticket 44e8ea02753c448b980a3689cbce58f6 (six-module batch, 181 passed)
 ---
 
 # Tooling 06: validation ticket loses an interrupted generic materialization
@@ -54,4 +55,11 @@ The older ticket `e56f23fb55b14274994f3dab84c493b3` did eventually produce a run
 
 ## 修复结果与回传
 
-Open state: `待批量验证`; no pass is claimed.
+- 候选快照已通过独立六模块回归批：validation ticket
+  `44e8ea02753c448b980a3689cbce58f6` 对 validation ticket、workspace copy、
+  Cargo runner、Cargo jobs 与 Windows Job Object 的 181 项测试均通过。
+- 该批次证明 worker 的恢复分支和本地回归覆盖；它不替代来源 Tooling10 M0
+  的真实受管运行回放。Coordinator 必须先加载此 worker，再重放来源批次并取得
+  durable terminal run result。
+
+Open state: `待原始受管回放`; no Tooling10 pass or performance qualification is claimed.
