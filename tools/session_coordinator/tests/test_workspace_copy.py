@@ -773,6 +773,42 @@ class WorkspaceCopyTests(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(expected, json.loads(persisted))
 
+    def test_cargo_worker_persists_external_source_error_details(self) -> None:
+        manifest_path = str(self.repo.parent / "external-runtime/Cargo.toml")
+        repo_root = str(self.repo.parent / "external-runtime")
+        expected = {"manifestPath": manifest_path, "repoRoot": repo_root}
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            side_effect=CoordinatorError(
+                "validation_copy_external_source_missing",
+                "Cargo local path dependency has no pinned external source descriptor",
+                details=expected,
+            ),
+        ):
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id,
+                metadata_runner=None,
+            )
+
+        status = self.service.status("session-a", accepted.job_id)
+        self.assertEqual("failed", status.status)
+        self.assertEqual("closure_planning", status.error_stage)
+        self.assertEqual(manifest_path, status.error_path)
+        self.assertEqual(expected, status.error_details)
+        self.assertEqual(expected, status.to_dict()["errorDetails"])
+        with self.database.connect() as connection:
+            persisted = connection.execute(
+                "SELECT error_details_json FROM validation_copies WHERE job_id=?",
+                (accepted.job_id,),
+            ).fetchone()[0]
+        self.assertEqual(expected, json.loads(persisted))
+
     def test_cargo_worker_persists_resource_git_failure_details(self) -> None:
         expected = {
             "operation": "git_ls_files_compile_time_resources",

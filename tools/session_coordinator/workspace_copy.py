@@ -1953,6 +1953,8 @@ class WorkspaceCopyService:
                 error_path = paths[0]
         if error_path is None:
             error_path = details.get("resourcePath") or details.get("sourcePath")
+        if error_path is None:
+            error_path = details.get("manifestPath") or details.get("repoRoot")
         error_path_text = str(error_path)[:1024] if error_path is not None else None
         durable_details = self._materialization_error_details(details)
         gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
@@ -1982,7 +1984,15 @@ class WorkspaceCopyService:
     @staticmethod
     def _materialization_error_details(details: dict[str, object]) -> dict[str, object]:
         durable: dict[str, object] = {}
-        for key in ("path", "sourcePath", "resourcePath", "operation", "errorType"):
+        for key in (
+            "path",
+            "sourcePath",
+            "resourcePath",
+            "manifestPath",
+            "repoRoot",
+            "operation",
+            "errorType",
+        ):
             value = details.get(key)
             if value is not None:
                 durable[key] = str(value)
