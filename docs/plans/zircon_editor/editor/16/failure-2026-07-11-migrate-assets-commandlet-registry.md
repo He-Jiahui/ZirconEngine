@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/10-project-and-asset-reference-mana
 fixing_plan: docs/plans/zircon_editor/editor/16-cli-args-and-hub-integration.md
 origin_child_dir: docs/plans/zircon_editor/editor/10
 fixing_child_dir: docs/plans/zircon_editor/editor/16
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/migration
   - zircon_editor/src/core/commands

@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/04-pie-and-simulation.md
 fixing_plan: docs/plans/zircon_editor/editor/16-cli-args-and-hub-integration.md
 origin_child_dir: docs/plans/zircon_editor/editor/04
 fixing_child_dir: docs/plans/zircon_editor/editor/16
+plan_link_mode: child_record_only
 related_code:
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
