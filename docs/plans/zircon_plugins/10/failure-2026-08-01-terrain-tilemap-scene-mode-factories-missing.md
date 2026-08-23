@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizm
 fixing_plan: docs/plans/zircon_plugins/10-editor-integration.md
 origin_child_dir: docs/plans/zircon_editor/editor/05
 fixing_child_dir: docs/plans/zircon_plugins/10
+plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/editor_support/src/lib.rs
   - zircon_plugins/terrain/editor/src/plugin.rs
