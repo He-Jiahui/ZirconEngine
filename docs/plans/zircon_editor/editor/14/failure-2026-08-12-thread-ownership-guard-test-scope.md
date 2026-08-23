@@ -1,6 +1,7 @@
 ---
 handoff_kind: failure
 status: open
+failure_scope: local
 created_at: 2026-08-12
 summary_slug: thread-ownership-guard-test-scope
 origin_plan: docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
