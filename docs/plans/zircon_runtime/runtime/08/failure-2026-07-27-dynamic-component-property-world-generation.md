@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_plugins/05-navigation.md
 fixing_plan: docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md
 origin_child_dir: docs/plans/zircon_plugins/05
 fixing_child_dir: docs/plans/zircon_runtime/runtime/08
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
