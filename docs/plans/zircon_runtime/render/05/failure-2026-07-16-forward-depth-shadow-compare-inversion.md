@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-07-16
 summary_slug: forward-depth-shadow-compare-inversion
 origin_plan: docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
