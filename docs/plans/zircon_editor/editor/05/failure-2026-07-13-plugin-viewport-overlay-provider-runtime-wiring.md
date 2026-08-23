@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_plugins/05-navigation.md
 fixing_plan: docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
 origin_child_dir: docs/plans/zircon_plugins/05
 fixing_child_dir: docs/plans/zircon_editor/editor/05
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/editor_authoring_extension.rs
   - zircon_editor/src/core/editor_extension.rs
