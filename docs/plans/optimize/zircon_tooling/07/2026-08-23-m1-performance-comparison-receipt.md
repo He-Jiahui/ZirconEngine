@@ -4,7 +4,7 @@ Plan: docs/plans/optimize/zircon_tooling/07-performance-benchmark-profile-captur
 
 Milestone: M1
 
-Status: validation_pending
+Status: integrated_validation_pending
 
 Files: ["docs/plans/optimize/zircon_tooling/07/2026-08-23-m1-performance-comparison-receipt.md", "tools/tests/test_validate_performance_comparison_receipt.py", "tools/validate_performance_comparison_receipt.py"]
 
@@ -20,9 +20,10 @@ Files: ["docs/plans/optimize/zircon_tooling/07/2026-08-23-m1-performance-compari
 
 ## Validation status
 
-The five-module Python tooling batch passed 80 tests in 60.997 seconds on
-2026-08-23, including direct CLI execution of the comparison validator and a
-dedicated P95 bootstrap upper-bound regression case.
+Coordinator validation ticket `4a26d4acec104b85bea9bbe15976d607` passed the
+five-module Python tooling batch: 80 tests in 46.462 seconds, exit 0, on
+2026-08-23. The batch includes direct CLI execution of the comparison validator
+and a dedicated P95 bootstrap upper-bound regression case.
 
 Independent review found that the current Render19 sidecar schema does not yet
 carry Coordinator-owned worker ticket/candidate, managed artifact, Build Set,
