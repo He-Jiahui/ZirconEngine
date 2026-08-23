@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-intera
 fixing_plan: docs/plans/zircon_editor/editor_ui/05-ui-asset-management.md
 origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/05
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/tests/ui/ui_asset_editor
   - zircon_editor/src/tests/ui/asset_browser
