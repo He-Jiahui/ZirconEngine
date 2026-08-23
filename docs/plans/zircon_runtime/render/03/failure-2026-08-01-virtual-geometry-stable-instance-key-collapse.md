@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-08-01
 summary_slug: virtual-geometry-stable-instance-key-collapse
 origin_plan: docs/plans/zircon_runtime/render/04-visibility-culling.md
