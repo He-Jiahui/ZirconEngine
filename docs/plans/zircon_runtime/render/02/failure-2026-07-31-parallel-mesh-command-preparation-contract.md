@@ -1,12 +1,13 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-07-31
 summary_slug: parallel-mesh-command-preparation-contract
 origin_plan: docs/plans/zircon_runtime/render/17-performance-and-profiling.md
 fixing_plan: docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md
 origin_child_dir: docs/plans/zircon_runtime/render/17
 fixing_child_dir: docs/plans/zircon_runtime/render/02
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
