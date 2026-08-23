@@ -235,3 +235,17 @@ useful review context, while the durable `details_json` projection is now the
 canonical current-source inventory. Foreign plans must still close or correct
 their factual handoffs one artifact at a time. No cycle, depth, schema or
 self-edge diagnostic is claimed fixed by this Coordinator-only repair.
+
+### 2026-08-23 production inventory refresh
+
+- The schema-66 production import at `2026-08-23T10:36:37.629001Z` contains one
+  nontrivial SCC: component
+  `3e2fd33bcde97cf5d7aae821101d1983cd08ff8b44aba16091da0679a0e56aa9`,
+  with `23 plans / 63 edges / 73 exact artifacts` and nine derived
+  `excessive_depth` diagnostics.
+- The historical Performance01 <-> Runtime12 two-plan component is absent from
+  this immutable snapshot. Its disappearance is recorded as graph progress,
+  not as evidence that any unrelated product failure is fixed.
+- The remaining component stays open. Source-identity and status-schema repairs
+  may make its edge evidence actionable, but only the owning plan's verified
+  failure return or a factual ownership correction may remove an edge.
