@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
 fixing_plan: docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
 origin_child_dir: docs/plans/zircon_editor/editor/03
 fixing_child_dir: docs/plans/zircon_runtime/runtime/04
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/tests/virtual_geometry_debug_snapshot_contract.rs
   - zircon_runtime/src/asset/assets/model
