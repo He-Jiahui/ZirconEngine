@@ -7,6 +7,7 @@ origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 fixing_plan: docs/plans/mvp/06-f5-acceptance-wave.md
 origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/mvp/06
+plan_link_mode: child_record_only
 related_code:
   - tools/mvp/Stage-MvpProducts.ps1
   - tools/mvp/Invoke-MvpAcceptance.ps1
