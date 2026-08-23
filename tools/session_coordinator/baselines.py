@@ -536,7 +536,11 @@ class BaselineService:
         ).resolve()
         if not index_path.is_file():
             return self._git_output("rev-parse", "HEAD^{tree}")
-        with tempfile.TemporaryDirectory(prefix="zircon-baseline-index-") as temporary:
+        temporary_root = (self.database.path.parent / "temporary").resolve()
+        temporary_root.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(
+            prefix="zircon-baseline-index-", dir=temporary_root
+        ) as temporary:
             isolated_index = Path(temporary) / "index"
             shutil.copyfile(index_path, isolated_index)
             environment = os.environ.copy()

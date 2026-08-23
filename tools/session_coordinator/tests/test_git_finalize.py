@@ -1463,6 +1463,56 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertTrue((self.repo / "src/feature.py").exists())
         self.assertIsNone(self._mutex_owner())
 
+    def test_validation_command_uses_stable_coordinator_temp_environment(self) -> None:
+        paths = self._complete_with_changes()
+        command = ("validation-tool", "--check")
+        managed_temp = (
+            Path(self.temporary_directory.name) / "managed-target" / "temporary"
+        )
+        managed_temp.mkdir(parents=True)
+        observed_environment: dict[str, str] = {}
+        original_run = subprocess.run
+
+        def capture_validation_environment(arguments, *args, **kwargs):
+            if tuple(arguments) == command:
+                observed_environment.update(kwargs.get("env") or {})
+                return subprocess.CompletedProcess(arguments, 0)
+            return original_run(arguments, *args, **kwargs)
+
+        with mock.patch.dict(
+            os.environ,
+            {
+                "TEMP": str(managed_temp),
+                "TMP": str(managed_temp),
+                "TMPDIR": str(managed_temp),
+                "SystemRoot": "C:\\Windows",
+                "FINALIZE_VALIDATION_SENTINEL": "preserved",
+            },
+            clear=False,
+        ), mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run",
+            side_effect=capture_validation_environment,
+        ):
+            self.service.finalize(
+                "session-a",
+                paths=paths,
+                message="fix(tooling): isolate validation temp",
+                validation_commands=(command,),
+                maintenance=True,
+            )
+
+        normalized_environment = {
+            name.casefold(): value for name, value in observed_environment.items()
+        }
+        stable_temp = str(self.database.path.parent / "temporary")
+        self.assertEqual(stable_temp, normalized_environment["temp"])
+        self.assertEqual(stable_temp, normalized_environment["tmp"])
+        self.assertEqual(stable_temp, normalized_environment["tmpdir"])
+        self.assertEqual("C:\\Windows", normalized_environment["systemroot"])
+        self.assertEqual(
+            "preserved", normalized_environment["finalize_validation_sentinel"]
+        )
+
     def test_pre_cas_restore_failure_keeps_recoverable_index_snapshot(self) -> None:
         paths = self._complete_with_changes()
         original_index = self.service._index_path().read_bytes()

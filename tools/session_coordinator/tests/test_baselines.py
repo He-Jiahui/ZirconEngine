@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -102,6 +103,48 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(expected_tree, second.index_tree)
         self.assertEqual(index_before, index_path.read_bytes())
         self.assertTrue(lock_path.exists())
+
+    def test_isolated_index_tree_survives_managed_process_temp_cleanup(self) -> None:
+        expected_tree = subprocess.run(
+            ["git", "write-tree"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        managed_temp = (
+            Path(self.temporary_directory.name) / "managed-target" / "temporary"
+        )
+        managed_temp.mkdir(parents=True)
+        isolated_indexes: list[Path] = []
+        original_run = subprocess.run
+
+        def run_after_managed_temp_cleanup(arguments, *args, **kwargs):
+            environment = kwargs.get("env") or {}
+            if arguments == ["git", "write-tree"] and "GIT_INDEX_FILE" in environment:
+                isolated_indexes.append(Path(environment["GIT_INDEX_FILE"]))
+                for child in managed_temp.iterdir():
+                    if child.is_dir():
+                        shutil.rmtree(child)
+                    else:
+                        child.unlink()
+            return original_run(arguments, *args, **kwargs)
+
+        with mock.patch(
+            "tools.session_coordinator.baselines.tempfile.tempdir",
+            str(managed_temp),
+        ), mock.patch(
+            "tools.session_coordinator.baselines.subprocess.run",
+            side_effect=run_after_managed_temp_cleanup,
+        ):
+            actual_tree = self.service._isolated_index_tree()
+
+        self.assertEqual(expected_tree, actual_tree)
+        self.assertEqual(1, len(isolated_indexes))
+        self.assertEqual(
+            self.database.path.parent / "temporary",
+            isolated_indexes[0].parent.parent,
+        )
 
     def test_head_refresh_hashes_only_changed_paths_instead_of_archiving_head(self) -> None:
         self.service.initialize()

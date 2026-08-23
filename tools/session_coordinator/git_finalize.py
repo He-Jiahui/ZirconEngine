@@ -328,6 +328,34 @@ class GitFinalizeService:
         root.mkdir(parents=True, exist_ok=True)
         return root
 
+    def _run_validation_commands(
+        self,
+        validation_commands: tuple[tuple[str, ...], ...],
+        *,
+        error_code: str,
+        error_label: str,
+    ) -> None:
+        environment = os.environ.copy()
+        temporary_root = str(self._temporary_root())
+        for name in ("TEMP", "TMP", "TMPDIR"):
+            environment[name] = temporary_root
+        for command in validation_commands:
+            result = subprocess.run(
+                command,
+                cwd=self.repo_root,
+                check=False,
+                env=environment,
+            )
+            if result.returncode != 0:
+                raise CoordinatorError(
+                    error_code,
+                    f"{error_label} failed with exit code {result.returncode}",
+                    details={
+                        "command": list(command),
+                        "exit_code": result.returncode,
+                    },
+                )
+
     def preview(
         self,
         session_id: str,
@@ -488,17 +516,11 @@ class GitFinalizeService:
                     )
                     expected_blobs = self._staged_blobs(preview.paths)
                     self._require_no_staged_secrets()
-                    for command in validation_commands:
-                        result = subprocess.run(command, cwd=self.repo_root, check=False)
-                        if result.returncode != 0:
-                            raise CoordinatorError(
-                                "finalize_validation_failed",
-                                f"Validation command failed with exit code {result.returncode}",
-                                details={
-                                    "command": list(command),
-                                    "exit_code": result.returncode,
-                                },
-                            )
+                    self._run_validation_commands(
+                        validation_commands,
+                        error_code="finalize_validation_failed",
+                        error_label="Validation command",
+                    )
                     self._require_index_scope(preview.paths)
                     self._require_staged_attribution(expected_blobs, maintenance=False)
                     self._require_no_staged_secrets()
@@ -889,14 +911,11 @@ class GitFinalizeService:
                 )
                 expected_blobs = self._staged_blobs(commit_paths)
                 self._require_no_staged_secrets()
-                for command in validation_commands:
-                    result = subprocess.run(command, cwd=self.repo_root, check=False)
-                    if result.returncode != 0:
-                        raise CoordinatorError(
-                            "milestone_validation_failed",
-                            f"Milestone validation failed with exit code {result.returncode}",
-                            details={"command": list(command), "exit_code": result.returncode},
-                        )
+                self._run_validation_commands(
+                    validation_commands,
+                    error_code="milestone_validation_failed",
+                    error_label="Milestone validation",
+                )
                 self._require_index_scope(commit_paths)
                 self._require_staged_attribution(expected_blobs, maintenance=False)
                 self._require_no_staged_secrets()
