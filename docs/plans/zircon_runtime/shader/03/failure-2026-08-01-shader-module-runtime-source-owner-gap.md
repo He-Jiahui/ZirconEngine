@@ -7,6 +7,7 @@ origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 fixing_plan: docs/plans/zircon_runtime/shader/03-module-imports-and-cross-references.md
 origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/shader/03
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
