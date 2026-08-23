@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-intera
 fixing_plan: docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md
 origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/10
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/dynamic_api/session/construction.rs
