@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizm
 fixing_plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
 origin_child_dir: docs/plans/zircon_editor/editor/05
 fixing_child_dir: docs/plans/zircon_editor/editor/02
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/runtime_event_consumer/registration.rs
   - zircon_editor/src/core/runtime_event_consumer/host.rs
