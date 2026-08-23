@@ -173,6 +173,13 @@ class ValidationTicketWorker:
             )
             return terminal_status
         if status == "removed":
+            run_link = self.tickets.latest_worker_event(ticket.ticket_id, _RUN_LINK_EVENT)
+            if (
+                not self._is_cargo_command(ticket.command)
+                and run_link is None
+                and self.run_result_lookup(ticket.ticket_id) is None
+            ):
+                return self._restart_removed_generic_copy(ticket, job_id)
             return self._finish_from_run(ticket, job_id)
         if status == "running":
             self._link_running(ticket, job_id)
@@ -210,6 +217,42 @@ class ValidationTicketWorker:
             return "failed"
         self._link_running(ticket, job_id)
         return "running"
+
+    def _restart_removed_generic_copy(
+        self, ticket: ValidationTicket, previous_job_id: str
+    ) -> str:
+        drift = self._manifest_drift(self.repo_root, ticket.source_manifest)
+        if drift:
+            self.tickets.record_result(
+                ticket.ticket_id,
+                "snapshot_stale",
+                evidence={
+                    "phase": "materialization_recovery",
+                    "jobId": previous_job_id,
+                    "driftPaths": drift,
+                },
+            )
+            return "snapshot_stale"
+        try:
+            record = self.workspace_copy.materialize_validation_async(
+                ticket.session_id,
+                dependency_roots=self._dependency_roots(ticket),
+                overlay_paths=tuple(ticket.source_manifest),
+            )
+        except Exception as error:
+            self._terminal_error(
+                ticket,
+                "materialization_recovery",
+                error,
+                job_id=previous_job_id,
+            )
+            return "failed"
+        self.tickets.record_worker_event(
+            ticket.ticket_id,
+            _COPY_LINK_EVENT,
+            {"jobId": str(record.job_id), "recoveredFromJobId": previous_job_id},
+        )
+        return "materializing"
 
     def _advance_running(self, ticket: ValidationTicket) -> str:
         link = self.tickets.latest_worker_event(ticket.ticket_id, _RUN_LINK_EVENT)

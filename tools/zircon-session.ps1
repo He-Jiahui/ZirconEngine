@@ -306,9 +306,17 @@ if ($null -ne $Arguments) {
     $filteredArguments = @($Arguments | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     $moduleArguments += @(ConvertTo-CoordinatorNativeArguments -SourceArguments $filteredArguments)
 }
+$pipelineValues = @($input)
 $standardInput = $null
 if ($moduleArguments -contains '--source-manifest-stdin') {
-    $standardInput = $PipelineInput
+    # Top-level scripts do not reliably bind ValueFromPipeline without a process block.
+    # Preserve the parameter fallback for direct invocation while consuming pipeline input.
+    $standardInput = if ($pipelineValues.Count -gt 0) {
+        $pipelineValues -join [Environment]::NewLine
+    }
+    else {
+        $PipelineInput
+    }
 }
 Invoke-CoordinatorModule -ModuleArguments $moduleArguments -StandardInput $standardInput
 exit $LASTEXITCODE

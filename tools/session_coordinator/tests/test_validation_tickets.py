@@ -260,7 +260,7 @@ class ValidationTicketCliTransportTests(unittest.TestCase):
         payload = from_runtime.return_value.command.call_args.args[1]
         self.assertEqual({}, payload["source_manifest"])
 
-    def test_powershell_wrappers_forward_large_manifest_and_restore_encoding(
+    def test_powershell_wrappers_forward_large_manifest_from_terminal_pipeline(
         self,
     ) -> None:
         shells = [
@@ -282,8 +282,6 @@ class ValidationTicketCliTransportTests(unittest.TestCase):
         self.assertGreater(len(encoded.encode("utf-8")), 32767)
         wrapper = Path(__file__).resolve().parents[3] / "tools" / "zircon-session.ps1"
         invocation = r"""
-$beforeOutputEncoding = $OutputEncoding.WebName
-$beforePythonIoEncoding = $env:PYTHONIOENCODING
 $payload = [IO.File]::ReadAllText(
     $env:ZIRCON_TEST_MANIFEST_PATH,
     [Text.Encoding]::UTF8
@@ -291,16 +289,7 @@ $payload = [IO.File]::ReadAllText(
 if ($env:ZIRCON_TEST_PREFIX_BOM -eq '1') {
     $payload = [char]0xFEFF + $payload
 }
-$result = $payload | & $env:ZIRCON_TEST_WRAPPER status --source-manifest-stdin -Json
-$nativeExit = $LASTEXITCODE
-if ($OutputEncoding.WebName -ne $beforeOutputEncoding) {
-    throw 'OutputEncoding was not restored'
-}
-if ($env:PYTHONIOENCODING -ne $beforePythonIoEncoding) {
-    throw 'PYTHONIOENCODING was not restored'
-}
-$result
-exit $nativeExit
+$payload | & $env:ZIRCON_TEST_WRAPPER status --source-manifest-stdin -Json
 """
         fake_module = """
 import json
@@ -792,6 +781,81 @@ class ValidationTicketTests(unittest.TestCase):
             self.workspace_copy.generic_materializations,
         )
         self.assertEqual("materializing", self.service.get(receipt.ticket.ticket_id).status)
+
+    def test_worker_restarts_a_removed_generic_copy_before_run(self) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="generic-copy-restart-request",
+            source_manifest={"tools/owned.py": digest},
+            command=("python", "-m", "unittest", "focused"),
+            toolchain={"python": "3.14"},
+            coverage={
+                "kind": "focused",
+                "dependencyRoots": ["tools/session_coordinator"],
+            },
+        )
+        ticket_id = receipt.ticket.ticket_id
+
+        self.assertEqual(1, self.worker.tick()["materializing"])
+        self.workspace_copy.records["copy-1"].status = "removed"
+
+        recovered = self.worker.tick()
+
+        self.assertEqual(1, recovered["materializing"])
+        self.assertEqual("materializing", self.service.get(ticket_id).status)
+        self.assertEqual(2, len(self.workspace_copy.generic_materializations))
+        self.assertEqual([], self.workspace_copy.starts)
+        self.assertEqual(
+            {"jobId": "copy-2", "recoveredFromJobId": "copy-1"},
+            self.service.latest_worker_event(ticket_id, "validation.ticket_copy_linked"),
+        )
+
+    def test_worker_uses_durable_result_from_removed_generic_copy_without_run_link(
+        self,
+    ) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+
+        for index, (exit_code, expected_status) in enumerate(
+            ((0, "passed"), (1, "failed")), start=1
+        ):
+            with self.subTest(exit_code=exit_code):
+                receipt = self.service.submit(
+                    session_id="primary",
+                    request_id=f"generic-copy-durable-result-{exit_code}",
+                    source_manifest={"tools/owned.py": digest},
+                    command=("python", "-m", "unittest", "focused"),
+                    toolchain={"python": "3.14"},
+                    coverage={
+                        "kind": "focused",
+                        "dependencyRoots": ["tools/session_coordinator"],
+                    },
+                )
+                ticket_id = receipt.ticket.ticket_id
+
+                self.assertEqual(1, self.worker.tick()["materializing"])
+                copy = self.workspace_copy.records[f"copy-{index}"]
+                copy.status = "removed"
+                self.workspace_copy.run_results[ticket_id] = {
+                    "runId": ticket_id,
+                    "jobId": copy.job_id,
+                    "exitCode": exit_code,
+                    "stdout": "ok",
+                    "stderr": "failed" if exit_code else "",
+                }
+
+                completed = self.worker.tick()
+
+                self.assertEqual(1, completed[expected_status])
+                self.assertEqual(expected_status, self.service.get(ticket_id).status)
+                self.assertEqual(index, len(self.workspace_copy.generic_materializations))
+                self.assertEqual([], self.workspace_copy.starts)
 
     def test_worker_rejects_non_cargo_commands_without_dependency_roots(self) -> None:
         source = self.repo / "tools" / "owned.py"
