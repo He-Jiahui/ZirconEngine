@@ -1592,6 +1592,46 @@ class CargoJobTests(unittest.TestCase):
         self.assertEqual(CargoJobStatus.SUCCEEDED, finished.status)
         self.assertEqual(0, finished.exit_code)
 
+    def test_running_job_requires_two_consecutive_empty_process_tree_observations(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        live_pids: tuple[int, ...] = (9999,)
+        self.service.process_tree_pids = lambda _root_pid: live_pids
+        self.service.start(
+            job.job_id, session_id="session-a", pid=9999, command=["cargo", "test"]
+        )
+
+        live_time = datetime.now(UTC)
+        self.assertEqual((), self.service.reconcile_orphans(now=live_time))
+        self.assertIsNone(self.service.get(job.job_id).process_tree_exited_at)
+
+        live_pids = ()
+        first_empty_time = live_time + timedelta(seconds=1)
+        self.assertEqual((), self.service.reconcile_orphans(now=first_empty_time))
+        first_empty = self.service.get(job.job_id)
+        self.assertEqual(CargoJobStatus.RUNNING, first_empty.status)
+        self.assertEqual(first_empty_time, first_empty.process_tree_exited_at)
+
+        live_pids = (9999,)
+        self.assertEqual(
+            (),
+            self.service.reconcile_orphans(now=first_empty_time + timedelta(seconds=1)),
+        )
+        recovered = self.service.get(job.job_id)
+        self.assertEqual(CargoJobStatus.RUNNING, recovered.status)
+        self.assertIsNone(recovered.process_tree_exited_at)
+
+        live_pids = ()
+        confirmed_empty_time = first_empty_time + timedelta(seconds=2)
+        self.assertEqual((), self.service.reconcile_orphans(now=confirmed_empty_time))
+        orphaned = self.service.reconcile_orphans(
+            now=confirmed_empty_time + timedelta(seconds=1)
+        )
+
+        self.assertEqual((job.job_id,), tuple(item.job_id for item in orphaned))
+        terminal = self.service.get(job.job_id)
+        self.assertEqual(CargoJobStatus.ORPHANED, terminal.status)
+        self.assertEqual(confirmed_empty_time, terminal.process_tree_exited_at)
+
     def test_dry_run_allocates_without_creating_target(self) -> None:
         job = self.service.acquire("session-a", CargoLaneKind.GPU, dry_run=True)
 

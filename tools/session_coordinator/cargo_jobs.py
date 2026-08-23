@@ -3026,6 +3026,15 @@ class CargoJobService:
         except (OSError, ValueError):
             return None
 
+    def _root_process_identity_changed(self, job: CargoJob) -> bool:
+        if job.pid is None or job.root_process_creation_time is None:
+            return False
+        observed_creation_time = self._read_process_creation_time(job.pid)
+        return (
+            observed_creation_time is not None
+            and observed_creation_time != job.root_process_creation_time
+        )
+
     def _live_tree_target_blocker(self, connection, target_key: str):
         rows = connection.execute(
             """
@@ -3050,7 +3059,10 @@ class CargoJobService:
             """
             UPDATE cargo_jobs
             SET process_tree_observed_at = ?, process_tree_live_pids_json = ?,
-                process_tree_exited_at = CASE WHEN ? THEN NULL ELSE ? END
+                process_tree_exited_at = CASE
+                    WHEN ? THEN NULL
+                    ELSE COALESCE(process_tree_exited_at, ?)
+                END
             WHERE job_id = ?
             """,
             (now, json.dumps(live_pids), 1 if live_pids else 0, now, job_id),
@@ -3230,6 +3242,9 @@ class CargoJobService:
                 snapshot_job,
                 include_supervisor_root=snapshot_job.status is not CargoJobStatus.LEASED,
             )
+            root_identity_changed = (
+                not live_pids and self._root_process_identity_changed(snapshot_job)
+            )
 
             # Re-read under a short write transaction.  A job may have
             # finished, been replaced, or acquired a new supervisor while the
@@ -3296,6 +3311,12 @@ class CargoJobService:
                     row["status"] == CargoJobStatus.LEASED.value
                     and (current_time - parse_utc(row["last_heartbeat_at"])).total_seconds()
                     <= leased_timeout_seconds
+                ):
+                    continue
+                if (
+                    row["status"] == CargoJobStatus.RUNNING.value
+                    and row["process_tree_exited_at"] is None
+                    and not root_identity_changed
                 ):
                     continue
                 cursor = connection.execute(
