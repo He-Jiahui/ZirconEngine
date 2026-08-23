@@ -20,7 +20,14 @@ tests:
 
 # Performance01: build-editor does not bind coordinator JSON mode
 
-## Failure evidence
+## 来源执行者
+
+- 来源计划：`docs/plans/zircon_editor/editor_ui/12-unreal-magicavoxel-zui-design-convergence.md`
+- 来源执行切片：managed Editor product build staging preflight
+- 修复责任计划：`docs/plans/performance/01-mvp-performance-audit-and-optimization.md`
+- 交接原因：UI12 exposed the product build failure, while Performance01 owns the shared build-editor workflow and its product acceptance.
+
+## 失败现象与复现证据
 
 The managed Editor product build reaches product-staging acquisition and then fails before Cargo
 with `Coordinator product staging command returned invalid JSON`. The command output begins with
@@ -33,7 +40,7 @@ status banner while its Python child still receives the remaining JSON flag, and
 rejects the combined output. The existing test coordinator used raw `$args`, so it could not expose
 the production parameter-binding behavior.
 
-## Ownership and minimum repair
+## 最低共享层根因
 
 Performance01 owns the product-build workflow. Bind the wrapper's declared PowerShell switch with
 `-Json`, and make its test double expose the same command, switch, and remaining-argument contract as
@@ -42,10 +49,24 @@ Performance01 owns the product-build workflow. Bind the wrapper's declared Power
 Do not parse around arbitrary banner text, call the Python coordinator module directly, publish
 outside the approved artifact roots, or bypass product-staging leases.
 
-## Acceptance
+## 架构修复验收
 
 - The focused Pester suite first reproduces the invalid mixed-output failure against the current
   invocation, then passes after the PowerShell switch is bound correctly.
 - The real managed Editor build reaches Cargo through `tools/build-editor.ps1`, publishes a complete
   Editor bundle, and passes its normal smoke gate.
 - Artifact audit reports no unmanaged product inputs after the build lifecycle completes.
+
+## 禁止临时方案
+
+- Do not parse around banner text or accept mixed human and JSON output.
+- Do not invoke the Python coordinator module directly or bypass product-staging leases.
+- Do not publish outside the approved artifact roots or claim a preflight as a complete product build.
+
+## 修复结果与回传
+
+Open state: the current PowerShell wrapper accepts the declared `-Json` switch,
+and an actual `build-editor` product-staging acquire/release returned pure JSON
+through the official wrapper. The current Windows PowerShell Pester suite passes
+17/17. The UI12 product Cargo build, complete bundle, smoke gate, and origin-plan
+acceptance remain outstanding, so no fixed return is claimed.

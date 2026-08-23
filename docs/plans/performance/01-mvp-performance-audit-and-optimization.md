@@ -1578,6 +1578,10 @@ Runtime asset当前完成root/load/facade/project/registry/pipeline/watch/import
 - **PERF-MVP-016 `record_static` 的 `metadata_matches` 快路对多 tag 是 O(tags²)。** `store.rs:186-202` 在 fast path 每次都做 `subsystem_tags[..index].contains(tag)` 去重计数并对每个 tag 双重 `any` 比较；tag 数很少时无碍，但若某 series 携带较多 subsystem tag 且高频 record，快路本身会退化。建议在计划里记为"快路仅对少量静态 tag 成立"的显式前提，或在 tag 数超阈值时跳过匹配直接走 `record`。
 - **SH03 产品实现已落地，focused product GREEN 待补。** source-only 项目 import 与插件 shader module 已进入依赖索引、prewarm 和产品 `ShaderModuleRegistry` 前向路径；[Shader03 open failure](../zircon_runtime/shader/03/failure-2026-08-01-shader-module-runtime-source-owner-gap.md) 当前只因 managed Windows locked product test 尚未实际执行而保持 open，不再把 manifest/lock 漂移写成实现缺口。
 - **MVP F5 evidence 包已实现完整校验，产品 workflow 证据待补。** current-source staging/acceptance/workflow PowerShell 门已绿；clean coordinator workflow 与真实上传 artifact 尚未检查，故保留 [MVP06 open failure](../mvp/06/failure-2026-08-01-f5-evidence-package-incomplete.md)。
+- **Editor bundle approved-root preflight 已恢复，动态产品证据待补。** 当前 Coordinator staging preflight 可接受受治理的 `D:\ZirconBuilds` 子目录，但产品 Cargo、bundle 发布、smoke、WPR/xperf 与 RenderDoc 尚未完成，故保留 [Performance01 open failure](01/failure-2026-08-15-build-editor-approved-root-separator.md)。
+- **Editor17 recovery 测试 owner 仍超过结构阈值。** recovery 测试拆分、格式与 managed Rust 验收仍未完成，故保留 [Performance01 open failure](01/failure-2026-08-15-recovery-test-owner-threshold-drift.md)。
+- **Editor02 WorldSync source guard 与 generation-lease 实现仍未收敛。** 当前 source guard 仍匹配退役调用形态，generation fencing 的行为验证也未完成，故保留 [Performance01 open failure](01/failure-2026-08-15-world-sync-contract-guard-generation-lease-drift.md)。
+- **Editor17 context autosave composition 仍有构造契约漂移。** shared log、autosave job authority 与 product build 验收尚未完成，故保留 [Performance01 open failure](01/failure-2026-08-16-editor-context-autosave-construction-drift.md)。
 - fixed 已修复：[workbench-design-export-freshness](01/fixed-2026-08-02-workbench-design-export-freshness.md)
 
 ### 验证缺口
