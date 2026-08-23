@@ -366,6 +366,48 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertIn("--pathspec-file-nul", add_calls[0].args)
         self.assertGreater(len(reset_calls), 1)
 
+    def test_git_add_pathspec_survives_managed_process_temp_cleanup(self) -> None:
+        path = "src/stable_finalize_pathspec.py"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("value = 'stable'\n", encoding="utf-8")
+        managed_temp = (
+            Path(self.temporary_directory.name) / "managed-target" / "temporary"
+        )
+        managed_temp.mkdir(parents=True)
+        observed_pathspecs: list[Path] = []
+        original_git = self.service._git
+
+        def git_after_managed_temp_cleanup(*arguments: str) -> str:
+            if arguments and arguments[0] == "add":
+                for child in managed_temp.iterdir():
+                    child.unlink()
+                pathspec_argument = next(
+                    argument
+                    for argument in arguments
+                    if argument.startswith("--pathspec-from-file=")
+                )
+                observed_pathspecs.append(
+                    Path(pathspec_argument.removeprefix("--pathspec-from-file="))
+                )
+            return original_git(*arguments)
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.tempfile.tempdir",
+            str(managed_temp),
+        ), mock.patch.object(
+            self.service,
+            "_git",
+            side_effect=git_after_managed_temp_cleanup,
+        ):
+            self.service._git_add_paths((path,))
+
+        self.assertEqual(1, len(observed_pathspecs))
+        self.assertEqual(
+            self.database.path.parent / "temporary",
+            observed_pathspecs[0].parent,
+        )
+
     def test_milestone_commit_keeps_attributed_tracked_change_after_global_baseline_absorbs_hash(
         self,
     ) -> None:

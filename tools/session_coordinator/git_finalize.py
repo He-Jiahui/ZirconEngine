@@ -322,6 +322,12 @@ class GitFinalizeService:
         self.failures = failures
         self.index_lock_recoverer = index_lock_recoverer or recover_stale_index_lock
 
+    def _temporary_root(self) -> Path:
+        # Process TEMP may belong to a managed Cargo target that cleanup removes.
+        root = (self.database.path.parent / "temporary").resolve()
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
     def preview(
         self,
         session_id: str,
@@ -1672,7 +1678,7 @@ class GitFinalizeService:
         blob_ids = tuple(sorted(blob_paths))
         if not blob_ids:
             return
-        with tempfile.TemporaryFile() as stderr_stream:
+        with tempfile.TemporaryFile(dir=self._temporary_root()) as stderr_stream:
             try:
                 process = subprocess.Popen(
                     ["git", "cat-file", "--batch"],
@@ -2226,7 +2232,11 @@ class GitFinalizeService:
             return
         pathspec_path: Path | None = None
         try:
-            with tempfile.NamedTemporaryFile(prefix="zircon-finalize-pathspec-", delete=False) as stream:
+            with tempfile.NamedTemporaryFile(
+                prefix="zircon-finalize-pathspec-",
+                dir=self._temporary_root(),
+                delete=False,
+            ) as stream:
                 pathspec_path = Path(stream.name)
                 stream.write(b"\0".join(os.fsencode(path) for path in paths) + b"\0")
             arguments = ["add", "-A"]
