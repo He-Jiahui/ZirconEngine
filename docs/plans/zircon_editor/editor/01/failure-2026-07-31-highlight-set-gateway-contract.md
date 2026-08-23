@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizm
 fixing_plan: docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
 origin_child_dir: docs/plans/zircon_editor/editor/05
 fixing_child_dir: docs/plans/zircon_editor/editor/01
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/gateway/contract.rs
   - zircon_editor/src/core/gateway/handle.rs
