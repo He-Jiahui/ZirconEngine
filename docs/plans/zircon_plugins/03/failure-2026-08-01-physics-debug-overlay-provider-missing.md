@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizm
 fixing_plan: docs/plans/zircon_plugins/03-physics.md
 origin_child_dir: docs/plans/zircon_editor/editor/05
 fixing_child_dir: docs/plans/zircon_plugins/03
+plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/physics/editor/src/plugin.rs
   - zircon_plugins/physics/editor/src/tests.rs
