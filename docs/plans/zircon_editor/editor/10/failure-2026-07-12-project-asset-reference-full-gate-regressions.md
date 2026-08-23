@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.
 fixing_plan: docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
 origin_child_dir: docs/plans/zircon_editor/editor/08
 fixing_child_dir: docs/plans/zircon_editor/editor/10
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/project
   - zircon_editor/src/tests/host/asset_references.rs
