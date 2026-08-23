@@ -1,6 +1,7 @@
 ---
 handoff_kind: failure
 status: open
+failure_scope: local
 created_at: 2026-08-15
 summary_slug: legacy-operation-cli-hardcut
 origin_plan: docs/plans/zircon_editor/editor/16-cli-args-and-hub-integration.md

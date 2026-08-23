@@ -29,7 +29,7 @@ tests:
 - 修复责任计划：`docs/plans/zircon_editor/editor/16-cli-args-and-hub-integration.md`
 - 交接原因：Editor04 负责快照、进程生命周期和 Play 状态；runtime executable 的类型化 CLI、动态 runtime 启动参数与帮助文本属于 Editor16。
 
-## 失败现象与当前源码证据
+## 失败现象与复现证据
 
 历史上，Editor04 已按联合定稿构造：
 
