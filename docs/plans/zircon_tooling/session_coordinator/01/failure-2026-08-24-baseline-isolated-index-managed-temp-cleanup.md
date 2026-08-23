@@ -22,14 +22,14 @@ tests:
 
 # Coordinator01: baseline isolated index is deleted with managed process TEMP
 
-## Source executor
+## 来源执行者
 
-- Source plan: `docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
-- Source slice: Render02 maintenance finalizer recovery after stable pathspec temp-root repair
-- Fixing plan: `docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
-- Handoff reason: Coordinator01 owns baseline capture, scoped finalization, post-CAS recovery, and daemon rollover.
+- 来源计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 来源执行切片：Render02 maintenance finalizer recovery after stable pathspec temp-root repair
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 交接原因：Coordinator01 owns baseline capture, scoped finalization, post-CAS recovery, and daemon rollover.
 
-## Failure and evidence
+## 失败现象与复现证据
 
 Maintenance finalize request `3fc7b6961c3a41ad9f212b18ed4f842f` validated and
 published exact-one commit `8dc299a8b65813f692e222a709f951e6ace90be6` from
@@ -42,7 +42,7 @@ After the compare-and-swap ref update, baseline acceptance raised
 request therefore remains `finalizing` with `ref_updated_sha=8dc299a8...`; replay is
 forbidden because the commit already exists on HEAD.
 
-## Lowest shared cause
+## 最低共享层根因
 
 `GitFinalizeService` now creates pathspec and secret-scan temporary files under the
 Coordinator state root, but `BaselineService._isolated_index_tree()` still uses the
@@ -51,7 +51,7 @@ managed Cargo target. Cleanup can delete that directory after the shared index i
 copied and before `git write-tree` opens `GIT_INDEX_FILE`, leaving a post-CAS
 finalizer that cannot finish baseline acceptance.
 
-## Acceptance
+## 架构修复验收
 
 - Create the baseline private index only under a stable Coordinator-owned temporary
   root derived from the database state directory.
@@ -63,14 +63,14 @@ finalizer that cannot finish baseline acceptance.
 - Commit the production fix and focused regressions through the maintenance finalizer,
   then load a healthy successor from that commit before more failure finalizers run.
 
-## Forbidden workarounds
+## 禁止临时方案
 
 - Do not replay the Render02 finalize, reset HEAD, restore or restage the shared index,
   delete coordinator state, or edit SQLite directly.
 - Do not disable baseline capture, suppress `write-tree` failures, use the live shared
   index without a private copy, or exempt managed Cargo cleanup.
 
-## Fix result and return
+## 修复结果与回传
 
 The current worktree creates the private baseline index under
 `.codex/state/session-coordinator/temporary`, derived only from the Coordinator
@@ -100,7 +100,15 @@ Baseline epoch 394 is healthy on that commit; the shared 19-path staged fingerpr
 remains `d221e55776b1167410e35fbb3a6a0c0bdb754df8` and no index lock or Git mutex
 remains.
 
-Open state: `implementation and real startup recovery accepted / scoped maintenance
-commit and post-commit daemon alignment pending`. The record must stay open until the
-five exact Coordinator source/test/evidence paths are committed and loaded by a
-successor from that commit.
+The exact five Coordinator source/test/evidence paths were committed by maintenance
+finalize request `9730fbeb998541698e20e0d20597d9ec` as
+`dd1eccb9cdef9824754664d673db2e2b6f9073f0`. Post-commit controlled rollover action
+`65dcd2fafe6c42ca9ebb7b528178d151` loaded healthy read-write schema-66 successor
+`e9670dd6f626422dbb70553b0b5ed340` from that source. Fresh child-environment and
+baseline-index focused regressions passed `2/2`; the Coordinator temporary root was
+empty, no finalizing request, active Cargo job, Git mutex, artifact reservation, or
+index lock remained, and the unrelated 19-path staged fingerprint was still exactly
+`d221e55776b1167410e35fbb3a6a0c0bdb754df8`.
+
+Open state: `implementation, maintenance commit, startup recovery, and post-commit
+daemon alignment accepted / formal local failure closeout pending`.
