@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-intera
 fixing_plan: docs/plans/zircon_editor/editor_ui/03-text-and-font-stack.md
 origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/03
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
