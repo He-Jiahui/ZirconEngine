@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/12-plugin-management.md
 fixing_plan: docs/plans/zircon_editor/editor/04-pie-and-simulation.md
 origin_child_dir: docs/plans/zircon_editor/editor/12
 fixing_child_dir: docs/plans/zircon_editor/editor/04
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/play/controller.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
