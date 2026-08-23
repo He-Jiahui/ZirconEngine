@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.
 fixing_plan: docs/plans/zircon_editor/editor_ui/06-component-library-mui.md
 origin_child_dir: docs/plans/zircon_editor/editor/08
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/06
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
   - zircon_runtime/src/ui/surface/input/keyboard_action.rs
