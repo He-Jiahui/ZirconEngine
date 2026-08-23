@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-07-18
 summary_slug: render-graph-compile-analysis-scaling
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
