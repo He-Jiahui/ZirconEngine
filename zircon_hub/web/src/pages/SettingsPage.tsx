@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MetricCard, metricToneFromStatus, SettingsSection } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, HubTabs } from "../components/inputs";
+import { useDebouncedSettingsDraft } from "../settings/debouncedSettingsDraft";
 import { settingsJobCountLabel, settingsOptionLabel } from "../settings/options";
 import { hubTokens } from "../theme/tokens";
 import { HUB_ACTION } from "../types/hub";
@@ -45,6 +46,11 @@ export function SettingsPage({ state, onAction }: SettingsPageProps) {
   const languageLabel = settingsOptionLabel(settingsText.languageOptions, draft.language);
   const draftJobsLabel = settingsJobCountLabel(settingsText, draft.jobs);
   const healthTone = metricToneFromStatus(draftSettings.health.tone);
+  const { scheduleDraftPublication, cancelPendingDraft } = useDebouncedSettingsDraft(
+    (nextDraft: SettingsDraft) => {
+      void onAction(HUB_ACTION.updateSettingsDraft, undefined, { settings: nextDraft });
+    },
+  );
 
   useEffect(() => {
     setDraft(settingsDraftFromState(settingsDraftState(state)));
@@ -73,13 +79,23 @@ export function SettingsPage({ state, onAction }: SettingsPageProps) {
   const updateDraft = <Key extends keyof SettingsDraft>(key: Key, value: SettingsDraft[Key]) => {
     const nextDraft = { ...draft, [key]: value };
     setDraft(nextDraft);
-    void onAction(HUB_ACTION.updateSettingsDraft, undefined, { settings: nextDraft });
+    scheduleDraftPublication(nextDraft);
   };
   const saveDraft = () => {
+    cancelPendingDraft();
     void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft });
   };
   const browseFolder = (field: HubSettingsFolderField, initialDir: string) => {
+    cancelPendingDraft();
     void onAction(HUB_ACTION.browseSettingsFolder, field, { field, initialDir, settings: draft });
+  };
+  const discardDraft = () => {
+    cancelPendingDraft();
+    void onAction(HUB_ACTION.discardSettingsDraft);
+  };
+  const restoreDefaultSettings = () => {
+    cancelPendingDraft();
+    void onAction(HUB_ACTION.restoreDefaultSettings);
   };
 
   return (
@@ -107,10 +123,10 @@ export function SettingsPage({ state, onAction }: SettingsPageProps) {
           <HubButton startIcon={<FolderOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.showPage, "projects")}>
             {settingsText.projectsButton}
           </HubButton>
-          <HubButton startIcon={<UndoOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.discardSettingsDraft)}>
+          <HubButton startIcon={<UndoOutlinedIcon />} onClick={discardDraft}>
             {settingsText.discardButton}
           </HubButton>
-          <HubButton startIcon={<RestartAltOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.restoreDefaultSettings)}>
+          <HubButton startIcon={<RestartAltOutlinedIcon />} onClick={restoreDefaultSettings}>
             {settingsText.restoreDefaultsButton}
           </HubButton>
           <HubButton tone="primary" startIcon={<SaveOutlinedIcon />} onClick={saveDraft}>

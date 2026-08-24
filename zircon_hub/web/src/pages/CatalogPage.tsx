@@ -7,6 +7,7 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import { Box, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
+import { groupBy } from "../catalog/groupBy";
 import { EmptyStateBlock, HubList, HubPanel, HubTreeView, MetricCard, QuickActions, SourceEngineList, StatusBadge } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, HubSearchField, HubTabs } from "../components/inputs";
@@ -312,12 +313,4 @@ function filterRows(rows: CatalogRow[], mode: "assets" | "plugins" | "learn", ta
 function iconForMode(mode: "assets" | "plugins" | "learn") {
   const Icon = pageIcon[mode];
   return <Icon fontSize="small" />;
-}
-
-function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
-  return items.reduce((groups, item) => {
-    const groupKey = key(item);
-    groups.set(groupKey, [...(groups.get(groupKey) ?? []), item]);
-    return groups;
-  }, new Map<string, T[]>());
 }
