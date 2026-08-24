@@ -8,6 +8,7 @@ import { SettingsPage } from "../../pages/SettingsPage";
 import { TeamPage } from "../../pages/TeamPage";
 import { WorkspacePage } from "../../pages/WorkspacePage";
 import { hubTokens } from "../../theme/tokens";
+import type { WindowActionFailureHandler } from "../../tauri/windowActionScheduler";
 import type { ComponentType } from "react";
 import type { HubActionHandler, HubPageId, HubShellState } from "../../types/hub";
 import { NavigationDrawer } from "./NavigationDrawer";
@@ -16,6 +17,7 @@ import { TopBar } from "./TopBar";
 export interface HubWindowProps {
   state: HubShellState;
   onAction: HubActionHandler;
+  onWindowActionFailure: WindowActionFailureHandler;
 }
 
 type HubPageComponent = ComponentType<HubWindowProps>;
@@ -32,7 +34,7 @@ const pageRoutes: Record<HubPageId, HubPageComponent> = {
   settings: SettingsPage,
 };
 
-export function HubWindow({ state, onAction }: HubWindowProps) {
+export function HubWindow({ state, onAction, onWindowActionFailure }: HubWindowProps) {
   const activeRoute = toHubPageId(state.activePage);
   const PageComponent = activeRoute ? pageRoutes[activeRoute] : WorkspacePage;
 
@@ -50,7 +52,7 @@ export function HubWindow({ state, onAction }: HubWindowProps) {
         borderRadius: "10px",
       }}
     >
-      <TopBar state={state} onAction={onAction} />
+      <TopBar state={state} onAction={onAction} onWindowActionFailure={onWindowActionFailure} />
       <Box sx={{ display: "flex", height: `calc(100vh - ${hubTokens.window.topBarHeight}px)`, minHeight: 0 }}>
         <NavigationDrawer
           activePage={state.activePage}
@@ -70,7 +72,7 @@ export function HubWindow({ state, onAction }: HubWindowProps) {
             backgroundColor: "rgba(17,17,17,0.55)",
           }}
         >
-          <PageComponent state={state} onAction={onAction} />
+          <PageComponent state={state} onAction={onAction} onWindowActionFailure={onWindowActionFailure} />
         </Box>
       </Box>
     </Box>

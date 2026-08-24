@@ -188,7 +188,8 @@ fn topbar_window_controls_are_bound_to_tauri_current_window_api() {
             "onClick={handleMinimize}",
             "onClick={handleToggleMaximize}",
             "onClick={handleClose}",
-            "function runWindowAction(action: (appWindow: TauriWindow) => Promise<void>)",
+            "createWindowActionScheduler",
+            "scheduler.run(actionKind, () => action(getCurrentWindow()))",
             "!(\"__TAURI_INTERNALS__\" in window)",
         ],
     );

@@ -78,9 +78,9 @@ fn topbar_owns_brand_engine_status_user_and_window_control_regions() {
             "<StatusBadge key={status.id} label={status.label} tone={status.tone} />",
             "const userName = state.team.identityName || state.ui.common.notConfigured;",
             "const userInitials = initialsFromName(userName);",
-            "const handleMinimize = () => runWindowAction((appWindow) => appWindow.minimize());",
-            "const handleToggleMaximize = () => runWindowAction((appWindow) => appWindow.toggleMaximize());",
-            "const handleClose = () => runWindowAction((appWindow) => appWindow.close());",
+            "runWindowAction(\"minimize\", windowActionSchedulerRef.current!",
+            "runWindowAction(\"toggle-maximize\", windowActionSchedulerRef.current!",
+            "runWindowAction(\"close\", windowActionSchedulerRef.current!",
             "{userName}",
             "HubIconButton label={state.ui.shell.minimize} onClick={handleMinimize}",
             "HubIconButton label={state.ui.shell.maximize} onClick={handleToggleMaximize}",
@@ -288,16 +288,16 @@ fn frameless_window_controls_call_tauri_current_window_actions() {
         &topbar,
         &[
             "import { getCurrentWindow } from \"@tauri-apps/api/window\";",
-            "const handleMinimize = () => runWindowAction((appWindow) => appWindow.minimize());",
-            "const handleToggleMaximize = () => runWindowAction((appWindow) => appWindow.toggleMaximize());",
-            "const handleClose = () => runWindowAction((appWindow) => appWindow.close());",
+            "runWindowAction(\"minimize\", windowActionSchedulerRef.current!",
+            "runWindowAction(\"toggle-maximize\", windowActionSchedulerRef.current!",
+            "runWindowAction(\"close\", windowActionSchedulerRef.current!",
             "HubIconButton label={state.ui.shell.minimize} onClick={handleMinimize}",
             "HubIconButton label={state.ui.shell.maximize} onClick={handleToggleMaximize}",
             "HubIconButton label={state.ui.shell.close} onClick={handleClose}",
             "type TauriWindow = ReturnType<typeof getCurrentWindow>;",
-            "function runWindowAction(action: (appWindow: TauriWindow) => Promise<void>)",
+            "createWindowActionScheduler",
             "if (typeof window === \"undefined\" || !(\"__TAURI_INTERNALS__\" in window))",
-            "void action(getCurrentWindow());",
+            "scheduler.run(actionKind, () => action(getCurrentWindow()))",
         ],
     );
     assert_not_contains_any(
@@ -308,6 +308,7 @@ fn frameless_window_controls_call_tauri_current_window_actions() {
             "HubIconButton label={state.ui.shell.maximize} sx={windowIconSx}",
             "HubIconButton label={state.ui.shell.close} sx={windowIconSx}",
             "void onAction(HUB_ACTION.minimize",
+            "void action(getCurrentWindow());",
         ],
     );
     assert_contains_all(

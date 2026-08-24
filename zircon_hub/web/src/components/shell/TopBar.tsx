@@ -8,8 +8,14 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import { Avatar, Box, ButtonBase, Divider, Typography } from "@mui/material";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { brandMark } from "../../data/hubData";
+import {
+  createWindowActionScheduler,
+  type WindowActionFailureHandler,
+  type WindowActionKind,
+  type WindowActionScheduler,
+} from "../../tauri/windowActionScheduler";
 import { hubTokens } from "../../theme/tokens";
 import type { HubActionHandler, HubShellState } from "../../types/hub";
 import { HUB_ACTION } from "../../types/hub";
@@ -20,11 +26,18 @@ import { SourceEnginePopover, UserMenuPopover } from "../overlays";
 export interface TopBarProps {
   state: HubShellState;
   onAction: HubActionHandler;
+  onWindowActionFailure: WindowActionFailureHandler;
 }
 
-export function TopBar({ state, onAction }: TopBarProps) {
+export function TopBar({ state, onAction, onWindowActionFailure }: TopBarProps) {
   const [engineAnchor, setEngineAnchor] = useState<HTMLElement | null>(null);
   const [userAnchor, setUserAnchor] = useState<HTMLElement | null>(null);
+  const failureHandlerRef = useRef(onWindowActionFailure);
+  failureHandlerRef.current = onWindowActionFailure;
+  const windowActionSchedulerRef = useRef<WindowActionScheduler | null>(null);
+  windowActionSchedulerRef.current ??= createWindowActionScheduler((action, error) =>
+    failureHandlerRef.current(action, error),
+  );
   const activeEngine =
     state.sourceEngines.find((engine) => engine.id === state.activeSourceEngineId) ??
     state.sourceEngines.find((engine) => engine.active);
@@ -33,9 +46,12 @@ export function TopBar({ state, onAction }: TopBarProps) {
   const userInitials = initialsFromName(userName);
   const notificationDetail = comingSoonDetail(state, "notification-center");
   const signOutDetail = comingSoonDetail(state, "sign-out");
-  const handleMinimize = () => runWindowAction((appWindow) => appWindow.minimize());
-  const handleToggleMaximize = () => runWindowAction((appWindow) => appWindow.toggleMaximize());
-  const handleClose = () => runWindowAction((appWindow) => appWindow.close());
+  const handleMinimize = () =>
+    runWindowAction("minimize", windowActionSchedulerRef.current!, (appWindow) => appWindow.minimize());
+  const handleToggleMaximize = () =>
+    runWindowAction("toggle-maximize", windowActionSchedulerRef.current!, (appWindow) => appWindow.toggleMaximize());
+  const handleClose = () =>
+    runWindowAction("close", windowActionSchedulerRef.current!, (appWindow) => appWindow.close());
 
   const handleUserAction = (actionId: string) => {
     if (actionId === "preferences") {
@@ -221,12 +237,16 @@ function initialsFromName(name: string): string {
 
 type TauriWindow = ReturnType<typeof getCurrentWindow>;
 
-function runWindowAction(action: (appWindow: TauriWindow) => Promise<void>) {
+function runWindowAction(
+  actionKind: WindowActionKind,
+  scheduler: WindowActionScheduler,
+  action: (appWindow: TauriWindow) => Promise<void>,
+) {
   if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
     return;
   }
 
-  void action(getCurrentWindow());
+  void scheduler.run(actionKind, () => action(getCurrentWindow()));
 }
 
 const topIconSx = {

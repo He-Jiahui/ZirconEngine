@@ -3,6 +3,7 @@ import { HubErrorBoundary, HubSnackbar } from "./components/feedback";
 import { HubWindow } from "./components/shell";
 import { fallbackShellState } from "./data/hubData";
 import { dispatchHubAction, loadHubState, subscribeHubStateChanged } from "./tauri/hubApi";
+import type { WindowActionFailureHandler } from "./tauri/windowActionScheduler";
 import type { HubActionHandler, HubShellState } from "./types/hub";
 
 export function App() {
@@ -133,10 +134,31 @@ export function App() {
     }
   };
 
+  const handleWindowActionFailure: WindowActionFailureHandler = (action, error) => {
+    const shellText = stateRef.current.ui.shell;
+    stateGenerationRef.current += 1;
+    setState((current) => ({
+      ...current,
+      taskSummary: {
+        label: shellText.actionFailed,
+        detail: shellText.actionFailedDetail,
+        tone: "error",
+        running: false,
+        recovery: shellText.checkActionTarget,
+        operation: shellText.actionFailed,
+        progressPercent: 0,
+        taskId: current.taskSummary.taskId,
+        queued: current.taskSummary.queued,
+      },
+      taskStatus: current.taskStatus.map((status) => (status.id === "error" ? { ...status, tone: "error" } : status)),
+    }));
+    console.error(`${shellText.actionFailed}: ${action}`, error);
+  };
+
   return (
     <>
       <HubErrorBoundary shellText={state.ui.shell} onReset={() => void reloadHubState()}>
-        <HubWindow state={state} onAction={handleAction} />
+        <HubWindow state={state} onAction={handleAction} onWindowActionFailure={handleWindowActionFailure} />
       </HubErrorBoundary>
       <HubSnackbar task={state.taskSummary} open={snackbarOpen} onClose={() => setSnackbarOpen(false)} />
     </>
