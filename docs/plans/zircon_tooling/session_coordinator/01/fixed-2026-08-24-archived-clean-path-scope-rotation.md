@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-24
 summary_slug: archived-clean-path-scope-rotation
@@ -12,6 +12,7 @@ plan_link_mode: child_record_only
 related_code:
   - tools/session_coordinator/ownership_transfers.py
   - tools/session_coordinator/tests/test_ownership_transfers.py
+resolved_at: 2026-08-24
 ---
 
 # archived-clean-path-scope-rotation: 验证失败回写
@@ -45,21 +46,7 @@ path_matches_baseline is treated as an unconditional transfer blocker instead of
 
 ## 修复结果与回传
 
-The RED regression reproduced the production dead end: preview marked the archived,
-exactly attributed clean blob `path_matches_baseline`, so apply failed with
-`ownership_transfer_ineligible_paths`. The unowned clean-baseline control remained
-correctly ineligible.
-
-The repair recognizes an archived clean handoff only when current hash, baseline
-hash, and the archived attribution hash are all identical. It does not broaden
-stale/completed/executable owners, unowned baseline files, mismatched attribution,
-or foreign live leases. Apply still recomputes the complete preview under the write
-transaction, so path, baseline, attribution, status, or lease drift fails closed.
-
-The complete ownership-transfer suite passes `12/12`, including archived clean
-apply, unowned clean rejection, stale-attribution rejection, future-path CAS,
-foreign-lease rejection, and real child-record-only `failure.return`. Python
-compilation, `git diff --check`, and the canonical failure target check also pass.
-
-Open state: `implementation and regression suite accepted / maintenance commit,
-schema-67 source rollover, and Render17 production relocation pending`.
+- 根因：Ownership transfer treated every path matching the baseline as ineligible, even when an archived Session held an exact durable attribution and no live lease existed.
+- 架构修复：Permit clean-baseline transfer only for archived exact attribution, preserve all unowned, executable-owner, stale-hash, and foreign-lease rejections, and revalidate the full preview transactionally before apply.
+- 验证：Ownership transfer suite 12/12; production archived/future previews and applies succeeded; Render17 relocation commit 9a217cce07c574cbec8dda70b3e1142eeedbc9a9 contains exactly three paths; rollover 74565f47ff4947019f707f1a06020d84 restored the 19-path shared index and cleared mutex/lock/Cargo state.
+- 回传：Coordinator01 may consume archived exact-attribution paths through the official transfer preview/apply protocol; the Render17 fixed record now lives in its canonical origin child directory.
