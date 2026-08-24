@@ -163,6 +163,89 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(foreign_path, self._staged_names())
         self.assertEqual("foreign = True\n", (self.repo / foreign_path).read_text(encoding="utf-8"))
 
+    def test_maintenance_finalize_uses_private_index_while_shared_index_is_locked(self) -> None:
+        maintenance_path = "tools/coordinator_private_index.py"
+        foreign_path = "src/foreign_staged.py"
+        for path, content in (
+            (maintenance_path, "private_index = True\n"),
+            (foreign_path, "foreign = True\n"),
+        ):
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", foreign_path], cwd=self.repo, check=True)
+        index_path = self.service._index_path()
+        before_projection = subprocess.run(
+            ["git", "diff", "--cached", "--binary", "--no-renames", "HEAD", "--"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        ).stdout
+        lock_path = index_path.with_name(index_path.name + ".lock")
+        lock_content = b"foreign writer owns this lock\n"
+        lock_path.write_bytes(lock_content)
+
+        def release_foreign_lock(*args, **kwargs) -> None:
+            self.assertEqual(lock_content, lock_path.read_bytes())
+            lock_path.unlink()
+
+        with mock.patch.object(
+            self.service,
+            "_run_validation_commands",
+            side_effect=release_foreign_lock,
+        ):
+            result = self.service.finalize(
+                "session-a",
+                paths=[maintenance_path],
+                message="fix(tooling): finalize through private index",
+                maintenance=True,
+            )
+
+        committed = subprocess.run(
+            ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", result.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual([maintenance_path], committed)
+        after_projection = subprocess.run(
+            ["git", "diff", "--cached", "--binary", "--no-renames", "HEAD", "--"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        ).stdout
+        self.assertEqual(before_projection, after_projection)
+        self.assertFalse(lock_path.exists())
+        self.assertEqual(foreign_path, self._staged_names())
+
+    def test_maintenance_publication_recovers_proven_stale_index_lock(self) -> None:
+        maintenance_path = "tools/coordinator_stale_lock.py"
+        target = self.repo / maintenance_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("stale_lock = 'recovered'\n", encoding="utf-8")
+        lock_path = self.service._index_path().with_name("index.lock")
+        lock_path.write_bytes(b"")
+        recovered_locks: list[Path] = []
+
+        def recover_stale_lock(path: Path):
+            recovered_locks.append(path)
+            path.unlink()
+            return None
+
+        self.service.index_lock_recoverer = recover_stale_lock
+
+        result = self.service.finalize(
+            "session-a",
+            paths=[maintenance_path],
+            message="fix(tooling): recover stale publication lock",
+            maintenance=True,
+        )
+
+        self.assertEqual(result.commit_sha, self._head())
+        self.assertEqual([lock_path], recovered_locks)
+        self.assertFalse(lock_path.exists())
+
     def test_maintenance_finalize_snapshots_foreign_leased_work_without_blocking_later_edits(self) -> None:
         path = "src/leased_snapshot.py"
         target = self.repo / path
@@ -173,8 +256,8 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertTrue(self.leases.acquire("session-b", [path]).acquired)
         original_stage = self.service._git_add_partition
 
-        def stage_then_continue(*args) -> None:
-            original_stage(*args)
+        def stage_then_continue(*args, **kwargs) -> None:
+            original_stage(*args, **kwargs)
             target.write_text("snapshot = 2\n", encoding="utf-8")
 
         with mock.patch.object(
@@ -198,7 +281,7 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual("snapshot = 2\n", target.read_text(encoding="utf-8"))
         self.assertEqual([path], self.leases.owned_paths("session-b"))
 
-    def test_maintenance_restore_failure_keeps_recoverable_index_snapshot(self) -> None:
+    def test_maintenance_publish_failure_keeps_recoverable_index_snapshot(self) -> None:
         maintenance_path = "tools/coordinator_repair.py"
         foreign_path = "src/foreign_staged.py"
         for path, content in (
@@ -210,11 +293,17 @@ class GitFinalizeTests(unittest.TestCase):
             target.write_text(content, encoding="utf-8")
         subprocess.run(["git", "add", "--", foreign_path], cwd=self.repo, check=True)
         original_index = self.service._index_path().read_bytes()
+        index_path = self.service._index_path()
+        original_replace = os.replace
 
-        with mock.patch.object(
-            self.service,
-            "_restore_index",
-            side_effect=RuntimeError("injected maintenance restore failure"),
+        def fail_shared_index_publish(source, target) -> None:
+            if Path(target) == index_path:
+                raise RuntimeError("injected maintenance publication failure")
+            original_replace(source, target)
+
+        with mock.patch(
+            "tools.session_coordinator.maintenance_index.os.replace",
+            side_effect=fail_shared_index_publish,
         ):
             with self.assertRaises(RuntimeError):
                 self.service.finalize(
@@ -234,6 +323,20 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(self._head(), request["ref_updated_sha"])
         self.assertEqual(original_index, bytes(request["index_snapshot"]))
         self.assertEqual("session-a", self._mutex_owner())
+
+        self._authorize_recovery_process()
+        self.assertEqual(1, self.service.recover_stale_mutex())
+        with self.database.connect() as connection:
+            recovered = connection.execute(
+                """SELECT status, commit_sha, index_snapshot
+                   FROM finalize_requests ORDER BY created_at DESC LIMIT 1"""
+            ).fetchone()
+        self.assertEqual("committed", recovered["status"])
+        self.assertEqual(self._head(), recovered["commit_sha"])
+        self.assertIsNone(recovered["index_snapshot"])
+        self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
+        self.assertEqual(foreign_path, self._staged_names())
+        self.assertIsNone(self._mutex_owner())
 
     def test_milestone_commit_is_scoped_atomic_and_keeps_session_active(self) -> None:
         paths = ["src/milestone.py", "tests/test_milestone.py"]
@@ -1328,6 +1431,25 @@ class GitFinalizeTests(unittest.TestCase):
 
         self.assertEqual("https://<redacted>", sanitized)
 
+    def test_maintenance_index_git_failure_uses_finalize_stderr_redaction(self) -> None:
+        endpoint = "https://" + "qyapi" + ".weixin.qq.com/cgi-bin/" + "webhook/send?"
+        failure = subprocess.CalledProcessError(
+            9,
+            ["git", "rev-parse", "HEAD"],
+            stderr=(endpoint + "key=maintenance-index-secret").encode(),
+        )
+
+        with mock.patch(
+            "tools.session_coordinator.maintenance_index.subprocess.run",
+            side_effect=failure,
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service.maintenance_indexes._git_text("rev-parse", "HEAD")
+
+        evidence = str(rejected.exception) + json.dumps(rejected.exception.details)
+        self.assertIn("<redacted>", evidence)
+        self.assertNotIn("maintenance-index-secret", evidence)
+
     def test_safe_git_stderr_redacts_complete_typed_and_yaml_assignments(self) -> None:
         cases = (
             ('fatal: api' + '_key: str = "typed-secret"', "typed-secret"),
@@ -1384,13 +1506,13 @@ class GitFinalizeTests(unittest.TestCase):
         original_scan = self.service._require_no_staged_secrets
         original_restore = self.service._restore_index
 
-        def scan_while_owned() -> None:
+        def scan_while_owned(*, environment=None) -> None:
             with self.database.connect() as connection:
                 row = connection.execute(
                     "SELECT owner_id FROM git_mutex WHERE lock_name = 'index'"
                 ).fetchone()
             observed_mutex_owners.append(None if row is None else row["owner_id"])
-            original_scan()
+            original_scan(environment=environment)
 
         def restore_while_owned(path, existed, content) -> None:
             with self.database.connect() as connection:
@@ -1466,16 +1588,27 @@ class GitFinalizeTests(unittest.TestCase):
     def test_validation_command_uses_stable_coordinator_temp_environment(self) -> None:
         paths = self._complete_with_changes()
         command = ("validation-tool", "--check")
+        git_command = ("git", "diff", "--check")
         managed_temp = (
             Path(self.temporary_directory.name) / "managed-target" / "temporary"
         )
         managed_temp.mkdir(parents=True)
         observed_environment: dict[str, str] = {}
+        observed_git_environment: dict[str, str] = {}
+        private_index_existed_during_validation = False
         original_run = subprocess.run
 
         def capture_validation_environment(arguments, *args, **kwargs):
+            nonlocal private_index_existed_during_validation
             if tuple(arguments) == command:
                 observed_environment.update(kwargs.get("env") or {})
+                return subprocess.CompletedProcess(arguments, 0)
+            if tuple(arguments) == git_command:
+                observed_git_environment.update(kwargs.get("env") or {})
+                private_index = observed_git_environment.get("GIT_INDEX_FILE")
+                private_index_existed_during_validation = bool(
+                    private_index and Path(private_index).is_file()
+                )
                 return subprocess.CompletedProcess(arguments, 0)
             return original_run(arguments, *args, **kwargs)
 
@@ -1497,7 +1630,7 @@ class GitFinalizeTests(unittest.TestCase):
                 "session-a",
                 paths=paths,
                 message="fix(tooling): isolate validation temp",
-                validation_commands=(command,),
+                validation_commands=(command, git_command),
                 maintenance=True,
             )
 
@@ -1512,6 +1645,38 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(
             "preserved", normalized_environment["finalize_validation_sentinel"]
         )
+        self.assertNotIn("GIT_INDEX_FILE", observed_environment)
+        self.assertTrue(private_index_existed_during_validation)
+        self.assertNotEqual(
+            str(self.service._index_path()),
+            observed_git_environment["GIT_INDEX_FILE"],
+        )
+        self.assertFalse(Path(observed_git_environment["GIT_INDEX_FILE"]).exists())
+
+    def test_maintenance_validation_can_create_a_nested_git_repository(self) -> None:
+        paths = self._complete_with_changes()
+        script = (
+            "import pathlib, subprocess, tempfile; "
+            "root=tempfile.TemporaryDirectory(); "
+            "repo=pathlib.Path(root.name)/'repo'; repo.mkdir(); "
+            "subprocess.run(['git','init','-q'],cwd=repo,check=True); "
+            "subprocess.run(['git','config','user.email','test@example.invalid'],cwd=repo,check=True); "
+            "subprocess.run(['git','config','user.name','Test'],cwd=repo,check=True); "
+            "(repo/'nested.txt').write_text('nested\\n',encoding='utf-8'); "
+            "subprocess.run(['git','add','nested.txt'],cwd=repo,check=True); "
+            "subprocess.run(['git','commit','-q','-m','test: nested'],cwd=repo,check=True); "
+            "root.cleanup()"
+        )
+
+        result = self.service.finalize(
+            "session-a",
+            paths=paths,
+            message="fix(tooling): allow nested validation repositories",
+            validation_commands=((sys.executable, "-c", script),),
+            maintenance=True,
+        )
+
+        self.assertEqual(self._head(), result.commit_sha)
 
     def test_pre_cas_restore_failure_keeps_recoverable_index_snapshot(self) -> None:
         paths = self._complete_with_changes()
@@ -1856,7 +2021,7 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(moved_head, committed["commit_sha"])
         self.assertIsNone(committed["index_snapshot"])
 
-    def test_restart_recovers_recreated_index_lock_before_resetting_paths(self) -> None:
+    def test_restart_reconcile_preserves_index_lock_created_after_publication(self) -> None:
         paths = self._complete_with_changes()
         unrelated_path = self.repo / "unrelated-staged.txt"
         unrelated_path.write_text("preserve this staged blob\n", encoding="utf-8")
@@ -1896,8 +2061,8 @@ class GitFinalizeTests(unittest.TestCase):
         recovered = self.service.recover_stale_mutex()
 
         self.assertEqual(0, recovered)
-        self.assertEqual([lock_path], recovered_locks)
-        self.assertFalse(lock_path.exists())
+        self.assertEqual([], recovered_locks)
+        self.assertTrue(lock_path.exists())
         self.assertEqual(unrelated_path.name, self._staged_names())
         recovered_staged_blob = subprocess.run(
             ["git", "show", f":{unrelated_path.name}"],

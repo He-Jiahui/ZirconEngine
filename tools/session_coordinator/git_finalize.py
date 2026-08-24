@@ -21,6 +21,7 @@ from .git_index_lock import (
     IndexLockRecoveryRefused,
     recover_stale_index_lock,
 )
+from .maintenance_index import MaintenanceIndexService, git_environment
 from .models import CoordinatorError, SessionStatus, parse_utc, utc_now, utc_text
 from .plans import PlanRepository
 from .sessions import SessionService
@@ -321,6 +322,9 @@ class GitFinalizeService:
         self.plans = plans or PlanRepository(self.repo_root)
         self.failures = failures
         self.index_lock_recoverer = index_lock_recoverer or recover_stale_index_lock
+        self.maintenance_indexes = MaintenanceIndexService(
+            self.repo_root, error_sanitizer=self._safe_git_stderr
+        )
 
     def _temporary_root(self) -> Path:
         # Process TEMP may belong to a managed Cargo target that cleanup removes.
@@ -334,17 +338,33 @@ class GitFinalizeService:
         *,
         error_code: str,
         error_label: str,
+        git_environment: dict[str, str] | None = None,
     ) -> None:
         environment = os.environ.copy()
+        if git_environment is not None:
+            environment.update(
+                {
+                    name: value
+                    for name, value in git_environment.items()
+                    if name != "GIT_INDEX_FILE"
+                }
+            )
+        environment.pop("GIT_INDEX_FILE", None)
         temporary_root = str(self._temporary_root())
         for name in ("TEMP", "TMP", "TMPDIR"):
             environment[name] = temporary_root
         for command in validation_commands:
+            command_environment = environment
+            if git_environment is not None and self._is_direct_git_command(command):
+                command_environment = {
+                    **environment,
+                    "GIT_INDEX_FILE": git_environment["GIT_INDEX_FILE"],
+                }
             result = subprocess.run(
                 command,
                 cwd=self.repo_root,
                 check=False,
-                env=environment,
+                env=command_environment,
             )
             if result.returncode != 0:
                 raise CoordinatorError(
@@ -355,6 +375,13 @@ class GitFinalizeService:
                         "exit_code": result.returncode,
                     },
                 )
+
+    @staticmethod
+    def _is_direct_git_command(command: tuple[str, ...]) -> bool:
+        if not command:
+            return False
+        executable = command[0].replace("\\", "/").rsplit("/", 1)[-1].casefold()
+        return executable in {"git", "git.exe"}
 
     def preview(
         self,
@@ -463,16 +490,19 @@ class GitFinalizeService:
                 session_id, retain_on_error=lambda: retain_mutex
             ):
                 index_path = self._index_path()
-                index_existed = index_path.exists()
-                index_content = index_path.read_bytes() if index_existed else b""
+                index_existed = index_path.exists() if not maintenance else None
+                index_content = None
+                if not maintenance:
+                    index_content = index_path.read_bytes() if index_existed else b""
                 try:
+                    start_head = self._git("rev-parse", "HEAD")
                     self._persist_finalize_start(
                         preview.request_id,
-                        start_head=self._git("rev-parse", "HEAD"),
+                        start_head=start_head,
                         index_existed=index_existed,
                         index_content=index_content,
                     )
-                    index_snapshot_persisted = True
+                    index_snapshot_persisted = not maintenance
                     session = self.sessions.get(session_id)
                     self._require_finalize_guards_under_mutex(session, preview)
                     self._require_attribution(
@@ -481,65 +511,129 @@ class GitFinalizeService:
                     self._require_owned_scope(
                         session_id, preview.paths, maintenance=maintenance
                     )
-                    if maintenance:
-                        self._recover_index_lock(
-                            preview.request_id, session_id, index_path
+                    with self._finalize_index_environment(
+                        start_head, maintenance=maintenance
+                    ) as index_environment:
+                        if not maintenance:
+                            self._require_index_scope(preview.paths)
+                        ordinary_paths, force_add_paths = self._partition_add_paths(
+                            preview.paths,
+                            error_code="finalize_ignored_path_forbidden",
                         )
-                        self._git("read-tree", self.baselines.current().head_commit)
-                    else:
-                        self._require_index_scope(preview.paths)
-                    ordinary_paths, force_add_paths = self._partition_add_paths(
-                        preview.paths,
-                        error_code="finalize_ignored_path_forbidden",
-                    )
-                    self._git_add_partition(ordinary_paths, force_add_paths)
-                    staged = self._staged_scope_paths()
-                    if set(staged) != set(preview.paths):
-                        raise CoordinatorError(
-                            "finalize_staged_scope_mismatch",
-                            "Staged paths do not exactly match the approved finalize set",
-                            details={
-                                "approved": list(preview.paths),
-                                "staged": list(staged),
-                            },
+                        self._git_add_partition(
+                            ordinary_paths,
+                            force_add_paths,
+                            environment=index_environment,
                         )
-                    self._require_post_stage_attribution(
-                        session_id, preview.paths, maintenance=maintenance
-                    )
-                    # Maintenance finalizes publish the index snapshot captured by
-                    # this transaction. Active Sessions may keep editing leased
-                    # paths; those later bytes remain dirty for the next snapshot.
-                    if not maintenance:
-                        self._require_index_matches_worktree(preview.paths)
-                    self._require_post_stage_attribution(
-                        session_id, preview.paths, maintenance=maintenance
-                    )
-                    expected_blobs = self._staged_blobs(preview.paths)
-                    self._require_no_staged_secrets()
-                    self._run_validation_commands(
-                        validation_commands,
-                        error_code="finalize_validation_failed",
-                        error_label="Validation command",
-                    )
-                    self._require_index_scope(preview.paths)
-                    self._require_staged_attribution(expected_blobs, maintenance=False)
-                    self._require_no_staged_secrets()
-                    session = self.sessions.get(session_id)
-                    self._require_finalize_guards_under_mutex(session, preview)
-                    commit_sha = self._create_scoped_commit(
-                        preview.message,
-                        expected_head=self.baselines.current().head_commit,
-                    )
-                    committed = True
-                    with self.database.transaction() as connection:
-                        connection.execute(
-                            """
-                            UPDATE finalize_requests
-                            SET ref_updated_sha = ?, status = 'finalizing'
-                            WHERE request_id = ?
-                            """,
-                            (commit_sha, preview.request_id),
+                        staged = self._staged_scope_paths(
+                            environment=index_environment
                         )
+                        if set(staged) != set(preview.paths):
+                            raise CoordinatorError(
+                                "finalize_staged_scope_mismatch",
+                                "Staged paths do not exactly match the approved finalize set",
+                                details={
+                                    "approved": list(preview.paths),
+                                    "staged": list(staged),
+                                },
+                            )
+                        self._require_post_stage_attribution(
+                            session_id, preview.paths, maintenance=maintenance
+                        )
+                        if not maintenance:
+                            self._require_index_matches_worktree(preview.paths)
+                        self._require_post_stage_attribution(
+                            session_id, preview.paths, maintenance=maintenance
+                        )
+                        expected_blobs = self._staged_blobs(
+                            preview.paths, environment=index_environment
+                        )
+                        self._require_no_staged_secrets(
+                            environment=index_environment
+                        )
+                        self._run_validation_commands(
+                            validation_commands,
+                            error_code="finalize_validation_failed",
+                            error_label="Validation command",
+                            git_environment=index_environment,
+                        )
+                        self._require_index_scope(
+                            preview.paths, environment=index_environment
+                        )
+                        self._require_staged_attribution(
+                            expected_blobs,
+                            maintenance=False,
+                            environment=index_environment,
+                        )
+                        self._require_no_staged_secrets(
+                            environment=index_environment
+                        )
+                        session = self.sessions.get(session_id)
+                        self._require_finalize_guards_under_mutex(session, preview)
+                        commit_sha = self._create_scoped_commit(
+                            preview.message,
+                            expected_head=start_head,
+                            environment=index_environment,
+                            update_ref=not maintenance,
+                        )
+                        if maintenance:
+                            with self.maintenance_indexes.publication(
+                                expected_head=start_head,
+                                commit_sha=commit_sha,
+                                approved=preview.paths,
+                                path_chunks=tuple(
+                                    self._pathspec_chunks(preview.paths)
+                                ),
+                                recover_lock=lambda _lock_path: self._recover_index_lock(
+                                    preview.request_id,
+                                    session_id,
+                                    self._index_path(),
+                                ),
+                            ) as publication:
+                                self._persist_finalize_index_snapshot(
+                                    preview.request_id,
+                                    index_existed=True,
+                                    index_content=publication.index_content,
+                                )
+                                index_snapshot_persisted = True
+                                try:
+                                    self._git(
+                                        "update-ref", "HEAD", commit_sha, start_head
+                                    )
+                                except BaseException:
+                                    self._clear_finalize_index_snapshot(
+                                        preview.request_id
+                                    )
+                                    index_snapshot_persisted = False
+                                    index_restored = True
+                                    raise
+                                committed = True
+                                with self.database.transaction() as connection:
+                                    connection.execute(
+                                        """
+                                        UPDATE finalize_requests
+                                        SET ref_updated_sha = ?, status = 'finalizing'
+                                        WHERE request_id = ?
+                                        """,
+                                        (commit_sha, preview.request_id),
+                                    )
+                                self.maintenance_indexes.publish(publication)
+                                index_restored = True
+                                self._clear_finalize_index_snapshot(
+                                    preview.request_id
+                                )
+                                index_snapshot_persisted = False
+                        else:
+                            committed = True
+                            with self.database.transaction() as connection:
+                                connection.execute(
+                                    """
+                                    UPDATE finalize_requests
+                                    SET ref_updated_sha = ?, status = 'finalizing'
+                                    WHERE request_id = ?
+                                    """,
+                                    (commit_sha, preview.request_id),
+                                )
                     self.baselines.accept_commit(
                         preview.paths,
                         commit_sha=commit_sha,
@@ -553,17 +647,9 @@ class GitFinalizeService:
                         except BaseException:
                             retain_mutex = True
                             raise
+                    elif committed and not index_restored:
+                        retain_mutex = True
                     raise
-                finally:
-                    if maintenance:
-                        try:
-                            self._restore_index(index_path, index_existed, index_content)
-                            index_restored = True
-                            if committed:
-                                self._reset_index_paths(commit_sha, preview.paths)
-                        except BaseException:
-                            retain_mutex = True
-                            raise
                 if committed:
                     with self.database.transaction() as connection:
                         connection.execute(
@@ -1163,7 +1249,8 @@ class GitFinalizeService:
             finalizing = connection.execute(
                 """
                 SELECT request_id, session_id, message, paths_json, start_head,
-                       index_existed, index_snapshot, ref_updated_sha, status, commit_sha
+                       index_existed, index_snapshot, ref_updated_sha, status, commit_sha,
+                       maintenance
                 FROM finalize_requests
                 WHERE status = 'finalizing'
                    OR (status = 'committed' AND commit_sha IS NULL AND ref_updated_sha IS NOT NULL)
@@ -1209,11 +1296,11 @@ class GitFinalizeService:
             for recovery in recoveries:
                 request_id = str(recovery["request_id"])
                 session_id = str(recovery["session_id"])
-                # A maintenance finalize can recover one abandoned lock before
-                # publishing HEAD and then leave another while restoring the
-                # shared index. Startup must revalidate that second lock before
-                # any recovery reset attempts to create index.lock again.
-                self._recover_index_lock(request_id, session_id, index_path)
+                maintenance = bool(recovery.get("maintenance"))
+                if not maintenance or recovery.get("index_snapshot") is not None:
+                    # A post-CAS transaction owns a durable index snapshot and
+                    # may have left its short publication lock behind.
+                    self._recover_index_lock(request_id, session_id, index_path)
                 isolated_validation = self._isolated_patch_event_payload(
                     session_id,
                     request_id,
@@ -1225,19 +1312,20 @@ class GitFinalizeService:
                         request_id,
                     )
                 if recovery.get("status") == "committed" and recovery.get("commit_sha"):
-                    with self.database.transaction() as connection:
-                        connection.execute(
-                            """
-                            UPDATE sessions
-                            SET status = 'completed', status_reason = ?, updated_at = ?
-                            WHERE session_id = ? AND status = 'finalizing'
-                            """,
-                            (
-                                f"recovered finalized commit {recovery['commit_sha']}",
-                                utc_text(),
-                                session_id,
-                            ),
-                        )
+                    if not maintenance:
+                        with self.database.transaction() as connection:
+                            connection.execute(
+                                """
+                                UPDATE sessions
+                                SET status = 'completed', status_reason = ?, updated_at = ?
+                                WHERE session_id = ? AND status = 'finalizing'
+                                """,
+                                (
+                                    f"recovered finalized commit {recovery['commit_sha']}",
+                                    utc_text(),
+                                    session_id,
+                                ),
+                            )
                     continue
                 start_head = recovery.get("start_head")
                 index_existed = recovery.get("index_existed")
@@ -1286,14 +1374,15 @@ class GitFinalizeService:
                             """,
                             (recovered_sha, utc_text(), request_id),
                         )
-                        connection.execute(
-                            """
-                            UPDATE sessions
-                            SET status = 'completed', status_reason = ?, updated_at = ?
-                            WHERE session_id = ? AND status = 'finalizing'
-                            """,
-                            (reason, utc_text(), session_id),
-                        )
+                        if not maintenance:
+                            connection.execute(
+                                """
+                                UPDATE sessions
+                                SET status = 'completed', status_reason = ?, updated_at = ?
+                                WHERE session_id = ? AND status = 'finalizing'
+                                """,
+                                (reason, utc_text(), session_id),
+                            )
                         if isolated_validation is not None:
                             self._record_recovered_isolated_patch(
                                 connection,
@@ -1303,10 +1392,9 @@ class GitFinalizeService:
                                 validated=isolated_validation,
                             )
                 else:
-                    if (
-                        start_head != current_head
-                        or index_existed is None
-                        or index_snapshot is None
+                    if start_head != current_head or (
+                        not maintenance
+                        and (index_existed is None or index_snapshot is None)
                     ):
                         raise CoordinatorError(
                             "finalize_recovery_head_ambiguous",
@@ -1317,11 +1405,12 @@ class GitFinalizeService:
                                 "current_head": current_head,
                             },
                         )
-                    self._restore_index(
-                        index_path,
-                        bool(index_existed),
-                        bytes(index_snapshot),
-                    )
+                    if index_existed is not None and index_snapshot is not None:
+                        self._restore_index(
+                            index_path,
+                            bool(index_existed),
+                            bytes(index_snapshot),
+                        )
                     reason = "finalize interrupted by service restart"
                     with self.database.transaction() as connection:
                         connection.execute(
@@ -1333,14 +1422,15 @@ class GitFinalizeService:
                             """,
                             ("service restarted during finalize", utc_text(), request_id),
                         )
-                        connection.execute(
-                            """
-                            UPDATE sessions
-                            SET status = 'completed', status_reason = ?, updated_at = ?
-                            WHERE session_id = ? AND status = 'finalizing'
-                            """,
-                            (reason, utc_text(), session_id),
-                        )
+                        if not maintenance:
+                            connection.execute(
+                                """
+                                UPDATE sessions
+                                SET status = 'completed', status_reason = ?, updated_at = ?
+                                WHERE session_id = ? AND status = 'finalizing'
+                                """,
+                                (reason, utc_text(), session_id),
+                            )
             completed = True
         finally:
             if completed:
@@ -1657,8 +1747,13 @@ class GitFinalizeService:
                 f"Patch {row['patch_id']} is {row['status']}",
             )
 
-    def _require_index_scope(self, approved: tuple[str, ...]) -> None:
-        staged = set(self._staged_scope_paths())
+    def _require_index_scope(
+        self,
+        approved: tuple[str, ...],
+        *,
+        environment: dict[str, str] | None = None,
+    ) -> None:
+        staged = set(self._staged_scope_paths(environment=environment))
         foreign = sorted(staged - set(approved), key=str.casefold)
         if foreign:
             raise CoordinatorError(
@@ -1667,14 +1762,21 @@ class GitFinalizeService:
                 details={"paths": foreign},
             )
 
-    def _staged_scope_paths(self) -> tuple[str, ...]:
+    def _staged_scope_paths(
+        self,
+        base_tree: str | None = None,
+        *,
+        environment: dict[str, str] | None = None,
+    ) -> tuple[str, ...]:
         # Immutable manifests describe delete/add paths independently. Git's
         # rename detection collapses that pair to the destination path and
         # makes an exact scoped finalize look incomplete even though both
         # index mutations are present.
-        return tuple(
-            self._git_lines("diff", "--cached", "--name-only", "--no-renames")
-        )
+        arguments = ["diff", "--cached", "--name-only", "--no-renames"]
+        if base_tree is not None:
+            arguments.append(base_tree)
+        arguments.append("--")
+        return tuple(self._git_lines(*arguments, environment=environment))
 
     def _require_git_mutex_available(self) -> None:
         with self.database.connect() as connection:
@@ -1688,8 +1790,13 @@ class GitFinalizeService:
                 details={"owner_id": row["owner_id"]},
             )
 
-    def _require_no_staged_secrets(self) -> None:
-        staged = self._staged_content_blobs(self._staged_scope_paths())
+    def _require_no_staged_secrets(
+        self, *, environment: dict[str, str] | None = None
+    ) -> None:
+        staged = self._staged_content_blobs(
+            self._staged_scope_paths(environment=environment),
+            environment=environment,
+        )
         blob_paths: dict[str, list[str]] = {}
         for path, blob_id in staged.items():
             if blob_id is not None:
@@ -1699,12 +1806,17 @@ class GitFinalizeService:
             return
         with tempfile.TemporaryFile(dir=self._temporary_root()) as stderr_stream:
             try:
+                popen_arguments: dict[str, object] = {
+                    "cwd": self.repo_root,
+                    "stdin": subprocess.PIPE,
+                    "stdout": subprocess.PIPE,
+                    "stderr": stderr_stream,
+                }
+                if environment is not None:
+                    popen_arguments["env"] = environment
                 process = subprocess.Popen(
                     ["git", "cat-file", "--batch"],
-                    cwd=self.repo_root,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=stderr_stream,
+                    **popen_arguments,
                 )
             except OSError as error:
                 raise CoordinatorError(
@@ -1839,11 +1951,15 @@ class GitFinalizeService:
                     pass
 
     def _require_staged_attribution(
-        self, expected: dict[str, str | None], *, maintenance: bool
+        self,
+        expected: dict[str, str | None],
+        *,
+        maintenance: bool,
+        environment: dict[str, str] | None = None,
     ) -> None:
         if maintenance:
             return
-        actual = self._staged_blobs(tuple(expected))
+        actual = self._staged_blobs(tuple(expected), environment=environment)
         mismatches: list[dict[str, str | None]] = []
         for path, expected_blob in expected.items():
             staged_blob = actual[path]
@@ -1920,9 +2036,14 @@ class GitFinalizeService:
                 },
             )
 
-    def _staged_blobs(self, paths: tuple[str, ...]) -> dict[str, str | None]:
+    def _staged_blobs(
+        self,
+        paths: tuple[str, ...],
+        *,
+        environment: dict[str, str] | None = None,
+    ) -> dict[str, str | None]:
         try:
-            return self._staged_blobs_unchecked(paths)
+            return self._staged_blobs_unchecked(paths, environment=environment)
         except (subprocess.CalledProcessError, OSError) as error:
             stderr = error.stderr if isinstance(error, subprocess.CalledProcessError) else None
             raise CoordinatorError(
@@ -1932,10 +2053,15 @@ class GitFinalizeService:
             ) from error
 
     def _staged_content_blobs(
-        self, paths: tuple[str, ...]
+        self,
+        paths: tuple[str, ...],
+        *,
+        environment: dict[str, str] | None = None,
     ) -> dict[str, str | None]:
         try:
-            return self._staged_blobs_unchecked(paths, skip_gitlinks=True)
+            return self._staged_blobs_unchecked(
+                paths, skip_gitlinks=True, environment=environment
+            )
         except (subprocess.CalledProcessError, OSError) as error:
             stderr = error.stderr if isinstance(error, subprocess.CalledProcessError) else None
             raise CoordinatorError(
@@ -1945,7 +2071,11 @@ class GitFinalizeService:
             ) from error
 
     def _staged_blobs_unchecked(
-        self, paths: tuple[str, ...], *, skip_gitlinks: bool = False
+        self,
+        paths: tuple[str, ...],
+        *,
+        skip_gitlinks: bool = False,
+        environment: dict[str, str] | None = None,
     ) -> dict[str, str | None]:
         requested_by_key = {path.casefold(): path for path in paths}
         staged: dict[str, str | None] = {path: None for path in paths}
@@ -1961,6 +2091,7 @@ class GitFinalizeService:
                     *chunk,
                 ],
                 cwd=self.repo_root,
+                env=environment or self._git_environment(),
                 check=True,
                 capture_output=True,
             )
@@ -1992,10 +2123,28 @@ class GitFinalizeService:
                     ) from error
         return staged
 
-    def _create_scoped_commit(self, message: str, *, expected_head: str) -> str:
-        tree = self._git("write-tree")
-        commit_sha = self._git("commit-tree", tree, "-p", expected_head, "-m", message)
-        self._git("update-ref", "HEAD", commit_sha, expected_head)
+    def _create_scoped_commit(
+        self,
+        message: str,
+        *,
+        expected_head: str,
+        environment: dict[str, str] | None = None,
+        update_ref: bool = True,
+    ) -> str:
+        tree = self._git_for_environment("write-tree", environment=environment)
+        commit_sha = self._git_for_environment(
+            "commit-tree",
+            tree,
+            "-p",
+            expected_head,
+            "-m",
+            message,
+            environment=environment,
+        )
+        if update_ref:
+            self._git_for_environment(
+                "update-ref", "HEAD", commit_sha, expected_head, environment=environment
+            )
         return commit_sha
 
     def _match_recovered_commit(
@@ -2229,13 +2378,17 @@ class GitFinalizeService:
         self,
         ordinary_paths: tuple[str, ...],
         force_add_paths: tuple[str, ...],
+        *,
+        environment: dict[str, str] | None = None,
     ) -> None:
         if ordinary_paths:
-            self._git_add_paths(ordinary_paths)
+            self._git_add_paths(ordinary_paths, environment=environment)
         if force_add_paths:
             # These paths passed both the Session ownership gates and the
             # narrow repository-control allowlist before force-add.
-            self._git_add_paths(force_add_paths, force=True)
+            self._git_add_paths(
+                force_add_paths, force=True, environment=environment
+            )
 
     @staticmethod
     def _is_local_session_state(path: str) -> bool:
@@ -2246,7 +2399,13 @@ class GitFinalizeService:
         normalized = path.replace("\\", "/").casefold()
         return normalized == ".codex/state" or normalized.startswith(".codex/state/")
 
-    def _git_add_paths(self, paths: tuple[str, ...], *, force: bool = False) -> None:
+    def _git_add_paths(
+        self,
+        paths: tuple[str, ...],
+        *,
+        force: bool = False,
+        environment: dict[str, str] | None = None,
+    ) -> None:
         if not paths:
             return
         pathspec_path: Path | None = None
@@ -2268,7 +2427,7 @@ class GitFinalizeService:
                 )
             )
             try:
-                self._git(*arguments)
+                self._git_for_environment(*arguments, environment=environment)
             except CoordinatorError as error:
                 if error.code != "finalize_git_command_failed":
                     raise
@@ -2449,6 +2608,16 @@ class GitFinalizeService:
         except ValueError:
             return str(path.resolve())
 
+    @contextmanager
+    def _finalize_index_environment(
+        self, parent_head: str, *, maintenance: bool
+    ) -> Iterator[dict[str, str] | None]:
+        if not maintenance:
+            yield None
+            return
+        with self.maintenance_indexes.staging_environment(parent_head) as environment:
+            yield environment
+
     @staticmethod
     def _restore_index(path: Path, existed: bool, content: bytes) -> None:
         if existed:
@@ -2458,12 +2627,15 @@ class GitFinalizeService:
         else:
             path.unlink(missing_ok=True)
 
-    def _git(self, *arguments: str) -> str:
+    def _git(
+        self, *arguments: str, environment: dict[str, str] | None = None
+    ) -> str:
         command = ["git", *arguments]
         try:
             result = subprocess.run(
                 command,
                 cwd=self.repo_root,
+                env=environment or self._git_environment(),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -2499,6 +2671,10 @@ class GitFinalizeService:
         return result.stdout.strip()
 
     @staticmethod
+    def _git_environment(**overrides: str) -> dict[str, str]:
+        return git_environment(**overrides)
+
+    @staticmethod
     def _safe_git_stderr(value: str | bytes | None) -> str:
         if isinstance(value, bytes):
             text = value.decode("utf-8", errors="replace")
@@ -2507,9 +2683,18 @@ class GitFinalizeService:
         sanitized = REDACTABLE_SECRET.sub("<redacted>", text.strip())
         return sanitized[:_GIT_FAILURE_STDERR_LIMIT]
 
-    def _git_lines(self, *arguments: str) -> list[str]:
-        output = self._git(*arguments)
+    def _git_lines(
+        self, *arguments: str, environment: dict[str, str] | None = None
+    ) -> list[str]:
+        output = self._git_for_environment(*arguments, environment=environment)
         return [line.replace("\\", "/") for line in output.splitlines() if line]
+
+    def _git_for_environment(
+        self, *arguments: str, environment: dict[str, str] | None = None
+    ) -> str:
+        if environment is None:
+            return self._git(*arguments)
+        return self._git(*arguments, environment=environment)
 
     def _set_request_status(self, request_id: str, status: str) -> None:
         with self.database.transaction() as connection:
@@ -2523,8 +2708,8 @@ class GitFinalizeService:
         request_id: str,
         *,
         start_head: str,
-        index_existed: bool,
-        index_content: bytes,
+        index_existed: bool | None,
+        index_content: bytes | None,
     ) -> None:
         with self.database.transaction() as connection:
             connection.execute(
@@ -2533,7 +2718,40 @@ class GitFinalizeService:
                 SET status = 'finalizing', start_head = ?, index_existed = ?, index_snapshot = ?
                 WHERE request_id = ?
                 """,
-                (start_head, 1 if index_existed else 0, index_content, request_id),
+                (
+                    start_head,
+                    None if index_existed is None else (1 if index_existed else 0),
+                    index_content,
+                    request_id,
+                ),
+            )
+
+    def _persist_finalize_index_snapshot(
+        self,
+        request_id: str,
+        *,
+        index_existed: bool,
+        index_content: bytes,
+    ) -> None:
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE finalize_requests
+                SET index_existed = ?, index_snapshot = ?
+                WHERE request_id = ?
+                """,
+                (1 if index_existed else 0, index_content, request_id),
+            )
+
+    def _clear_finalize_index_snapshot(self, request_id: str) -> None:
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE finalize_requests
+                SET index_existed = NULL, index_snapshot = NULL
+                WHERE request_id = ?
+                """,
+                (request_id,),
             )
 
     def _set_request_failed(self, request_id: str, error: str) -> None:
