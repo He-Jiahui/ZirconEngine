@@ -36,12 +36,25 @@ class ValidationCopyCargoExecution:
         preflight: Callable[[], None] | None = None,
         reservation_lookup: Callable[[str, str], Mapping[str, object] | None]
         | None = None,
+        source_manifest_lookup: Callable[[str, str], Mapping[str, str] | None]
+        | None = None,
     ) -> None:
         self.database = database
         self.cargo_jobs = cargo_jobs
         self.cargo_runner = cargo_runner
         self.preflight = preflight
         self.reservation_lookup = reservation_lookup or self._latest_reservation
+        self._source_manifest_required = (
+            source_manifest_lookup is not None or reservation_lookup is None
+        )
+        if source_manifest_lookup is not None:
+            self.source_manifest_lookup = source_manifest_lookup
+        elif reservation_lookup is None:
+            self.source_manifest_lookup = self._validation_source_manifest
+        else:
+            # Existing state-machine tests inject reservation state without a DB.
+            # The real service never replaces only this half of the durable lookup.
+            self.source_manifest_lookup = lambda _session_id, _run_id: None
 
     def advance(
         self,
@@ -53,9 +66,16 @@ class ValidationCopyCargoExecution:
         command: tuple[str, ...],
         validation_run_id: str,
     ) -> dict[str, object]:
+        source_manifest = self.source_manifest_lookup(session_id, validation_run_id)
+        if not source_manifest and self._source_manifest_required:
+            raise CoordinatorError(
+                "validation_copy_cargo_source_manifest_missing",
+                "Managed Cargo execution requires the validation ticket source manifest",
+            )
         compatibility = self._compatibility(
             copy_job_id=copy_job_id,
             input_manifest_hash=input_manifest_hash,
+            source_manifest=source_manifest,
             command=command,
             validation_run_id=validation_run_id,
         )
@@ -176,11 +196,37 @@ class ValidationCopyCargoExecution:
             "jobId": str(row["job_id"]) if row["job_id"] else None,
         }
 
+    def _validation_source_manifest(
+        self, session_id: str, validation_run_id: str
+    ) -> Mapping[str, str] | None:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT source_manifest_json FROM validation_tickets "
+                "WHERE ticket_id=? AND session_id=?",
+                (validation_run_id, session_id),
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            manifest = json.loads(str(row["source_manifest_json"]))
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "validation_copy_cargo_source_manifest_invalid",
+                "Validation ticket source manifest is not valid JSON",
+            ) from error
+        if not isinstance(manifest, dict) or not manifest:
+            raise CoordinatorError(
+                "validation_copy_cargo_source_manifest_invalid",
+                "Validation ticket source manifest must be a non-empty object",
+            )
+        return manifest
+
     @staticmethod
     def _compatibility(
         *,
         copy_job_id: str,
         input_manifest_hash: str | None,
+        source_manifest: Mapping[str, str] | None,
         command: tuple[str, ...],
         validation_run_id: str,
     ) -> CargoCompatibility:
@@ -205,6 +251,7 @@ class ValidationCopyCargoExecution:
             target_architecture=platform.machine() or "unknown",
             workspace="validation-copy",
             build_config=build_config,
+            source_manifest=source_manifest,
             source_copy_job_id=copy_job_id,
             source_copy_manifest_hash=digest,
         )
