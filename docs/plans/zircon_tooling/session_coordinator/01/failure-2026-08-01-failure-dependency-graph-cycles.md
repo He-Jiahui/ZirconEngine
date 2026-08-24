@@ -249,3 +249,15 @@ self-edge diagnostic is claimed fixed by this Coordinator-only repair.
 - The remaining component stays open. Source-identity and status-schema repairs
   may make its edge evidence actionable, but only the owning plan's verified
   failure return or a factual ownership correction may remove an edge.
+
+### 2026-08-24 schema-67 inventory refresh
+
+- Production diagnostic `817733`, imported at
+  `2026-08-24T04:44:38.887346Z`, preserves the same component identity
+  `3e2fd33bcde97cf5d7aae821101d1983cd08ff8b44aba16091da0679a0e56aa9`.
+- The current component contains `23 plans / 64 edges / 74 exact artifacts`;
+  nine `excessive_depth` diagnostics remain derived from that live graph.
+- The one-edge increase since the previous inventory is repository-owner
+  progress evidence, not a Coordinator regression. No edge was rewritten or
+  suppressed: this failure remains open until the relevant origin owners
+  complete verified returns or correct factually wrong ownership.
