@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 import os
 import sqlite3
@@ -10,6 +11,7 @@ import tempfile
 import threading
 import unittest
 from contextlib import contextmanager
+from types import SimpleNamespace
 from unittest import mock
 from pathlib import Path
 import subprocess
@@ -26,10 +28,114 @@ from tools.session_coordinator.processes import process_is_alive
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.validation_copies import CargoInputClosure
+from tools.session_coordinator.validation_copy_cargo import ValidationCopyCargoExecution
+from tools.session_coordinator.validation_tickets import ValidationTicketService
 from tools.session_coordinator.windows_job_process import (
     create_atomic_kill_on_close_process,
 )
 from tools.session_coordinator.workspace_copy import WorkspaceCopyService
+
+
+class ValidationCopyCargoExecutionTests(unittest.TestCase):
+    def test_waits_for_exact_fifo_reservation_without_starting_runner(self) -> None:
+        cargo_jobs = mock.Mock()
+        cargo_jobs.reserve_cpu.return_value = {
+            "reservationId": "reservation-a",
+            "status": "pending",
+            "jobId": None,
+        }
+        cargo_jobs.acquire.side_effect = CoordinatorError(
+            "cargo_cpu_reservation_not_fifo_head", "Another reservation is first"
+        )
+        cargo_runner = mock.Mock()
+        execution = ValidationCopyCargoExecution(
+            mock.Mock(),
+            cargo_jobs,
+            cargo_runner,
+            reservation_lookup=lambda _session_id, _copy_job_id: None,
+        )
+
+        result = execution.advance(
+            session_id="session-a",
+            copy_job_id="copy-a",
+            source_root=Path("copy-a/source"),
+            input_manifest_hash="a" * 64,
+            command=("pwsh.exe", "-Command", "cargo --version"),
+            validation_run_id="validation-a",
+        )
+
+        self.assertEqual("waiting", result["status"])
+        self.assertEqual("reservation-a", result["cargoReservationId"])
+        cargo_runner.start.assert_not_called()
+        compatibility = cargo_jobs.reserve_cpu.call_args.kwargs["compatibility"]
+        self.assertEqual("copy-a", compatibility.source_copy_job_id)
+        self.assertEqual("a" * 64, compatibility.source_copy_manifest_hash)
+
+    def test_launches_and_projects_terminal_runner_evidence(self) -> None:
+        reservation = {
+            "reservationId": "reservation-a",
+            "status": "leased",
+            "jobId": "cargo-job-a",
+        }
+        cargo_jobs = mock.Mock()
+        cargo_jobs.get.return_value = SimpleNamespace(
+            job_id="cargo-job-a", status=SimpleNamespace(value="leased")
+        )
+        cargo_runner = mock.Mock()
+        cargo_runner.start.return_value = SimpleNamespace(
+            run_id="cargo-run-a", job_id="cargo-job-a", status="running", pid=4242
+        )
+        execution = ValidationCopyCargoExecution(
+            mock.Mock(),
+            cargo_jobs,
+            cargo_runner,
+            reservation_lookup=lambda _session_id, _copy_job_id: reservation,
+        )
+        source_root = Path("copy-a/source")
+
+        running = execution.advance(
+            session_id="session-a",
+            copy_job_id="copy-a",
+            source_root=source_root,
+            input_manifest_hash="b" * 64,
+            command=("pwsh.exe", "-Command", "cargo --version"),
+            validation_run_id="validation-a",
+        )
+
+        self.assertEqual("running", running["status"])
+        self.assertEqual("cargo-run-a", running["cargoRunId"])
+        cargo_runner.start.assert_called_once_with(
+            session_id="session-a",
+            job_id="cargo-job-a",
+            command=("pwsh.exe", "-Command", "cargo --version"),
+            working_directory=source_root,
+        )
+
+        cargo_jobs.get.return_value = SimpleNamespace(
+            job_id="cargo-job-a", status=SimpleNamespace(value="released")
+        )
+        cargo_runner.status.return_value = {
+            "runId": "cargo-run-a",
+            "status": "completed",
+            "exitCode": 0,
+            "stdoutTail": "cargo 1.94.1\n",
+            "stderrTail": "",
+            "startedAt": "2026-08-25T00:00:00+00:00",
+            "completedAt": "2026-08-25T00:00:01+00:00",
+        }
+
+        completed = execution.advance(
+            session_id="session-a",
+            copy_job_id="copy-a",
+            source_root=source_root,
+            input_manifest_hash="b" * 64,
+            command=("pwsh.exe", "-Command", "cargo --version"),
+            validation_run_id="validation-a",
+        )
+
+        self.assertEqual("completed", completed["status"])
+        self.assertEqual(0, completed["exitCode"])
+        self.assertEqual("cargo 1.94.1\n", completed["stdoutTail"])
 
 
 class WorkspaceCopyTests(unittest.TestCase):
@@ -60,6 +166,112 @@ class WorkspaceCopyTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
+
+    def _link_validation_ticket(
+        self, *, job_id: str, command: tuple[str, ...]
+    ) -> str:
+        source = self.repo / "README.md"
+        receipt = ValidationTicketService(self.database).submit(
+            session_id="session-a",
+            request_id=f"ticket-{job_id}",
+            source_manifest={
+                "README.md": hashlib.sha256(source.read_bytes()).hexdigest()
+            },
+            command=command,
+            toolchain={"cargo": "1.94.1"},
+            coverage={"kind": "focused"},
+        )
+        ValidationTicketService(self.database).record_worker_event(
+            receipt.ticket.ticket_id,
+            "validation.ticket_copy_linked",
+            {"jobId": job_id},
+        )
+        return receipt.ticket.ticket_id
+
+    def test_cargo_copy_start_waits_for_managed_lane_without_direct_spawn(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET materialization_kind='cargo', "
+                "materialization_phase='materialized' WHERE job_id=?",
+                (result.job_id,),
+            )
+        cargo_execution = mock.Mock()
+        cargo_execution.advance.return_value = {
+            "status": "waiting",
+            "cargoJobId": None,
+            "cargoRunId": None,
+        }
+        self.service.set_cargo_execution(cargo_execution)
+        command = ("pwsh.exe", "-Command", "cargo --version")
+        run_id = self._link_validation_ticket(job_id=result.job_id, command=command)
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.subprocess.Popen"
+        ) as direct_spawn:
+            started = self.service.start(
+                "session-a",
+                result.job_id,
+                command=command,
+                run_id=run_id,
+            )
+
+        self.assertEqual("waiting", started["status"])
+        direct_spawn.assert_not_called()
+        cargo_execution.advance.assert_called_once_with(
+            session_id="session-a",
+            copy_job_id=result.job_id,
+            source_root=result.source_root,
+            input_manifest_hash=result.input_manifest_hash,
+            command=command,
+            validation_run_id=run_id,
+        )
+        self.assertEqual(
+            "materialized", self.service.status("session-a", result.job_id).status
+        )
+
+    def test_cargo_copy_terminal_receipt_is_projected_to_validation_run(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET materialization_kind='cargo', "
+                "materialization_phase='materialized' WHERE job_id=?",
+                (result.job_id,),
+            )
+        command = ("pwsh.exe", "-Command", "cargo --version")
+        run_id = self._link_validation_ticket(job_id=result.job_id, command=command)
+        cargo_execution = mock.Mock()
+        cargo_execution.advance.return_value = {
+            "status": "completed",
+            "cargoReservationId": "reservation-a",
+            "cargoJobId": "cargo-job-a",
+            "cargoRunId": "cargo-run-a",
+            "exitCode": 0,
+            "stdoutTail": "cargo 1.94.1\n",
+            "stderrTail": "",
+            "startedAt": "2026-08-25T00:00:00+00:00",
+        }
+        self.service.set_cargo_execution(cargo_execution)
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.subprocess.Popen"
+        ) as direct_spawn:
+            completed = self.service.start(
+                "session-a", result.job_id, command=command, run_id=run_id
+            )
+
+        direct_spawn.assert_not_called()
+        self.assertEqual("completed", completed["status"])
+        evidence = self.service.status(
+            "session-a", result.job_id
+        ).terminal_evidence
+        self.assertIsNotNone(evidence)
+        self.assertEqual(run_id, evidence.run_id)
+        self.assertEqual(0, evidence.exit_code)
+        self.assertEqual("cargo 1.94.1\n", evidence.stdout)
+        self.assertEqual(
+            "materialized", self.service.status("session-a", result.job_id).status
+        )
 
     def _reserve_artifact_tree(self, path: Path) -> None:
         target_dir = str(path.resolve(strict=False))

@@ -35,6 +35,7 @@ from .windows_job_process import (
     terminate_and_close_process_job,
 )
 from .validation_copies import CargoInputClosurePlanner, ExternalGitSource
+from .validation_copy_cargo import ValidationCopyCargoExecution
 from .workspace_copy_terminal import (
     ValidationCopyTerminalLifecycle,
     ValidationRunEvidence,
@@ -131,6 +132,7 @@ class WorkspaceCopyService:
         self._cleanup_lock = threading.Lock()
         self._mutation_gate = mutation_gate
         self._cargo_materialization_preflight = cargo_materialization_preflight
+        self._cargo_execution: ValidationCopyCargoExecution | None = None
         self._completion_hook: Callable[[str], None] | None = None
         self._terminal = ValidationCopyTerminalLifecycle(database, mutation_gate)
 
@@ -142,6 +144,12 @@ class WorkspaceCopyService:
     ) -> None:
         """Configure a worker-only admission check for durable Cargo copies."""
         self._cargo_materialization_preflight = preflight
+
+    def set_cargo_execution(
+        self, execution: ValidationCopyCargoExecution | None
+    ) -> None:
+        """Bind Cargo-materialized copies to the durable Cargo lane."""
+        self._cargo_execution = execution
 
     def _reserve_local_run(self, job_id: str) -> None:
         with self._running_lock:
@@ -1141,6 +1149,28 @@ class WorkspaceCopyService:
                 "validation_copy_command_empty", "Validation command cannot be empty"
             )
         run_id = run_id or uuid.uuid4().hex
+        with self.database.connect() as connection:
+            route_row = connection.execute(
+                "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
+            ).fetchone()
+        if (
+            route_row is not None
+            and route_row["materialization_kind"] == "cargo"
+            and benchmark_grant_id is None
+            and self._is_linked_validation_ticket_run(
+                session_id=session_id,
+                job_id=job_id,
+                run_id=run_id,
+                command=command_tuple,
+            )
+        ):
+            return self._advance_cargo_execution(
+                session_id=session_id,
+                row=route_row,
+                command=command_tuple,
+                run_id=run_id,
+                environment=environment,
+            )
         self._reserve_local_run(job_id)
         try:
             with self.database.transaction() as connection:
@@ -1401,6 +1431,104 @@ class WorkspaceCopyService:
         if root_process_creation_time is not None:
             result["processCreationTime"] = root_process_creation_time
         return result
+
+    def _is_linked_validation_ticket_run(
+        self,
+        *,
+        session_id: str,
+        job_id: str,
+        run_id: str,
+        command: tuple[str, ...],
+    ) -> bool:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """SELECT ticket.command_json, event.payload_json
+                   FROM validation_tickets ticket
+                   JOIN validation_ticket_events event
+                     ON event.ticket_id=ticket.ticket_id
+                   WHERE ticket.ticket_id=? AND ticket.session_id=?
+                     AND event.event_type='validation.ticket_copy_linked'
+                   ORDER BY event.event_id DESC LIMIT 1""",
+                (run_id, session_id),
+            ).fetchone()
+        if row is None:
+            return False
+        try:
+            stored_command = json.loads(str(row["command_json"]))
+            link = json.loads(str(row["payload_json"]))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return False
+        return stored_command == list(command) and link.get("jobId") == job_id
+
+    def _advance_cargo_execution(
+        self,
+        *,
+        session_id: str,
+        row,
+        command: tuple[str, ...],
+        run_id: str,
+        environment: Mapping[str, str] | None,
+    ) -> dict[str, object]:
+        if row["session_id"] != session_id:
+            raise CoordinatorError(
+                "validation_copy_foreign_session",
+                "Validation copy belongs to another Session",
+            )
+        if row["status"] != "materialized":
+            raise CoordinatorError(
+                "validation_copy_not_materialized",
+                "Validation copy is already running or unavailable",
+            )
+        if environment is not None:
+            raise CoordinatorError(
+                "validation_copy_benchmark_grant_required",
+                "Benchmark child identity requires a Coordinator-issued grant",
+            )
+        if self._cargo_execution is None:
+            raise CoordinatorError(
+                "validation_copy_cargo_execution_unavailable",
+                "Cargo validation copy has no managed Cargo executor",
+            )
+        existing = self._terminal.latest_for_job(
+            session_id=session_id, job_id=str(row["job_id"])
+        )
+        if existing is not None and existing.run_id == run_id:
+            return {
+                "jobId": str(row["job_id"]),
+                "runId": run_id,
+                "status": "completed",
+                "exitCode": existing.exit_code,
+                "stdoutTail": existing.stdout,
+                "stderrTail": existing.stderr,
+            }
+        progress = self._cargo_execution.advance(
+            session_id=session_id,
+            copy_job_id=str(row["job_id"]),
+            source_root=Path(str(row["source_root"])).resolve(),
+            input_manifest_hash=row["input_manifest_hash"],
+            command=command,
+            validation_run_id=run_id,
+        )
+        result = {"jobId": str(row["job_id"]), "runId": run_id, **progress}
+        if progress.get("status") != "completed":
+            return result
+        evidence = self._terminal.persist(
+            run_id=run_id,
+            job_id=str(row["job_id"]),
+            session_id=session_id,
+            command=command,
+            exit_code=int(progress.get("exitCode", -1)),
+            stdout=str(progress.get("stdoutTail") or ""),
+            stderr=str(progress.get("stderrTail") or ""),
+            started_at=str(progress.get("startedAt") or utc_text()),
+        )
+        self._terminal.notify_completion(self._completion_hook, run_id)
+        return {
+            **result,
+            "exitCode": evidence.exit_code,
+            "stdoutTail": evidence.stdout,
+            "stderrTail": evidence.stderr,
+        }
 
     def terminate_interrupted_benchmark(
         self,
