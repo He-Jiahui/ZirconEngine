@@ -2,8 +2,8 @@
 
 Plan: docs/plans/optimize/zircon_runtime/75-runtime-ui-component-catalog-widget-behavior-state-reducer-interaction-semantics-accessibility-product-integration-review.md
 Milestone: M0
-Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/75/2026-08-22-allocation-free-native-slot-admission.md","zircon_editor/src/ui/asset_editor/palette/native_slots.rs"]
+Status: managed_static_validation_passed; release_benchmark_pending
+Files: ["docs/plans/optimize/zircon_runtime/75/2026-08-22-allocation-free-native-slot-admission.md","zircon_editor/src/ui/asset_editor/palette/native_slots.rs","tools/tests/test_editor_ui_asset_palette_performance_contract.py"]
 
 - Date: 2026-08-22
 - Integration owner: `optimize-runtime75-catalog-native-slot-batch-m0-r1-01a00797-20260822`
@@ -49,9 +49,15 @@ evidence and are not reported as measured speedup.
 - The equivalence test traverses all showcase descriptors and compares both admission and default
   mount after each declared slot is occupied.
 - `rustfmt +1.94.1` completed for the owned Rust file.
-- Focused behavior tests, the ignored release benchmark, external marker validation, and Editor
-  package checks are pending the Runtime75 multi-task coordinator batch. No Cargo or performance
-  pass is claimed.
+- The Editor UI Asset palette source contract now slices the current
+  `native_slot_is_available(...)` helper instead of the removed `available_slots(...)` collector.
+  It asserts the direct `.any(...)` borrowed mount-name comparison and rejects both `BTreeMap` and
+  `child.mount.clone()` in the boolean admission path.
+- Managed static ticket `e838c30875444e6cb2f513144636b3e4` passed all 3/3 Editor UI Asset
+  palette contracts using the exact current hashes of the guard and `native_slots.rs`.
+- The ignored release benchmark and Editor package checks remain pending the Runtime75 grouped
+  Cargo batch. No wall-clock performance pass is claimed; the `10,000 + 10,000 -> 0` collection
+  instance reduction remains deterministic structural evidence.
 
 ## Remaining Scope
 

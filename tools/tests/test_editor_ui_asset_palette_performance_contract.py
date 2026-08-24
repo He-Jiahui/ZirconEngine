@@ -72,12 +72,23 @@ class EditorUiAssetPalettePerformanceContractTests(unittest.TestCase):
             "fn child_index_in_parent(",
         )
         native_slots = (PALETTE_ROOT / "native_slots.rs").read_text(encoding="utf-8")
-        available = function_body(native_slots, "fn available_slots(", "}")
+        native_available = function_body(
+            native_slots,
+            "fn native_slot_is_available(",
+            "}",
+        )
 
-        for function in (validate, available):
-            self.assertIn("BTreeMap::<&str, usize>", function)
-            self.assertIn("child.mount.as_deref().unwrap_or_default()", function)
-            self.assertNotIn("child.mount.clone()", function)
+        self.assertIn("BTreeMap::<&str, usize>", validate)
+        self.assertIn("child.mount.as_deref().unwrap_or_default()", validate)
+        self.assertNotIn("child.mount.clone()", validate)
+
+        self.assertIn(".any(|child|", native_available)
+        self.assertIn(
+            "child.mount.as_deref().unwrap_or_default() == slot.name.as_str()",
+            native_available,
+        )
+        self.assertNotIn("BTreeMap", native_available)
+        self.assertNotIn("child.mount.clone()", native_available)
 
 
 if __name__ == "__main__":
