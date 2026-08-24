@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { EmptyStateBlock, HubList, HubPanel, HubTreeView, MetricCard, QuickActions, StatusBadge } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, HubCheckbox, HubSwitch, HubTabs } from "../components/inputs";
+import { collectDeliveryActions } from "../projections/deliveryActions";
 import { formatCountText } from "../text/counts";
 import { quickActionProjectTargetPayload, workflowProjectPath, workflowProjectTargetPayload, workflowTargetProject } from "../tauri/projectTarget";
 import { hubTokens } from "../theme/tokens";
@@ -33,12 +34,8 @@ export function CloudPage({ state, onAction }: CloudPageProps) {
     () => state.comingSoon.filter((entry) => entry.category === "local-delivery"),
     [state.comingSoon],
   );
-  const packageActions = useMemo(
-    () => state.actionHistory.filter((action) => action.kind === "package-project"),
-    [state.actionHistory],
-  );
-  const installActions = useMemo(
-    () => state.actionHistory.filter((action) => action.kind === "install-project"),
+  const { packageActions, installActions } = useMemo(
+    () => collectDeliveryActions(state.actionHistory),
     [state.actionHistory],
   );
   const outputTree = useMemo(

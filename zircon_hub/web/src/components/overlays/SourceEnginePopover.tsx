@@ -4,6 +4,8 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import { Box, ButtonBase, Divider, Typography } from "@mui/material";
+import { useMemo } from "react";
+import { selectSourceEngineChoices } from "../../projections/sourceEngineChoices";
 import { hubTokens } from "../../theme/tokens";
 import type { HubSettingsSummary, HubShellText, HubSourceEngineSummary } from "../../types/hub";
 import { StatusBadge } from "../data";
@@ -32,9 +34,10 @@ export function SourceEnginePopover({
   onSelect,
   onManage,
 }: SourceEnginePopoverProps) {
-  const activeId = activeEngineId ?? engines.find((engine) => engine.active)?.id ?? engines[0]?.id;
-  const activeEngines = engines.filter((engine) => engine.id === activeId);
-  const fallbackEngines = engines.filter((engine) => engine.id !== activeId);
+  const { activeEngines, fallbackEngines } = useMemo(
+    () => selectSourceEngineChoices(engines, activeEngineId),
+    [activeEngineId, engines],
+  );
 
   return (
     <HubPopover anchorEl={anchorEl} open={open} width={388} onClose={onClose}>
@@ -56,7 +59,7 @@ export function SourceEnginePopover({
         {text.readyFallback}
       </Typography>
       <Box sx={{ display: "grid", gap: 0.75 }}>
-        {fallbackEngines.slice(0, 2).map((engine) => (
+        {fallbackEngines.map((engine) => (
           <EngineRow key={engine.id} engine={engine} active={false} activeLabel={text.active} onSelect={onSelect} />
         ))}
         {fallbackEngines.length === 0 ? (
