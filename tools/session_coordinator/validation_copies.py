@@ -456,6 +456,15 @@ class CargoInputClosurePlanner:
             for package_id in metadata.get("workspace_members", [])
             if str(package_id) in packages
         }
+        build_queue = list(selected)
+        build_closure_ids: set[str] = set()
+        while build_queue:
+            package_id = build_queue.pop()
+            if package_id in build_closure_ids:
+                continue
+            build_closure_ids.add(package_id)
+            build_queue.extend(dependency_ids.get(package_id, ()))
+
         queue = list(set(selected) | workspace_members)
         closure_ids: set[str] = set()
         while queue:
@@ -467,6 +476,7 @@ class CargoInputClosurePlanner:
 
         descriptors = tuple(source.pinned() for source in external_sources)
         repository_roots: set[str] = set()
+        compile_time_repository_roots: set[str] = set()
         used_external: dict[str, ExternalGitSource] = {}
         discovered_roots: dict[Path, set[str]] = {}
         for package_id in closure_ids:
@@ -477,6 +487,8 @@ class CargoInputClosurePlanner:
             if manifest.is_relative_to(self.repo_root):
                 relative_root = manifest.parent.relative_to(self.repo_root).as_posix()
                 repository_roots.add(relative_root or ".")
+                if package_id in build_closure_ids:
+                    compile_time_repository_roots.add(relative_root or ".")
                 continue
             if package.get("source") is not None:
                 # Registry and Git packages are fetched by Cargo; only source-null
@@ -600,7 +612,13 @@ class CargoInputClosurePlanner:
             )
             if tracked.returncode == 0:
                 paths.add(root_file)
-        paths.update(self._compile_time_resource_paths(paths, repository_roots))
+        paths.update(
+            self._compile_time_resource_paths(
+                paths,
+                repository_roots,
+                compile_time_repository_roots,
+            )
+        )
         return CargoInputClosure(
             tuple(sorted(paths, key=str.casefold)),
             tuple(sorted(used_external.values(), key=lambda item: item.mount_path.casefold())),
@@ -610,6 +628,7 @@ class CargoInputClosurePlanner:
         self,
         tracked_paths: set[str],
         package_roots: set[str],
+        selected_package_roots: set[str],
     ) -> set[str]:
         roots = tuple(
             sorted(
@@ -617,13 +636,20 @@ class CargoInputClosurePlanner:
                 key=lambda path: str(path).casefold(),
             )
         )
+        selected_roots = {
+            (self.repo_root / root).resolve() for root in selected_package_roots
+        }
         resource_roots: set[str] = set()
         for relative in tracked_paths:
             if not relative.endswith(".rs"):
                 continue
             source = (self.repo_root / relative).resolve()
             package_root = _package_root_for_source(source, roots)
-            if package_root is None or not source.is_file():
+            if (
+                package_root is None
+                or package_root not in selected_roots
+                or not source.is_file()
+            ):
                 continue
             expressions = _compile_time_include_expressions(
                 _rust_tokens(source.read_text(encoding="utf-8"))

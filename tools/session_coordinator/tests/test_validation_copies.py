@@ -155,7 +155,10 @@ class ValidationCopySourceTests(unittest.TestCase):
         self,
     ) -> None:
         files = {
-            "Cargo.toml": "[workspace]\nmembers=['app','local_dep','workspace_tool']\n",
+            "Cargo.toml": (
+                "[workspace]\n"
+                "members=['app','local_dep','app/workspace_tool']\n"
+            ),
             "Cargo.lock": "# lock\n",
             "rust-toolchain.toml": "[toolchain]\nchannel='1.94.1'\n",
             "app/Cargo.toml": (
@@ -255,6 +258,92 @@ class ValidationCopySourceTests(unittest.TestCase):
             discover_external_sources=True,
         )
         self.assertTrue((materialized.job_root / "zr_vm/binding/Cargo.toml").is_file())
+
+    def test_package_scoped_compile_resources_ignore_unselected_workspace_members(
+        self,
+    ) -> None:
+        files = {
+            "Cargo.toml": "[workspace]\nmembers=['app','local_dep','workspace_tool']\n",
+            "Cargo.lock": "# lock\n",
+            "app/Cargo.toml": "[package]\nname='app'\nversion='0.1.0'\n",
+            "app/src/lib.rs": "const _: &str = include_str!(\"schema.txt\");\n",
+            "app/src/schema.txt": "selected schema\n",
+            "local_dep/Cargo.toml": (
+                "[package]\nname='local_dep'\nversion='0.1.0'\n"
+            ),
+            "local_dep/src/lib.rs": (
+                "const _: &str = include_str!(\"schema.txt\");\n"
+            ),
+            "local_dep/src/schema.txt": "dependency schema\n",
+            "app/workspace_tool/Cargo.toml": (
+                "[package]\nname='workspace_tool'\nversion='0.1.0'\n"
+            ),
+            "app/workspace_tool/src/lib.rs": (
+                "const _: &str = include_str!(\"missing.txt\");\n"
+            ),
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add scoped Cargo closure"],
+            cwd=self.repo,
+            check=True,
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(self.repo / "app/Cargo.toml"),
+                },
+                {
+                    "id": "local-id",
+                    "name": "local_dep",
+                    "manifest_path": str(self.repo / "local_dep/Cargo.toml"),
+                },
+                {
+                    "id": "tool-id",
+                    "name": "workspace_tool",
+                    "manifest_path": str(
+                        self.repo / "app/workspace_tool/Cargo.toml"
+                    ),
+                },
+            ],
+            "workspace_members": ["app-id", "local-id", "tool-id"],
+            "resolve": {
+                "nodes": [
+                    {"id": "app-id", "deps": [{"pkg": "local-id"}]},
+                    {"id": "local-id", "deps": []},
+                    {"id": "tool-id", "deps": []},
+                ]
+            },
+        }
+
+        closure = CargoInputClosurePlanner(
+            self.repo,
+            metadata_runner=lambda _command: metadata,
+        ).plan(("pwsh", "-Command", "cargo test", "--package", "app", "--lib"))
+
+        self.assertIn("app/src/schema.txt", closure.repository_paths)
+        self.assertIn("local_dep/src/lib.rs", closure.repository_paths)
+        self.assertIn("local_dep/src/schema.txt", closure.repository_paths)
+        self.assertIn("app/workspace_tool/src/lib.rs", closure.repository_paths)
+
+        with self.assertRaises(CoordinatorError) as unscoped:
+            CargoInputClosurePlanner(
+                self.repo,
+                metadata_runner=lambda _command: metadata,
+            ).plan(("pwsh", "-Command", "cargo test --workspace"))
+        self.assertEqual(
+            "validation_copy_compile_time_resource_missing", unscoped.exception.code
+        )
+        self.assertEqual(
+            (self.repo / "app/workspace_tool/src/lib.rs").resolve(),
+            Path(str(unscoped.exception.details["sourcePath"])),
+        )
 
     def test_cargo_closure_includes_compile_time_resources_outside_package_root(
         self,
