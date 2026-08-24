@@ -12,7 +12,7 @@ source_artifact: docs/plans/zircon_tooling/session_coordinator/01/failure-2026-0
 # isolated-patch-finalize-missing return summary
 
 - Status: `fixed`.
-- Fixed artifact: [fixed-2026-08-23-isolated-patch-finalize-missing.md](../../../zircon_tooling/session_coordinator/01/fixed-2026-08-23-isolated-patch-finalize-missing.md).
+- Fixed artifact: [fixed-2026-08-23-isolated-patch-finalize-missing.md](fixed-2026-08-23-isolated-patch-finalize-missing.md).
 - Render17 accepts production finalize `6fa51d7defe5476b94145801d761093e`
   and commit `4ef70ac5b3bcef55f8c3eb77c929e85b4691ed0d` as the exact
   one-line `viewport_products` repair from the immutable HEAD/blob/patch identity.
