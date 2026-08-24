@@ -1,12 +1,13 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-08-01
 summary_slug: gpu-readback-queue-owner-missing
 origin_plan: docs/plans/zircon_runtime/render/17-performance-and-profiling.md
 fixing_plan: docs/plans/zircon_runtime/render/16-compute-neural.md
 origin_child_dir: docs/plans/zircon_runtime/render/17
 fixing_child_dir: docs/plans/zircon_runtime/render/16
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
