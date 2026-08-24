@@ -382,10 +382,20 @@ class OwnershipTransferService:
             if current_hash is None and baseline_hash is None and attribution is None
             else "existing"
         )
+        archived_clean_handoff = (
+            current_hash is not None
+            and current_hash == baseline_hash
+            and source_status == "archived"
+            and source_content_hash == current_hash
+        )
         reasons: list[str] = []
         if current_hash is None and path_state != "future":
             reasons.append("path_missing")
-        elif current_hash is not None and current_hash == baseline_hash:
+        elif (
+            current_hash is not None
+            and current_hash == baseline_hash
+            and not archived_clean_handoff
+        ):
             reasons.append("path_matches_baseline")
         if source_session_id == target_session_id:
             reasons.append("path_already_owned_by_target")

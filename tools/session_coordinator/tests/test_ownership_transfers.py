@@ -53,6 +53,21 @@ class OwnershipTransferTests(unittest.TestCase):
         self.sessions.set_status("source", SessionStatus.STALE, reason="fixture stale")
         return source
 
+    def _archived_clean_path(self) -> Path:
+        source = self.repo / "docs" / "accepted.md"
+        source.parent.mkdir(parents=True)
+        source.write_text("accepted\n", encoding="utf-8")
+        self.baselines.accept(reason="archived clean ownership fixture")
+        self.sessions.register(session_id="source")
+        self.sessions.register(session_id="target")
+        self.sessions.set_status("source", SessionStatus.ACTIVE)
+        self.assertTrue(self.leases.acquire("source", ["docs/accepted.md"]).acquired)
+        self.baselines.attribute("source", ["docs/accepted.md"])
+        self.leases.release("source")
+        self.sessions.set_status("source", SessionStatus.COMPLETED)
+        self.sessions.set_status("source", SessionStatus.ARCHIVED)
+        return source
+
     def test_apply_moves_an_abandoned_exact_path_scope_lease_and_attribution(self) -> None:
         self._abandoned_change()
 
@@ -80,6 +95,62 @@ class OwnershipTransferTests(unittest.TestCase):
                     (preview.fingerprint,),
                 ).fetchone()[0],
             )
+
+    def test_apply_moves_an_archived_exact_clean_path(self) -> None:
+        self._archived_clean_path()
+
+        preview = self.service.preview(
+            target_session_id="target", paths=("docs/accepted.md",)
+        )
+        result = self.service.apply(preview.fingerprint, actor="fixture")
+
+        candidate = preview.paths[0]
+        self.assertTrue(candidate.eligible, candidate.blocking_reasons)
+        self.assertEqual("archived", candidate.source_status)
+        self.assertEqual(candidate.current_hash, candidate.baseline_hash)
+        self.assertEqual(candidate.current_hash, candidate.source_content_hash)
+        self.assertFalse(result.already_applied)
+        self.assertIn("docs/accepted.md", self.sessions.get("target").write_scope)
+        self.assertEqual(["docs/accepted.md"], self.leases.owned_paths("target"))
+        with self.database.connect() as connection:
+            transfer = connection.execute(
+                "SELECT path_state, content_hash FROM ownership_transfers WHERE fingerprint=?",
+                (preview.fingerprint,),
+            ).fetchone()
+        self.assertEqual(("existing", candidate.current_hash), tuple(transfer))
+
+    def test_preview_refuses_an_unowned_clean_baseline_path(self) -> None:
+        source = self.repo / "docs" / "unowned.md"
+        source.parent.mkdir(parents=True)
+        source.write_text("unowned\n", encoding="utf-8")
+        self.baselines.accept(reason="unowned clean ownership fixture")
+        self.sessions.register(session_id="target")
+
+        preview = self.service.preview(
+            target_session_id="target", paths=("docs/unowned.md",)
+        )
+
+        self.assertFalse(preview.paths[0].eligible)
+        self.assertIn("path_matches_baseline", preview.paths[0].blocking_reasons)
+        self.assertEqual([], self.leases.owned_paths("target"))
+
+    def test_preview_refuses_an_archived_clean_path_with_stale_attribution(self) -> None:
+        self._archived_clean_path()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE attributions SET content_hash='stale-archived-evidence'
+                WHERE path_key='docs/accepted.md'
+                """
+            )
+
+        preview = self.service.preview(
+            target_session_id="target", paths=("docs/accepted.md",)
+        )
+
+        self.assertFalse(preview.paths[0].eligible)
+        self.assertIn("path_matches_baseline", preview.paths[0].blocking_reasons)
+        self.assertEqual([], self.leases.owned_paths("target"))
 
     def test_preview_refuses_an_executable_source_owner_or_live_foreign_lease(self) -> None:
         source = self._abandoned_change()
