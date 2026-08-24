@@ -39,6 +39,7 @@ from .failure_return_delegations import (
 )
 from .artifact_receipts import ManagedArtifactReceiptService
 from .validation_ticket_worker import ValidationTicketWorker
+from .validation_copy_cargo import ValidationCopyCargoExecution
 from .leases import LeaseService, PathPolicy, lease_paths_overlap
 from .migrations import LATEST_SCHEMA_VERSION, migrate
 from .models import CoordinatorError, SessionStatus, SupervisionState, utc_text
@@ -484,6 +485,14 @@ class CoordinatorApplication:
             )
             self.workspace_copy.set_cargo_materialization_preflight(
                 lambda: self._require_artifact_governance_clean()
+            )
+            self.workspace_copy.set_cargo_execution(
+                ValidationCopyCargoExecution(
+                    self.database,
+                    self.cargo_jobs,
+                    self.cargo_runner,
+                    preflight=lambda: self._require_artifact_governance_clean(),
+                )
             )
             if not self.read_only:
                 self.workspace_copy.recover_interrupted_jobs()
