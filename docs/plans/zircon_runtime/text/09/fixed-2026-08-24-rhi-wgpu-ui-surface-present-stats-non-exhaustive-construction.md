@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-14
 summary_slug: rhi-wgpu-ui-surface-present-stats-non-exhaustive-construction
@@ -11,6 +11,7 @@ fixing_child_dir: docs/plans/zircon_runtime/text/09
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs;zircon_runtime/crates/zr_rhi/src/ui_surface.rs
+resolved_at: 2026-08-24
 ---
 
 # rhi-wgpu-ui-surface-present-stats-non-exhaustive-construction: 验证失败回写
@@ -41,4 +42,7 @@ zr_rhi_wgpu ui_surface/presentation.rs:383 constructs non-exhaustive zr_rhi::UiS
 
 ## 修复结果与回传
 
-Open state: `待修复`; the coordinator must keep the validation ticket and route this Plan to repair work.
+- 根因：The zr_rhi_wgpu consumer directly constructed non_exhaustive zr_rhi::UiSurfacePresentStats with a struct expression, so downstream Text09 validation failed during cross-crate compilation.
+- 架构修复：Construct UiSurfacePresentStats through its Default contract and populate statistics through the public accumulator path, preserving the non_exhaustive boundary without adding a compatibility constructor or exposing fields.
+- 验证：Commit 7a20f921bb97ed428ae248cbcaf3c2fac5442ddf introduced UiSurfacePresentStats::default(); current HEAD retains that exact construction. Subsequent managed zr_rhi_wgpu lib-test job fe09070380e34edbab7a6c7e817a69e4 completed with exit code 0 on 2026-08-23, proving the consumer compiles through the boundary.
+- 回传：The cross-crate present-stats construction blocker is fixed; Text09 may proceed with its separate measured WGPU capture without absorbing current foreign ui_surface worktree edits.
