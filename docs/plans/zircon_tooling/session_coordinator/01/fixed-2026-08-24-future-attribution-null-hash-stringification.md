@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-24
 summary_slug: future-attribution-null-hash-stringification
@@ -12,6 +12,7 @@ plan_link_mode: child_record_only
 related_code:
   - tools/session_coordinator/ownership_transfers.py
   - tools/session_coordinator/tests/test_ownership_transfers.py
+resolved_at: 2026-08-24
 ---
 
 # future-attribution-null-hash-stringification: 验证失败回写
@@ -44,22 +45,7 @@ _preview_path converts attribution content_hash with str whenever an attribution
 
 ## 修复结果与回传
 
-Production preview `c2663c0d178a7515d81645fc32e6636f7d42a5915c114c8d06b134751fb5b859`
-confirmed the typed drift: the newly materialized fixed path retained SQL NULL in
-its original future attribution, but the API emitted `sourceContentHash: "None"`.
-
-The focused RED constructs the same lifecycle: reserve a missing path, materialize
-it, make the source non-executable, and preview transfer to a successor. Before the
-repair, `assertIsNone(candidate.source_content_hash)` fails with `'None' is not
-None`. The repair converts the column only when its value is non-NULL, preserving
-the optional value through JSON serialization, stored preview reload, fingerprint,
-and apply revalidation. Apply then writes the actual current hash to the successor
-attribution.
-
-The focused regression passes `1/1`; the complete ownership-transfer suite passes
-`13/13`, including future-path CAS, archived clean transfer, stale attribution,
-unowned clean rejection, foreign leases, and real child-record-only failure return.
-Python compilation and `git diff --check` pass.
-
-Open state: `implementation and regression suite accepted / maintenance commit,
-source rollover, and production null projection verification pending`.
+- 根因：Ownership transfer preview stringified an attribution SQL NULL content_hash whenever the row existed, producing the sentinel-looking string None instead of an optional null.
+- 架构修复：Convert attribution content_hash only when the column is non-NULL, preserving Python None and JSON null through preview persistence, fingerprint reload, and transactional apply while leaving non-null hashes byte-exact.
+- 验证：Focused RED reproduced string None; ownership-transfer suite passed 13/13; commit 2a1299f8bf8e5a3012860ff07a6fcf528e4721d8 loaded via rollover 652b47eb1d204463837ce649b17c890b; production preview 91b141228baa4f6da5e3b3fd327d01be preserved sourceContentHash null for two archived SQL-NULL attributions without applying transfer.
+- 回传：Coordinator transfer previews now preserve optional attribution identity correctly; consumers may distinguish an unknown prior content hash from the literal string None.
