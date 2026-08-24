@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: implementation_complete_validation_pending
+status: open
 created_at: 2026-08-05
 updated_at: 2026-08-10
 summary_slug: activity-log-current-source-filter-and-jump-projection
