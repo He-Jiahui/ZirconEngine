@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-07-17
 summary_slug: environment-ibl-parallel-staging
 origin_plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
