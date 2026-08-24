@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-07-18
 summary_slug: rhi-wgpu-submit-validation-and-copy-clones
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md

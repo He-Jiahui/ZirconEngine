@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-07-29
 summary_slug: render-graph-profile-metrics-root-export-drift
 origin_plan: docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
