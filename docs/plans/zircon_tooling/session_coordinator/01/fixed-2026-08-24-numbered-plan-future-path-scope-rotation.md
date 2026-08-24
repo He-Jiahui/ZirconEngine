@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-24
 summary_slug: numbered-plan-future-path-scope-rotation
@@ -14,6 +14,7 @@ related_code:
   - tools/session_coordinator/ownership_transfers.py
   - tools/session_coordinator/tests/test_database.py
   - tools/session_coordinator/tests/test_ownership_transfers.py
+resolved_at: 2026-08-24
 ---
 
 # numbered-plan-future-path-scope-rotation: 验证失败回写
@@ -47,27 +48,7 @@ The only audited write-scope extension consumes ownership-transfer candidates th
 
 ## 修复结果与回传
 
-The RED regression proved an unowned missing path was always ineligible with
-`path_missing`; the same dead end prevented a preview from acquiring the CAS state
-needed to reject later materialization. The existing foreign parent-lease guard
-already rejected overlap and remains unchanged.
-
-The current repair extends the audited ownership-transfer model with explicit
-`pathState: future`. A future candidate is eligible only when the exact path is
-absent from the worktree and baseline, has no attribution, and has no overlapping
-foreign lease. Apply re-runs those checks under the transfer transaction, acquires
-the exact lease, extends immutable scope, and records a nullable content hash plus
-the durable future state in schema 67. Existing transfers migrate as `existing`
-with their hashes preserved. Preview replay remains idempotent; any intervening path
-creation fails with `ownership_transfer_preview_stale`.
-
-GREEN evidence includes the complete ownership-transfer suite `9/9`, the focused
-schema persistence/idempotence/v66 migration/delegated-return suite `4/4`, and
-server state-machine guards `2/2`. Python compilation and `git diff --check` also
-pass. The ownership proof performs a real local child-record-only
-`failure.return` through two reserved missing paths and confirms the fixed artifact
-and return receipt are both created. Generic numbered-plan completion remains
-rejected with `session_goal_close_requires_milestone`.
-
-Open state: `implementation and regression suite accepted / maintenance commit,
-schema-67 rollover, and production self-consumption pending`.
+- 根因：Ownership transfer rejected every absent path as path_missing while local child-record-only failure return requires live leases for the fixed artifact and return receipt it will create, leaving no legal numbered-plan scope rotation transition.
+- 架构修复：Persist explicit existing/future transfer state in schema67; admit only absent, unowned, baseline-free exact paths with no foreign overlapping lease, then transactionally revalidate CAS identity, extend immutable scope, acquire leases, and record nullable content-hash transfer evidence.
+- 验证：Complete ownership-transfer suite 9/9; focused database migration/delegated-return suite 4/4; server state-machine guards 2/2; maintenance commit 0a5f22c944d802b0677ebeee5fc3168361bbac5c; healthy schema67 successor 8aa6dda23051465c9b855db429380551; production preview 68864a486a64447798f9c8c2709589cbd7e65d26926d66051346f4d4a89f8fca and apply eac49a63f9834c1c81dc486c722006ff enabled real failure.return dbce0bad6247463f82345c152582ff03, committed as 8a5bd5580000debd99bdd96e437cc7bc017468a7.
+- 回传：Numbered-plan owners can now reserve exact future artifacts through audited CAS-bound transfer, enabling formal failure return and successor scope rotation without caller-controlled paths or weakened completion gates.
