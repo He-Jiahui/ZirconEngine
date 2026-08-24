@@ -8,6 +8,8 @@ import { EmptyStateBlock, HubPanel, ProjectCard, ProjectCardRail, ProjectTable, 
 import { CreateProjectDialog, HubMenu, type HubMenuItem } from "../components/overlays";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, ProjectsToolbar } from "../components/inputs";
+import { useDebouncedProjectSearch } from "../projects/debouncedProjectSearch";
+import { buildSearchIndex, filterSearchIndex } from "../projects/searchIndex";
 import { quickActionProjectTargetPayload } from "../tauri/projectTarget";
 import { hubTokens } from "../theme/tokens";
 import type { HubActionHandler, HubProjectSummary, HubRecentProject, HubShellState } from "../types/hub";
@@ -35,6 +37,9 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
   const [sort, setSort] = useState(state.projectSort);
   const [viewMode, setViewMode] = useState(state.projectViewMode);
   const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; project: HubRecentProject } | null>(null);
+  const dispatchProjectSearch = useDebouncedProjectSearch((query) => {
+    void onAction(HUB_ACTION.searchProjects, undefined, { query });
+  });
   const quickActionProjectTarget = quickActionProjectTargetPayload(state.selectedProject);
 
   useEffect(() => {
@@ -44,15 +49,20 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
     setViewMode(state.projectViewMode);
   }, [state.projectFilter, state.projectSort, state.projectViewMode, state.searchQuery]);
 
-  const visibleProjects = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) {
-      return state.projects;
-    }
-    return state.projects.filter((project) => `${project.name} ${project.path}`.toLowerCase().includes(query));
-  }, [search, state.projects]);
+  const projectSearchIndex = useMemo(
+    () => buildSearchIndex(state.projects, (project) => `${project.name} ${project.path}`),
+    [state.projects],
+  );
+  const visibleProjects = useMemo(
+    () => filterSearchIndex(state.projects, projectSearchIndex, search),
+    [projectSearchIndex, search, state.projects],
+  );
   const dashboardProjects = useMemo(() => visibleProjects.slice(0, 4), [visibleProjects]);
   const tableProjects = state.browserProjects.length > 0 ? state.browserProjects : state.recentProjects;
+  const tableSearchIndex = useMemo(
+    () => buildSearchIndex(tableProjects, (project) => `${project.name} ${project.location}`),
+    [tableProjects],
+  );
 
   const handleOpenProject = (project: HubProjectSummary) => {
     void onAction(HUB_ACTION.openProjectDetail, project.id);
@@ -78,13 +88,10 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
     void onAction(HUB_ACTION.requestDelete, undefined, { projectId: project.id });
   };
 
-  const visibleRows = useMemo<HubRecentProject[]>(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) {
-      return tableProjects;
-    }
-    return tableProjects.filter((project) => `${project.name} ${project.location}`.toLowerCase().includes(query));
-  }, [search, tableProjects]);
+  const visibleRows = useMemo<HubRecentProject[]>(
+    () => filterSearchIndex(tableProjects, tableSearchIndex, search),
+    [search, tableProjects, tableSearchIndex],
+  );
 
   if (state.projectSubpage === "project-browser") {
     return <ProjectBrowserPage state={state} onAction={onAction} />;
@@ -137,7 +144,7 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
           text={text}
           onSearch={(value) => {
             setSearch(value);
-            void onAction(HUB_ACTION.searchProjects, undefined, { query: value });
+            dispatchProjectSearch(value);
           }}
           onFilter={(value) => {
             setFilter(value);

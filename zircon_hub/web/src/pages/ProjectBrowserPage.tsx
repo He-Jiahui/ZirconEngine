@@ -8,6 +8,8 @@ import { useEffect, useMemo, useState } from "react";
 import { EmptyStateBlock, HubPanel, ProjectTable, QuickActions, SourceEngineList } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, HubSearchField, HubSelect, HubToggle } from "../components/inputs";
+import { useDebouncedProjectSearch } from "../projects/debouncedProjectSearch";
+import { buildSearchIndex, filterSearchIndex } from "../projects/searchIndex";
 import { quickActionProjectTargetPayload } from "../tauri/projectTarget";
 import { hubTokens } from "../theme/tokens";
 import type { HubActionHandler, HubRecentProject, HubShellState } from "../types/hub";
@@ -32,6 +34,9 @@ export function ProjectBrowserPage({ state, onAction }: ProjectBrowserPageProps)
   const [filter, setFilter] = useState(state.projectFilter);
   const [sort, setSort] = useState(state.projectSort);
   const [viewMode, setViewMode] = useState(state.projectViewMode);
+  const dispatchProjectSearch = useDebouncedProjectSearch((query) => {
+    void onAction(HUB_ACTION.searchProjects, undefined, { query });
+  });
   const quickActionProjectTarget = quickActionProjectTargetPayload(state.selectedProject);
 
   useEffect(() => {
@@ -42,13 +47,13 @@ export function ProjectBrowserPage({ state, onAction }: ProjectBrowserPageProps)
   }, [state.projectFilter, state.projectSort, state.projectViewMode, state.searchQuery]);
 
   const browserProjects = state.browserProjects.length > 0 ? state.browserProjects : state.recentProjects;
+  const searchIndex = useMemo(
+    () => buildSearchIndex(browserProjects, (project) => `${project.name} ${project.location}`),
+    [browserProjects],
+  );
   const visibleRows = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) {
-      return browserProjects;
-    }
-    return browserProjects.filter((project) => `${project.name} ${project.location}`.toLowerCase().includes(query));
-  }, [browserProjects, search]);
+    return filterSearchIndex(browserProjects, searchIndex, search);
+  }, [browserProjects, search, searchIndex]);
 
   const openDetail = (project: HubRecentProject) => {
     void onAction(HUB_ACTION.openProjectDetail, project.id);
@@ -109,7 +114,7 @@ export function ProjectBrowserPage({ state, onAction }: ProjectBrowserPageProps)
           placeholder={text.searchPlaceholder}
           onChange={(value) => {
             setSearch(value);
-            void onAction(HUB_ACTION.searchProjects, undefined, { query: value });
+            dispatchProjectSearch(value);
           }}
         />
         <Box sx={{ minWidth: 0 }} />
