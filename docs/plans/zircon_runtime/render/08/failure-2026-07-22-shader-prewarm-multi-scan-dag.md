@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-07-22
 summary_slug: shader-prewarm-multi-scan-dag
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
