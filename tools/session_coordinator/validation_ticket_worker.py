@@ -16,6 +16,18 @@ from .validation_tickets import ValidationTicket, ValidationTicketService
 _COPY_LINK_EVENT = "validation.ticket_copy_linked"
 _RUN_LINK_EVENT = "validation.ticket_run_linked"
 _ACTIVE_COPY_STATES = frozenset({"planned", "materializing"})
+_CARGO_TOOLCHAIN_NOT_REQUIRED = frozenset(
+    {
+        "",
+        "disabled",
+        "false",
+        "none",
+        "not required",
+        "not-required",
+        "not_required",
+        "off",
+    }
+)
 _SNAPSHOT_STALE_COPY_ERRORS = frozenset(
     {
         "validation_copy_attribution_stale",
@@ -102,7 +114,7 @@ class ValidationTicketWorker:
                 result["snapshot_stale"] += 1
                 continue
             try:
-                if self._is_cargo_command(ticket.command):
+                if self._uses_cargo_lane(ticket):
                     record = self.workspace_copy.materialize_cargo_async(
                         ticket.session_id,
                         command=ticket.command,
@@ -174,12 +186,15 @@ class ValidationTicketWorker:
             return terminal_status
         if status == "removed":
             run_link = self.tickets.latest_worker_event(ticket.ticket_id, _RUN_LINK_EVENT)
-            if (
-                not self._is_cargo_command(ticket.command)
-                and run_link is None
-                and self.run_result_lookup(ticket.ticket_id) is None
-            ):
-                return self._restart_removed_generic_copy(ticket, job_id)
+            uses_cargo_lane = self._uses_cargo_lane(ticket)
+            if run_link is None and self.run_result_lookup(ticket.ticket_id) is None:
+                materialization_kind = getattr(record, "materialization_kind", None)
+                if not uses_cargo_lane or materialization_kind is None:
+                    return self._restart_removed_copy(
+                        ticket,
+                        job_id,
+                        uses_cargo_lane=uses_cargo_lane,
+                    )
             return self._finish_from_run(ticket, job_id)
         if status == "running":
             self._link_running(ticket, job_id)
@@ -218,8 +233,12 @@ class ValidationTicketWorker:
         self._link_running(ticket, job_id)
         return "running"
 
-    def _restart_removed_generic_copy(
-        self, ticket: ValidationTicket, previous_job_id: str
+    def _restart_removed_copy(
+        self,
+        ticket: ValidationTicket,
+        previous_job_id: str,
+        *,
+        uses_cargo_lane: bool,
     ) -> str:
         drift = self._manifest_drift(self.repo_root, ticket.source_manifest)
         if drift:
@@ -234,11 +253,19 @@ class ValidationTicketWorker:
             )
             return "snapshot_stale"
         try:
-            record = self.workspace_copy.materialize_validation_async(
-                ticket.session_id,
-                dependency_roots=self._dependency_roots(ticket),
-                overlay_paths=tuple(ticket.source_manifest),
-            )
+            if uses_cargo_lane:
+                record = self.workspace_copy.materialize_cargo_async(
+                    ticket.session_id,
+                    command=ticket.command,
+                    overlay_paths=tuple(ticket.source_manifest),
+                    discover_external_sources=True,
+                )
+            else:
+                record = self.workspace_copy.materialize_validation_async(
+                    ticket.session_id,
+                    dependency_roots=self._dependency_roots(ticket),
+                    overlay_paths=tuple(ticket.source_manifest),
+                )
         except Exception as error:
             self._terminal_error(
                 ticket,
@@ -372,6 +399,16 @@ class ValidationTicketWorker:
             return False
         executable = command[0].replace("\\", "/").rsplit("/", 1)[-1].casefold()
         return executable in {"cargo", "cargo.exe"}
+
+    @classmethod
+    def _uses_cargo_lane(cls, ticket: ValidationTicket) -> bool:
+        if cls._is_cargo_command(ticket.command):
+            return True
+        cargo_identity = ticket.toolchain.get("cargo")
+        return (
+            isinstance(cargo_identity, str)
+            and cargo_identity.strip().casefold() not in _CARGO_TOOLCHAIN_NOT_REQUIRED
+        )
 
     @staticmethod
     def _dependency_roots(ticket: ValidationTicket) -> tuple[str, ...]:

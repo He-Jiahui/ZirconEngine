@@ -49,6 +49,7 @@ class _FakeWorkspaceCopy:
             job_id=job_id,
             source_root=source_root,
             status="materializing",
+            materialization_kind=None,
             error_code=None,
             error_stage=None,
             error_path=None,
@@ -75,6 +76,7 @@ class _FakeWorkspaceCopy:
             job_id=job_id,
             source_root=source_root,
             status="materializing",
+            materialization_kind="cargo",
             error_code=None,
             error_stage=None,
             error_path=None,
@@ -782,6 +784,123 @@ class ValidationTicketTests(unittest.TestCase):
         )
         self.assertEqual("materializing", self.service.get(receipt.ticket.ticket_id).status)
 
+    def test_worker_routes_cargo_toolchain_wrappers_through_a_cargo_workspace_copy(self) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="powershell-cargo-request",
+            source_manifest={"tools/owned.py": digest},
+            command=(
+                "pwsh.exe",
+                "-NoProfile",
+                "-Command",
+                "& cargo +1.94.1 test -p zircon_runtime --lib",
+            ),
+            toolchain={"cargo": "1.94.1", "rustc": "1.94.1"},
+            coverage={
+                "kind": "focused",
+                "dependencyRoots": ["tools/session_coordinator"],
+            },
+        )
+
+        result = self.worker.tick()
+
+        self.assertEqual(1, result["materializing"])
+        self.assertEqual([], self.workspace_copy.generic_materializations)
+        self.assertEqual(
+            [("primary", receipt.ticket.command, ("tools/owned.py",))],
+            self.workspace_copy.materializations,
+        )
+        self.assertEqual("materializing", self.service.get(receipt.ticket.ticket_id).status)
+
+    def test_worker_does_not_route_a_not_required_cargo_marker_to_cargo(self) -> None:
+        source = self.repo / "docs" / "owned.md"
+        source.parent.mkdir(parents=True)
+        source.write_text("current\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="git-diff-with-cargo-not-required",
+            source_manifest={"docs/owned.md": digest},
+            command=("git", "diff", "--check", "--", "docs/owned.md"),
+            toolchain={"cargo": "not_required", "rust": "not_required"},
+            coverage={"kind": "focused", "dependencyRoots": ["docs"]},
+        )
+
+        result = self.worker.tick()
+
+        self.assertEqual(1, result["materializing"])
+        self.assertEqual([], self.workspace_copy.materializations)
+        self.assertEqual(
+            [("primary", ("docs",), ("docs/owned.md",))],
+            self.workspace_copy.generic_materializations,
+        )
+        self.assertEqual("materializing", self.service.get(receipt.ticket.ticket_id).status)
+
+    def test_worker_restarts_a_removed_pre_fix_wrapper_as_a_cargo_copy(self) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="removed-powershell-cargo-request",
+            source_manifest={"tools/owned.py": digest},
+            command=(
+                "pwsh.exe",
+                "-NoProfile",
+                "-Command",
+                "& cargo +1.94.1 test -p zircon_runtime --lib",
+            ),
+            toolchain={"cargo": "1.94.1", "rustc": "1.94.1"},
+            coverage={
+                "kind": "focused",
+                "dependencyRoots": ["tools/session_coordinator"],
+            },
+        )
+        self.assertEqual(1, self.worker.tick()["materializing"])
+        copy = next(iter(self.workspace_copy.records.values()))
+        copy.status = "removed"
+        copy.materialization_kind = None
+
+        restarted = self.worker.tick()
+
+        self.assertEqual(1, restarted["materializing"])
+        self.assertEqual("materializing", self.service.get(receipt.ticket.ticket_id).status)
+        self.assertEqual([], self.workspace_copy.generic_materializations)
+        self.assertEqual(2, len(self.workspace_copy.materializations))
+        link = self.service.latest_worker_event(
+            receipt.ticket.ticket_id, "validation.ticket_copy_linked"
+        )
+        self.assertEqual(copy.job_id, link["recoveredFromJobId"])
+
+    def test_worker_does_not_rematerialize_a_removed_cargo_copy(self) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="removed-cargo-request",
+            source_manifest={"tools/owned.py": digest},
+            command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            toolchain={"cargo": "1.94.1", "rustc": "1.94.1"},
+            coverage={"kind": "focused"},
+        )
+        self.assertEqual(1, self.worker.tick()["materializing"])
+        copy = next(iter(self.workspace_copy.records.values()))
+        copy.status = "removed"
+
+        terminal = self.worker.tick()
+
+        self.assertEqual(1, terminal["failed"])
+        self.assertEqual("failed", self.service.get(receipt.ticket.ticket_id).status)
+        self.assertEqual(1, len(self.workspace_copy.materializations))
+        self.assertEqual([], self.workspace_copy.generic_materializations)
+
     def test_worker_restarts_a_removed_generic_copy_before_run(self) -> None:
         source = self.repo / "tools" / "owned.py"
         source.parent.mkdir(parents=True)
@@ -791,7 +910,12 @@ class ValidationTicketTests(unittest.TestCase):
             session_id="primary",
             request_id="generic-copy-restart-request",
             source_manifest={"tools/owned.py": digest},
-            command=("python", "-m", "unittest", "focused"),
+            command=(
+                "pwsh.exe",
+                "-NoProfile",
+                "-Command",
+                "python -m unittest focused",
+            ),
             toolchain={"python": "3.14"},
             coverage={
                 "kind": "focused",
