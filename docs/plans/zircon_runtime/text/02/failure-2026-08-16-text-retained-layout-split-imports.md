@@ -48,6 +48,11 @@ Text layout 的新 folder-backed split 改变了 `runtime_lines.rs` 的模块深
 - scoped rustfmt 与 diff check 通过。
 - 上述受管 `zircon_editor` 产品构建中这 10 条诊断归零；不能只跑不编译 `zircon_editor` 的 Runtime framebuffer 测试。
 
+## 禁止临时方案
+
+- 不得新增 facade re-export、复制 text 类型或恢复拆分前的模块布局来掩盖导入层级错误。
+- 不得以静态扫描、只编译 Runtime 或跳过 `zircon_editor` 产品构建替代声明的上游验收门。
+
 ## 修复结果与回传
 
 Open state: `待 Text02 owner 修复`; UI12 不宣称 Editor 产品构建或视觉验收通过。
