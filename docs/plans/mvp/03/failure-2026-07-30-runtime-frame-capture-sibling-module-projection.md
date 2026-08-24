@@ -54,6 +54,14 @@ MVP F2 新增的产品截图写出调用未从 `surface_present` 正确投影到
 
 ## 修复结果与回传
 
+### 2026-08-24 受管验证前置阻塞
+
+- validation ticket：`d1ec49cbdb304826a21bb59a7faccbba`
+- validation copy：`a5356e6b9f4742a693f895ec67f2ac37`
+- 终态：`failed`，阶段 `closure_planning`，Cargo 未启动。
+- 精确外部依赖链：`zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs` 引用了当前副本缺失的 `zircon_editor/assets/ui/editor/animation_editor.zui`；durable error code 为 `validation_copy_compile_time_resource_missing`。
+- 本 failure 的两条实现路径仍与 snapshot `2089` 一致；不得把 Editor 资产缺失误记为 frame-capture GREEN。等待该外部 compile-time resource 恢复后，仅按 FIFO 重提同一 focused test。
+
 Open state: `MVP03 source repair complete; managed upward validation pending`; no pass is claimed.
 
 - `surface_present::redraw` now calls the one root-owned writer through
