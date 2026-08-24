@@ -205,6 +205,78 @@ class DatabaseTests(unittest.TestCase):
                 <= columns
             )
 
+    def test_latest_schema_persists_future_path_ownership_transfers(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+
+            migrate(database)
+
+            with database.connect() as connection:
+                columns = {
+                    row[1]: row
+                    for row in connection.execute(
+                        "PRAGMA table_info(ownership_transfers)"
+                    )
+                }
+
+            self.assertIn("path_state", columns)
+            self.assertEqual(0, columns["content_hash"][3])
+            self.assertEqual("'existing'", columns["path_state"][4])
+
+    def test_schema_67_preserves_existing_ownership_transfer_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with mock.patch(
+                "tools.session_coordinator.migrations.LATEST_SCHEMA_VERSION", 66
+            ):
+                self.assertEqual(66, migrate(database))
+            with database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO sessions(
+                        session_id, status, created_at, updated_at, last_heartbeat_at
+                    ) VALUES ('target', 'active', 'now', 'now', 'now')
+                    """
+                )
+                cursor = connection.execute(
+                    """
+                    INSERT INTO baseline_epochs(
+                        head_commit, index_tree, health, manifest_json, created_at
+                    ) VALUES ('head', 'tree', 'healthy', '{}', 'now')
+                    """
+                )
+                baseline_epoch = int(cursor.lastrowid)
+                connection.execute(
+                    """
+                    INSERT INTO ownership_transfer_previews(
+                        fingerprint, target_session_id, baseline_epoch,
+                        candidates_json, created_at, applied_at
+                    ) VALUES ('preview', 'target', ?, '{}', 'now', 'now')
+                    """,
+                    (baseline_epoch,),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO ownership_transfers(
+                        fingerprint, path_key, display_path, target_session_id,
+                        source_session_id, baseline_epoch, content_hash, actor, transferred_at
+                    ) VALUES ('preview', 'owned.txt', 'owned.txt', 'target', NULL, ?,
+                              'existing-hash', 'fixture', 'now')
+                    """,
+                    (baseline_epoch,),
+                )
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                row = connection.execute(
+                    """
+                    SELECT content_hash, path_state
+                    FROM ownership_transfers WHERE fingerprint='preview'
+                    """
+                ).fetchone()
+            self.assertEqual(("existing-hash", "existing"), tuple(row))
+
     def test_schema_63_preserves_existing_failure_diagnostics_with_empty_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")

@@ -14,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 66
+LATEST_SCHEMA_VERSION = 67
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2722,6 +2722,42 @@ def _migration_66(connection: Connection) -> None:
     )
 
 
+def _migration_67(connection: Connection) -> None:
+    """Persist explicit future-path ownership reservations without a fake blob hash."""
+    connection.executescript(
+        """
+        ALTER TABLE ownership_transfers RENAME TO ownership_transfers_v66;
+        DROP INDEX ownership_transfers_target_created;
+
+        CREATE TABLE ownership_transfers (
+            fingerprint TEXT NOT NULL REFERENCES ownership_transfer_previews(fingerprint),
+            path_key TEXT NOT NULL,
+            display_path TEXT NOT NULL,
+            target_session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            source_session_id TEXT REFERENCES sessions(session_id),
+            baseline_epoch INTEGER NOT NULL REFERENCES baseline_epochs(epoch_id),
+            content_hash TEXT,
+            path_state TEXT NOT NULL DEFAULT 'existing'
+                CHECK (path_state IN ('existing', 'future')),
+            actor TEXT NOT NULL,
+            transferred_at TEXT NOT NULL,
+            PRIMARY KEY(fingerprint, path_key)
+        );
+        INSERT INTO ownership_transfers(
+            fingerprint, path_key, display_path, target_session_id, source_session_id,
+            baseline_epoch, content_hash, path_state, actor, transferred_at
+        )
+        SELECT fingerprint, path_key, display_path, target_session_id, source_session_id,
+               baseline_epoch, content_hash, 'existing', actor, transferred_at
+        FROM ownership_transfers_v66;
+        DROP TABLE ownership_transfers_v66;
+
+        CREATE INDEX ownership_transfers_target_created
+            ON ownership_transfers(target_session_id, transferred_at, path_key);
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2789,6 +2825,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     64: _migration_64,
     65: _migration_65,
     66: _migration_66,
+    67: _migration_67,
 }
 
 

@@ -37,6 +37,7 @@ class OwnershipTransferPath:
     source_status: str | None
     source_baseline_epoch: int | None
     source_content_hash: str | None
+    path_state: str
     eligible: bool
     blocking_reasons: tuple[str, ...]
 
@@ -49,6 +50,7 @@ class OwnershipTransferPath:
             "sourceStatus": self.source_status,
             "sourceBaselineEpoch": self.source_baseline_epoch,
             "sourceContentHash": self.source_content_hash,
+            "pathState": self.path_state,
             "eligible": self.eligible,
             "blockingReasons": list(self.blocking_reasons),
         }
@@ -228,8 +230,8 @@ class OwnershipTransferService:
                     """
                     INSERT INTO ownership_transfers(
                         fingerprint, path_key, display_path, target_session_id, source_session_id,
-                        baseline_epoch, content_hash, actor, transferred_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        baseline_epoch, content_hash, path_state, actor, transferred_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         fingerprint,
@@ -239,6 +241,7 @@ class OwnershipTransferService:
                         item.source_session_id,
                         preview.baseline_epoch,
                         item.current_hash,
+                        item.path_state,
                         actor,
                         now,
                     ),
@@ -285,6 +288,7 @@ class OwnershipTransferService:
                 or current.source_status != item.source_status
                 or current.source_baseline_epoch != item.source_baseline_epoch
                 or current.source_content_hash != item.source_content_hash
+                or current.path_state != item.path_state
             ):
                 raise CoordinatorError(
                     "ownership_transfer_preview_stale",
@@ -373,10 +377,15 @@ class OwnershipTransferService:
         source_status = str(attribution["source_status"]) if attribution else None
         source_baseline_epoch = int(attribution["baseline_epoch"]) if attribution else None
         source_content_hash = str(attribution["content_hash"]) if attribution else None
+        path_state = (
+            "future"
+            if current_hash is None and baseline_hash is None and attribution is None
+            else "existing"
+        )
         reasons: list[str] = []
-        if current_hash is None:
+        if current_hash is None and path_state != "future":
             reasons.append("path_missing")
-        elif current_hash == baseline_hash:
+        elif current_hash is not None and current_hash == baseline_hash:
             reasons.append("path_matches_baseline")
         if source_session_id == target_session_id:
             reasons.append("path_already_owned_by_target")
@@ -399,6 +408,7 @@ class OwnershipTransferService:
             source_status,
             source_baseline_epoch,
             source_content_hash,
+            path_state,
             not reasons,
             tuple(reasons),
         )
@@ -458,6 +468,16 @@ class OwnershipTransferService:
                 source_status=item.get("sourceStatus"),
                 source_baseline_epoch=item.get("sourceBaselineEpoch"),
                 source_content_hash=item.get("sourceContentHash"),
+                path_state=str(
+                    item.get("pathState")
+                    or (
+                        "future"
+                        if item.get("currentHash") is None
+                        and item.get("baselineHash") is None
+                        and item.get("sourceSessionId") is None
+                        else "existing"
+                    )
+                ),
                 eligible=bool(item["eligible"]),
                 blocking_reasons=tuple(str(reason) for reason in item["blockingReasons"]),
             )
