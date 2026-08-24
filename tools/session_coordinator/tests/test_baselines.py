@@ -104,6 +104,36 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(index_before, index_path.read_bytes())
         self.assertTrue(lock_path.exists())
 
+    def test_shared_index_readers_disable_git_optional_locks(self) -> None:
+        original_run = subprocess.run
+        observed: list[tuple[tuple[str, ...], str | None]] = []
+
+        def capture_read_only_git(arguments, *args, **kwargs):
+            if arguments[:2] in (
+                ["git", "diff"],
+                ["git", "ls-files"],
+                ["git", "ls-tree"],
+            ):
+                environment = kwargs.get("env") or {}
+                observed.append(
+                    (tuple(arguments), environment.get("GIT_OPTIONAL_LOCKS"))
+                )
+            return original_run(arguments, *args, **kwargs)
+
+        with mock.patch(
+            "tools.session_coordinator.baselines.subprocess.run",
+            side_effect=capture_read_only_git,
+        ):
+            self.service.initialize()
+            self.service.scan()
+
+        self.assertTrue(observed)
+        self.assertTrue(any(arguments[1] == "ls-files" for arguments, _ in observed))
+        self.assertEqual(
+            [],
+            [arguments for arguments, optional_locks in observed if optional_locks != "0"],
+        )
+
     def test_isolated_index_tree_survives_managed_process_temp_cleanup(self) -> None:
         expected_tree = subprocess.run(
             ["git", "write-tree"],

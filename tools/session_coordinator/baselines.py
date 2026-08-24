@@ -392,6 +392,7 @@ class BaselineService:
             cwd=self.repo_root,
             check=True,
             capture_output=True,
+            env=self._read_only_git_environment(),
         )
         manifest: dict[str, str] = {}
         for raw_path in result.stdout.split(b"\0"):
@@ -543,9 +544,9 @@ class BaselineService:
         ) as temporary:
             isolated_index = Path(temporary) / "index"
             shutil.copyfile(index_path, isolated_index)
-            environment = os.environ.copy()
-            environment["GIT_INDEX_FILE"] = str(isolated_index)
-            environment["GIT_OPTIONAL_LOCKS"] = "0"
+            environment = self._read_only_git_environment(
+                GIT_INDEX_FILE=str(isolated_index)
+            )
             result = subprocess.run(
                 ["git", "write-tree"],
                 cwd=self.repo_root,
@@ -580,6 +581,13 @@ class BaselineService:
         self._workspace_capture_epochs[epoch_id] = is_workspace_capture
         return is_workspace_capture
 
+    @staticmethod
+    def _read_only_git_environment(**overrides: str) -> dict[str, str]:
+        environment = os.environ.copy()
+        environment["GIT_OPTIONAL_LOCKS"] = "0"
+        environment.update(overrides)
+        return environment
+
     def _git_output(self, *arguments: str) -> str:
         result = subprocess.run(
             ["git", *arguments],
@@ -587,6 +595,7 @@ class BaselineService:
             check=True,
             capture_output=True,
             text=True,
+            env=self._read_only_git_environment(),
         )
         return result.stdout.strip()
 
@@ -596,6 +605,7 @@ class BaselineService:
             cwd=self.repo_root,
             check=True,
             capture_output=True,
+            env=self._read_only_git_environment(),
         )
         return {
             raw.decode("utf-8", errors="surrogateescape").replace("\\", "/")
@@ -609,6 +619,7 @@ class BaselineService:
             cwd=self.repo_root,
             check=True,
             capture_output=True,
+            env=self._read_only_git_environment(),
         )
         return {
             raw.decode("utf-8", errors="surrogateescape").replace("\\", "/")
@@ -693,6 +704,7 @@ class BaselineService:
             cwd=self.repo_root,
             check=True,
             capture_output=True,
+            env=self._read_only_git_environment(),
         )
         fields = [item for item in result.stdout.split(b"\0") if item]
         changes: list[tuple[str, tuple[str, ...]]] = []
@@ -725,6 +737,7 @@ class BaselineService:
             cwd=self.repo_root,
             check=True,
             capture_output=True,
+            env=self._read_only_git_environment(),
         )
         return hash_bytes(result.stdout)
 
@@ -735,6 +748,7 @@ class BaselineService:
             cwd=self.repo_root,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env=self._read_only_git_environment(),
         )
         stderr = b""
         try:
