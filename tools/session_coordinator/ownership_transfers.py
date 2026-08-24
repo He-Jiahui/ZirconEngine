@@ -376,7 +376,11 @@ class OwnershipTransferService:
         source_session_id = str(attribution["session_id"]) if attribution else None
         source_status = str(attribution["source_status"]) if attribution else None
         source_baseline_epoch = int(attribution["baseline_epoch"]) if attribution else None
-        source_content_hash = str(attribution["content_hash"]) if attribution else None
+        source_content_hash = (
+            str(attribution["content_hash"])
+            if attribution is not None and attribution["content_hash"] is not None
+            else None
+        )
         path_state = (
             "future"
             if current_hash is None and baseline_hash is None and attribution is None

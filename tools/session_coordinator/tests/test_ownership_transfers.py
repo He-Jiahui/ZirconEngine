@@ -248,6 +248,36 @@ class OwnershipTransferTests(unittest.TestCase):
         self.assertEqual([], self.leases.owned_paths("target"))
         self.assertNotIn("docs/generated.md", self.sessions.get("target").write_scope)
 
+    def test_materialized_future_path_preview_preserves_null_source_hash(self) -> None:
+        self.baselines.accept(reason="materialized future attribution fixture")
+        self.sessions.register(session_id="source")
+        self.sessions.register(session_id="successor")
+        reserved = self.service.preview(
+            target_session_id="source", paths=("docs/generated.md",)
+        )
+        self.service.apply(reserved.fingerprint, actor="fixture")
+        generated = self.repo / "docs" / "generated.md"
+        generated.parent.mkdir(parents=True)
+        generated.write_text("generated\n", encoding="utf-8")
+        self.leases.release("source")
+        self.sessions.set_status("source", SessionStatus.STALE, reason="fixture stale")
+
+        preview = self.service.preview(
+            target_session_id="successor", paths=("docs/generated.md",)
+        )
+
+        candidate = preview.paths[0]
+        self.assertTrue(candidate.eligible, candidate.blocking_reasons)
+        self.assertIsNone(candidate.source_content_hash)
+        result = self.service.apply(preview.fingerprint, actor="fixture")
+        self.assertFalse(result.already_applied)
+        with self.database.connect() as connection:
+            attribution = connection.execute(
+                "SELECT session_id, content_hash FROM attributions WHERE path_key=?",
+                ("docs/generated.md",),
+            ).fetchone()
+        self.assertEqual(("successor", candidate.current_hash), tuple(attribution))
+
     def test_preview_refuses_a_missing_future_path_under_a_foreign_lease(self) -> None:
         self.baselines.accept(reason="future path lease fixture")
         self.sessions.register(session_id="source")
