@@ -232,10 +232,11 @@ class ValidationCopySourceTests(unittest.TestCase):
                 "rust-toolchain.toml",
                 "app/src/schema.txt",
                 "local_dep/src/lib.rs",
-                "workspace_tool/src/lib.rs",
+                "workspace_tool/Cargo.toml",
             }
             <= set(closure.repository_paths)
         )
+        self.assertNotIn("workspace_tool/src/lib.rs", closure.repository_paths)
         self.assertEqual((descriptor,), closure.external_sources)
         with self.assertRaises(CoordinatorError) as missing:
             planner.plan(("cargo", "test", "-p", "app", "--lib"))
@@ -258,6 +259,12 @@ class ValidationCopySourceTests(unittest.TestCase):
             discover_external_sources=True,
         )
         self.assertTrue((materialized.job_root / "zr_vm/binding/Cargo.toml").is_file())
+        self.assertTrue(
+            (materialized.source_root / "workspace_tool/Cargo.toml").is_file()
+        )
+        self.assertFalse(
+            (materialized.source_root / "workspace_tool/src/lib.rs").exists()
+        )
 
     def test_package_scoped_compile_resources_ignore_unselected_workspace_members(
         self,
@@ -330,7 +337,8 @@ class ValidationCopySourceTests(unittest.TestCase):
         self.assertIn("app/src/schema.txt", closure.repository_paths)
         self.assertIn("local_dep/src/lib.rs", closure.repository_paths)
         self.assertIn("local_dep/src/schema.txt", closure.repository_paths)
-        self.assertIn("app/workspace_tool/src/lib.rs", closure.repository_paths)
+        self.assertIn("app/workspace_tool/Cargo.toml", closure.repository_paths)
+        self.assertNotIn("app/workspace_tool/src/lib.rs", closure.repository_paths)
 
         with self.assertRaises(CoordinatorError) as unscoped:
             CargoInputClosurePlanner(

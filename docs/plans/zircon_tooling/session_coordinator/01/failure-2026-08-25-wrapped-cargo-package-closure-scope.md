@@ -31,10 +31,12 @@ related_code:
 ## 最低共享层根因
 
 CargoInputClosurePlanner.plan unconditionally seeds dependency traversal with every workspace member in addition to the explicitly selected package, so an unrelated member's missing compile-time include blocks a package-scoped run.
+The first forward fix restricted resource scanning, but the copy still included every unrelated workspace source tree; managed copy `ca11d0c0b5f64d5bb9964330bf306ba5` then crossed the old failure point and failed closed on unrelated `zr_rhi_wgpu` baseline drift before process launch. Package-scoped source selection must therefore be narrow as well as resource-scoped, while retaining workspace manifests for Cargo topology parsing.
 
 ## 架构修复验收
 
 - An explicit -p/--package command scans compile-time resources only for the selected package and its transitive build dependencies while preserving the complete workspace topology required by Cargo.
+- Unselected workspace and local path packages contribute their tracked Cargo manifests but not unrelated source trees to a package-scoped copy.
 - An unrelated workspace member with a missing compile-time resource cannot fail package-scoped closure planning.
 - Commands without an explicit package preserve full-workspace closure semantics, and missing package requests fail with the existing typed error.
 - A managed wrapped package command reaches a terminal validation-copy run without scanning the unrelated Editor asset.

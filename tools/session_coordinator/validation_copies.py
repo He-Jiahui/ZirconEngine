@@ -476,7 +476,7 @@ class CargoInputClosurePlanner:
 
         descriptors = tuple(source.pinned() for source in external_sources)
         repository_roots: set[str] = set()
-        compile_time_repository_roots: set[str] = set()
+        build_repository_roots: set[str] = set()
         used_external: dict[str, ExternalGitSource] = {}
         discovered_roots: dict[Path, set[str]] = {}
         for package_id in closure_ids:
@@ -488,7 +488,7 @@ class CargoInputClosurePlanner:
                 relative_root = manifest.parent.relative_to(self.repo_root).as_posix()
                 repository_roots.add(relative_root or ".")
                 if package_id in build_closure_ids:
-                    compile_time_repository_roots.add(relative_root or ".")
+                    build_repository_roots.add(relative_root or ".")
                 continue
             if package.get("source") is not None:
                 # Registry and Git packages are fetched by Cargo; only source-null
@@ -527,28 +527,42 @@ class CargoInputClosurePlanner:
             used_external[descriptor.mount_path.casefold()] = descriptor
 
         root_manifest = self.repo_root / "Cargo.toml"
-        manifest_queue = [root_manifest] if root_manifest.is_file() else []
+        manifest_queue = [(root_manifest, False)] if root_manifest.is_file() else []
         manifest_queue.extend(
-            Path(str(packages[package_id]["manifest_path"])).resolve()
+            (
+                Path(str(packages[package_id]["manifest_path"])).resolve(),
+                package_id in build_closure_ids,
+            )
             for package_id in closure_ids
             if package_id in packages
             and Path(str(packages[package_id]["manifest_path"]))
             .resolve()
             .is_relative_to(self.repo_root)
         )
-        scanned_manifests: set[Path] = set()
+        scanned_manifest_scopes: dict[Path, bool] = {}
+        repository_manifests: set[str] = set()
         while manifest_queue:
-            manifest = manifest_queue.pop()
-            if manifest in scanned_manifests:
+            manifest, include_sources = manifest_queue.pop()
+            previous_scope = scanned_manifest_scopes.get(manifest)
+            if previous_scope is True or (
+                previous_scope is False and not include_sources
+            ):
                 continue
-            scanned_manifests.add(manifest)
+            include_sources = bool(previous_scope) or include_sources
+            scanned_manifest_scopes[manifest] = include_sources
+            if manifest.is_relative_to(self.repo_root):
+                repository_manifests.add(
+                    manifest.relative_to(self.repo_root).as_posix()
+                )
             for dependency_manifest in self._manifest_path_dependencies(manifest):
                 if dependency_manifest.is_relative_to(self.repo_root):
                     relative_root = dependency_manifest.parent.relative_to(
                         self.repo_root
                     ).as_posix()
                     repository_roots.add(relative_root or ".")
-                    manifest_queue.append(dependency_manifest)
+                    if include_sources:
+                        build_repository_roots.add(relative_root or ".")
+                    manifest_queue.append((dependency_manifest, include_sources))
                     continue
                 descriptor = next(
                     (
@@ -593,15 +607,45 @@ class CargoInputClosurePlanner:
             descriptor = self._discovered_sibling_source(external_root, include_roots)
             used_external[descriptor.mount_path.casefold()] = descriptor
 
-        roots = tuple(sorted(repository_roots, key=str.casefold))
-        result = subprocess.run(
-            ["git", "ls-files", "--", *roots],
-            cwd=self.repo_root,
-            check=True,
-            capture_output=True,
-            encoding="utf-8",
-        )
-        paths = {line for line in result.stdout.splitlines() if line}
+        roots = tuple(sorted(build_repository_roots, key=str.casefold))
+        if roots:
+            result = subprocess.run(
+                ["git", "ls-files", "--", *roots],
+                cwd=self.repo_root,
+                check=True,
+                capture_output=True,
+                encoding="utf-8",
+            )
+            package_roots = tuple(
+                sorted(
+                    {(self.repo_root / root).resolve() for root in repository_roots},
+                    key=lambda path: str(path).casefold(),
+                )
+            )
+            selected_roots = {
+                (self.repo_root / root).resolve() for root in build_repository_roots
+            }
+            paths = {
+                line
+                for line in result.stdout.splitlines()
+                if line
+                and _package_root_for_source(
+                    (self.repo_root / line).resolve(), package_roots
+                )
+                in selected_roots
+            }
+        else:
+            paths = set()
+        if repository_manifests:
+            paths.update(
+                self._tracked_git_paths(
+                    repository_manifests,
+                    operation="git_ls_files_cargo_manifests",
+                    count_key="manifestCount",
+                    error_code="validation_copy_cargo_manifest_git_failed",
+                    message="Git could not enumerate Cargo manifests",
+                )
+            )
         for root_file in ("Cargo.toml", "Cargo.lock", "rust-toolchain", "rust-toolchain.toml"):
             tracked = subprocess.run(
                 ["git", "ls-files", "--error-unmatch", "--", root_file],
@@ -616,7 +660,7 @@ class CargoInputClosurePlanner:
             self._compile_time_resource_paths(
                 paths,
                 repository_roots,
-                compile_time_repository_roots,
+                build_repository_roots,
             )
         )
         return CargoInputClosure(
@@ -667,11 +711,28 @@ class CargoInputClosurePlanner:
         return self._tracked_compile_time_resources(resource_roots)
 
     def _tracked_compile_time_resources(self, resource_roots: set[str]) -> set[str]:
-        ordered_roots = tuple(sorted(resource_roots, key=str.casefold))
+        return self._tracked_git_paths(
+            resource_roots,
+            operation="git_ls_files_compile_time_resources",
+            count_key="resourceRootCount",
+            error_code="validation_copy_compile_time_resource_git_failed",
+            message="Git could not enumerate compile-time resources",
+        )
+
+    def _tracked_git_paths(
+        self,
+        pathspecs: set[str],
+        *,
+        operation: str,
+        count_key: str,
+        error_code: str,
+        message: str,
+    ) -> set[str]:
+        ordered_pathspecs = tuple(sorted(pathspecs, key=str.casefold))
         batches: list[tuple[str, ...]] = []
         batch: list[str] = []
-        for root in ordered_roots:
-            candidate = ("git", "ls-files", "--", *batch, root)
+        for pathspec in ordered_pathspecs:
+            candidate = ("git", "ls-files", "--", *batch, pathspec)
             if (
                 batch
                 and len(subprocess.list2cmdline(candidate))
@@ -679,7 +740,7 @@ class CargoInputClosurePlanner:
             ):
                 batches.append(tuple(batch))
                 batch = []
-            batch.append(root)
+            batch.append(pathspec)
         if batch:
             batches.append(tuple(batch))
 
@@ -696,9 +757,9 @@ class CargoInputClosurePlanner:
                 tracked.update(line for line in result.stdout.splitlines() if line)
         except (OSError, subprocess.SubprocessError) as error:
             details: dict[str, object] = {
-                "operation": "git_ls_files_compile_time_resources",
+                "operation": operation,
                 "errorType": type(error).__name__,
-                "resourceRootCount": len(ordered_roots),
+                count_key: len(ordered_pathspecs),
             }
             for name in ("errno", "winerror"):
                 value = getattr(error, name, None)
@@ -707,8 +768,8 @@ class CargoInputClosurePlanner:
             if isinstance(error, subprocess.CalledProcessError):
                 details["exitCode"] = int(error.returncode)
             raise CoordinatorError(
-                "validation_copy_compile_time_resource_git_failed",
-                "Git could not enumerate compile-time resources",
+                error_code,
+                message,
                 details=details,
             ) from error
         return tracked
