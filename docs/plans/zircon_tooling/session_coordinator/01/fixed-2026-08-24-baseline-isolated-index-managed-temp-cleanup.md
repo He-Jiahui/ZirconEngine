@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-24
 summary_slug: baseline-isolated-index-managed-temp-cleanup
 origin_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -18,6 +18,7 @@ tests:
   - python -B -m unittest tools.session_coordinator.tests.test_baselines.BaselineTests.test_isolated_index_tree_survives_managed_process_temp_cleanup -v
   - python -B -m unittest tools.session_coordinator.tests.test_git_finalize.GitFinalizeTests.test_validation_command_uses_stable_coordinator_temp_environment -v
   - python -B -m unittest tools.session_coordinator.tests.test_git_finalize.GitFinalizeTests.test_git_add_pathspec_survives_managed_process_temp_cleanup tools.session_coordinator.tests.test_git_finalize.GitFinalizeTests.test_milestone_commit_is_scoped_atomic_and_keeps_session_active -v
+resolved_at: 2026-08-24
 ---
 
 # Coordinator01: baseline isolated index is deleted with managed process TEMP
@@ -72,43 +73,7 @@ finalizer that cannot finish baseline acceptance.
 
 ## 修复结果与回传
 
-The current worktree creates the private baseline index under
-`.codex/state/session-coordinator/temporary`, derived only from the Coordinator
-database path. The RED regression deleted the process-global managed target TEMP
-immediately before `git write-tree` and reproduced the production exit 128. The same
-test is GREEN after the stable-root change.
-
-Focused validation passed the new regression, the existing shared-index/stale-lock
-case, the finalizer pathspec cleanup regression, and the scoped atomic milestone case
-(`4/4`). The complete baseline suite passed `17/17`; Python compilation, diff checks,
-and two Failure schema regressions also passed.
-
-The first exact-three maintenance request `c9bcf21cc287464a9e15804f325e6dca`
-then exposed the remaining finalizer-context boundary before CAS. The same `19/19`
-command passed in the caller environment, while the daemon-launched validation child
-inherited its managed Cargo `TEMP/TMP`. `GitFinalizeService` now copies the existing
-environment, redirects `TEMP`, `TMP`, and `TMPDIR` to the stable Coordinator root, and
-preserves `SystemRoot` plus ordinary variables. Both ordinary finalize and scoped
-milestone validation use the same builder while retaining their existing typed error
-codes. The environment RED/GREEN and both error-contract regressions pass `3/3`.
-
-Controlled rollover action `ca672196a6e24810bd90941e58576f1e` loaded healthy
-read-write schema-66 successor `b3f8c5397181475f81ec6957b12ea6f6`. Startup recovery
-completed request `3fc7b6961c3a41ad9f212b18ed4f842f` without replay:
-`status=committed`, `commit_sha=ref_updated_sha=8dc299a8...`, `index_snapshot=NULL`.
-Baseline epoch 394 is healthy on that commit; the shared 19-path staged fingerprint
-remains `d221e55776b1167410e35fbb3a6a0c0bdb754df8` and no index lock or Git mutex
-remains.
-
-The exact five Coordinator source/test/evidence paths were committed by maintenance
-finalize request `9730fbeb998541698e20e0d20597d9ec` as
-`dd1eccb9cdef9824754664d673db2e2b6f9073f0`. Post-commit controlled rollover action
-`65dcd2fafe6c42ca9ebb7b528178d151` loaded healthy read-write schema-66 successor
-`e9670dd6f626422dbb70553b0b5ed340` from that source. Fresh child-environment and
-baseline-index focused regressions passed `2/2`; the Coordinator temporary root was
-empty, no finalizing request, active Cargo job, Git mutex, artifact reservation, or
-index lock remained, and the unrelated 19-path staged fingerprint was still exactly
-`d221e55776b1167410e35fbb3a6a0c0bdb754df8`.
-
-Open state: `implementation, maintenance commit, startup recovery, and post-commit
-daemon alignment accepted / formal local failure closeout pending`.
+- 根因：Baseline private index and finalizer validation children inherited managed Cargo TEMP/TMP paths whose cleanup could remove live Coordinator temporary state.
+- 架构修复：Route baseline index, pathspec, secret-scan, and validation child temporary files through the stable Coordinator-owned state temp root while preserving the ordinary child environment and scoped finalizer invariants.
+- 验证：Baseline suite 17/17; focused environment, pathspec, stale-lock, and scoped finalizer regressions 4/4 plus 3/3; commits dd1eccb9cdef9824754664d673db2e2b6f9073f0 and 5db712ffabd6e8d5fd23141d956ebde55c20f0de; schema66 successor e9670dd6f626422dbb70553b0b5ed340 recovered the post-CAS request without replay, kept the 19-path staged fingerprint d221e55776b1167410e35fbb3a6a0c0bdb754df8, and left no mutex/index lock.
+- 回传：Baseline capture and maintenance finalization now survive managed TEMP cleanup; the recovered commit and external staged index remain intact, so scoped failure finalizers may continue.
