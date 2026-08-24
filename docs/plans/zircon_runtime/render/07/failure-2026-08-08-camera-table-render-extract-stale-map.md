@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-08-08
 summary_slug: camera-table-render-extract-stale-map
 origin_plan: docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md

@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: source_complete_dynamic_validation_pending
+status: open
 created_at: 2026-07-17
 summary_slug: postprocess-plugin-legacy-pass-order-drift
 origin_plan: docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
