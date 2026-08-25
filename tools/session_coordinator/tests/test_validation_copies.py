@@ -172,12 +172,15 @@ class ValidationCopySourceTests(unittest.TestCase):
             "Cargo.toml": (
                 "[workspace]\n"
                 "members=['app','local_dep','app/workspace_tool']\n"
+                "exclude=['manifest_only']\n"
             ),
             "Cargo.lock": "# lock\n",
             "rust-toolchain.toml": "[toolchain]\nchannel='1.94.1'\n",
             "app/Cargo.toml": (
                 "[package]\nname='app'\nversion='0.1.0'\n"
-                "[dependencies]\nbinding={path='../../zr_vm/binding', optional=true}\n"
+                "[dependencies]\n"
+                "binding={path='../../zr_vm/binding', optional=true}\n"
+                "manifest_only={path='../manifest_only', optional=true}\n"
             ),
             "app/src/lib.rs": "include_str!(\"schema.txt\");\n",
             "app/src/schema.txt": "schema-v1\n",
@@ -185,6 +188,9 @@ class ValidationCopySourceTests(unittest.TestCase):
             "local_dep/src/lib.rs": "pub fn local() {}\n",
             "app/workspace_tool/Cargo.toml": "[package]\nname='workspace_tool'\nversion='0.1.0'\n",
             "app/workspace_tool/src/lib.rs": "pub fn tool() {}\n",
+            "manifest_only/Cargo.toml": "[package]\nname='manifest_only'\nversion='0.1.0'\n",
+            "manifest_only/src/lib.rs": "pub fn manifest_only() {}\n",
+            "manifest_only/src/unused.rs": "pub fn unused() {}\n",
         }
         for relative, content in files.items():
             target = self.repo / relative
@@ -202,21 +208,43 @@ class ValidationCopySourceTests(unittest.TestCase):
                     "id": "app-id",
                     "name": "app",
                     "manifest_path": str(self.repo / "app/Cargo.toml"),
+                    "targets": [{"src_path": str(self.repo / "app/src/lib.rs")}],
                 },
                 {
                     "id": "local-id",
                     "name": "local_dep",
                     "manifest_path": str(self.repo / "local_dep/Cargo.toml"),
+                    "targets": [
+                        {"src_path": str(self.repo / "local_dep/src/lib.rs")}
+                    ],
                 },
                 {
                     "id": "external-id",
                     "name": "binding",
                     "manifest_path": str(self.external / "binding/Cargo.toml"),
+                    "targets": [
+                        {"src_path": str(self.external / "binding/src/lib.rs")}
+                    ],
                 },
                 {
                     "id": "tool-id",
                     "name": "workspace_tool",
                     "manifest_path": str(self.repo / "app/workspace_tool/Cargo.toml"),
+                    "targets": [
+                        {
+                            "src_path": str(
+                                self.repo / "app/workspace_tool/src/lib.rs"
+                            )
+                        }
+                    ],
+                },
+                {
+                    "id": "manifest-only-id",
+                    "name": "manifest_only",
+                    "manifest_path": str(self.repo / "manifest_only/Cargo.toml"),
+                    "targets": [
+                        {"src_path": str(self.repo / "manifest_only/src/lib.rs")}
+                    ],
                 },
             ],
             "workspace_members": ["app-id", "local-id", "tool-id"],
@@ -225,7 +253,8 @@ class ValidationCopySourceTests(unittest.TestCase):
                     {"id": "app-id", "deps": [{"pkg": "local-id"}]},
                     {"id": "local-id", "deps": []},
                     {"id": "external-id", "deps": []},
-                    {"id": "tool-id", "deps": []},
+                    {"id": "tool-id", "deps": [{"pkg": "external-id"}]},
+                    {"id": "manifest-only-id", "deps": []},
                 ]
             },
         }
@@ -247,13 +276,16 @@ class ValidationCopySourceTests(unittest.TestCase):
                 "app/src/schema.txt",
                 "local_dep/src/lib.rs",
                 "app/workspace_tool/Cargo.toml",
+                "app/workspace_tool/src/lib.rs",
+                "manifest_only/Cargo.toml",
+                "manifest_only/src/lib.rs",
             }
             <= set(closure.repository_paths)
         )
-        self.assertNotIn("app/workspace_tool/src/lib.rs", closure.repository_paths)
+        self.assertNotIn("manifest_only/src/unused.rs", closure.repository_paths)
         self.assertEqual(1, len(closure.external_sources))
         self.assertEqual(
-            ("binding/Cargo.toml", "Cargo.toml"),
+            ("binding/Cargo.toml", "binding/src/lib.rs", "Cargo.toml"),
             closure.external_sources[0].include_roots,
         )
         with self.assertRaises(CoordinatorError) as missing:
@@ -269,6 +301,7 @@ class ValidationCopySourceTests(unittest.TestCase):
         self.assertEqual(self.external_commit, discovered.external_sources[0].commit)
         self.assertEqual("zr_vm", discovered.external_sources[0].mount_path)
         self.assertIn("binding/Cargo.toml", discovered.external_sources[0].include_roots)
+        self.assertIn("binding/src/lib.rs", discovered.external_sources[0].include_roots)
 
         materialized = self.service.materialize_cargo(
             "session-a",
@@ -278,12 +311,18 @@ class ValidationCopySourceTests(unittest.TestCase):
         )
         self.assertTrue((materialized.job_root / "zr_vm/Cargo.toml").is_file())
         self.assertTrue((materialized.job_root / "zr_vm/binding/Cargo.toml").is_file())
-        self.assertFalse((materialized.job_root / "zr_vm/binding/src/lib.rs").exists())
+        self.assertTrue((materialized.job_root / "zr_vm/binding/src/lib.rs").is_file())
         self.assertTrue(
             (materialized.source_root / "app/workspace_tool/Cargo.toml").is_file()
         )
+        self.assertTrue(
+            (materialized.source_root / "app/workspace_tool/src/lib.rs").is_file()
+        )
+        self.assertTrue(
+            (materialized.source_root / "manifest_only/src/lib.rs").is_file()
+        )
         self.assertFalse(
-            (materialized.source_root / "app/workspace_tool/src/lib.rs").exists()
+            (materialized.source_root / "manifest_only/src/unused.rs").exists()
         )
 
         metadata["resolve"]["nodes"][0]["deps"].append({"pkg": "external-id"})
@@ -391,11 +430,15 @@ class ValidationCopySourceTests(unittest.TestCase):
                     "id": "app-id",
                     "name": "app",
                     "manifest_path": str(self.repo / "app/Cargo.toml"),
+                    "targets": [{"src_path": str(self.repo / "app/src/lib.rs")}],
                 },
                 {
                     "id": "local-id",
                     "name": "local_dep",
                     "manifest_path": str(self.repo / "local_dep/Cargo.toml"),
+                    "targets": [
+                        {"src_path": str(self.repo / "local_dep/src/lib.rs")}
+                    ],
                 },
                 {
                     "id": "tool-id",
@@ -403,6 +446,13 @@ class ValidationCopySourceTests(unittest.TestCase):
                     "manifest_path": str(
                         self.repo / "app/workspace_tool/Cargo.toml"
                     ),
+                    "targets": [
+                        {
+                            "src_path": str(
+                                self.repo / "app/workspace_tool/src/lib.rs"
+                            )
+                        }
+                    ],
                 },
             ],
             "workspace_members": ["app-id", "local-id", "tool-id"],
@@ -424,7 +474,8 @@ class ValidationCopySourceTests(unittest.TestCase):
         self.assertIn("local_dep/src/lib.rs", closure.repository_paths)
         self.assertIn("local_dep/src/schema.txt", closure.repository_paths)
         self.assertIn("app/workspace_tool/Cargo.toml", closure.repository_paths)
-        self.assertNotIn("app/workspace_tool/src/lib.rs", closure.repository_paths)
+        self.assertIn("app/workspace_tool/src/lib.rs", closure.repository_paths)
+        self.assertNotIn("app/workspace_tool/src/missing.txt", closure.repository_paths)
 
         with self.assertRaises(CoordinatorError) as unscoped:
             CargoInputClosurePlanner(

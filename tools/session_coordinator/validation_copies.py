@@ -372,6 +372,15 @@ class CargoInputClosurePlanner:
             for package_id, package in packages.items()
             if package.get("source") is None and package.get("manifest_path")
         }
+        manifest_target_sources = {
+            Path(str(package["manifest_path"])).resolve(): tuple(
+                Path(str(target["src_path"])).resolve()
+                for target in package.get("targets", [])
+                if isinstance(target, Mapping) and target.get("src_path")
+            )
+            for package in packages.values()
+            if package.get("source") is None and package.get("manifest_path")
+        }
         used_external: dict[str, tuple[ExternalGitSource, set[str]]] = {}
         external_tree_cache: dict[tuple[str, str], frozenset[str]] = {}
         external_topology_cache: dict[tuple[str, str, str], set[str]] = {}
@@ -415,19 +424,28 @@ class CargoInputClosurePlanner:
             if entry is None:
                 entry = (source, set())
                 used_external[key] = entry
+            tree_key = (str(source.repo_root), source.commit)
+            tracked_paths = external_tree_cache.get(tree_key)
+            if tracked_paths is None:
+                tracked_paths = external_tree_paths(source)
+                external_tree_cache[tree_key] = tracked_paths
             cache_key = (str(source.repo_root), source.commit, str(manifest))
             topology_paths = external_topology_cache.get(cache_key)
             if topology_paths is None:
-                tree_key = (str(source.repo_root), source.commit)
-                tracked_paths = external_tree_cache.get(tree_key)
-                if tracked_paths is None:
-                    tracked_paths = external_tree_paths(source)
-                    external_tree_cache[tree_key] = tracked_paths
                 topology_paths = external_topology_paths(
                     source, manifest, tracked_paths
                 )
                 external_topology_cache[cache_key] = topology_paths
             entry[1].update(topology_paths)
+            if not include_sources:
+                for target_source in manifest_target_sources.get(manifest, ()):
+                    if not target_source.is_relative_to(source.repo_root):
+                        continue
+                    relative_target = target_source.relative_to(
+                        source.repo_root
+                    ).as_posix()
+                    if relative_target in tracked_paths:
+                        entry[1].add(relative_target)
             entry[1].add(
                 external_include_path(manifest, source.repo_root, include_sources)
             )
@@ -615,6 +633,23 @@ class CargoInputClosurePlanner:
                     count_key="manifestCount",
                     error_code="validation_copy_cargo_manifest_git_failed",
                     message="Git could not enumerate Cargo manifests",
+                )
+            )
+        topology_target_sources = {
+            target_source.relative_to(self.repo_root).as_posix()
+            for manifest, include_sources in scanned_manifest_scopes.items()
+            if not include_sources
+            for target_source in manifest_target_sources.get(manifest, ())
+            if target_source.is_relative_to(self.repo_root)
+        }
+        if topology_target_sources:
+            paths.update(
+                self._tracked_git_paths(
+                    topology_target_sources,
+                    operation="git_ls_files_cargo_target_sources",
+                    count_key="targetSourceCount",
+                    error_code="validation_copy_cargo_target_git_failed",
+                    message="Git could not enumerate Cargo target source files",
                 )
             )
         for root_file in ("Cargo.toml", "Cargo.lock", "rust-toolchain", "rust-toolchain.toml"):

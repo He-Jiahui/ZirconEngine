@@ -68,3 +68,32 @@ persists an actionable `errorPath` without parsing messages or changing admissio
 RED reproduced `error_path=None`; focused GREEN passes 4/4 across all three error
 branches and the durable Cargo worker projection. This additional diagnostic evidence
 does not replace the required terminal managed package run.
+
+Replacement ticket `035c9dfc765e4735b29c6372224b2973` then crossed owned-overlay
+validation, materialized copy `946d4be03e1b4819956dea3d4b2b7b0a` with immutable input
+manifest `ba45f7157fbdda85b32f6828c5e1e32dc88406a024eb9ef2c4c7dc28147cf7ea`,
+and launched managed Cargo job `b158deb236504bbd93dda5ca0b7921ad`. The terminal run
+failed with exit 101 before compilation because Cargo parsed the unselected workspace
+member `zircon_runtime/Cargo.toml` but the topology-only copy omitted its metadata-declared
+default target `zircon_runtime/src/lib.rs`. This proves the source-tree narrowing was
+directionally correct but also establishes that Cargo topology includes each package's
+declared target entrypoint, not manifests alone.
+
+The next forward fix preserves `targets[].src_path` for topology-only local and pinned
+external packages while continuing to exclude every other unselected source and its
+compile-time resources. RED failed both the local and external topology assertions;
+focused GREEN passes 2/2 and still proves the unrelated missing include is not scanned.
+Independent review then found two deeper topology paths: a repeated external manifest
+registration could reuse cached topology before loading its tracked tree, and an optional
+local path dependency discovered only while scanning Cargo.toml might not appear in the
+resolve closure. Additional RED reproduced the external cache-hit exception and the
+manifest-only target omission. The fix now loads the pinned tree independently of the
+topology cache and derives local entrypoints from every topology-only scanned manifest;
+focused GREEN remains 2/2 while proving an unrelated sibling source stays excluded.
+Follow-up review reported Critical 0 / Important 0; its sole fixture-consistency Minor
+was resolved by excluding the manifest-only package from the test workspace, matching
+real Cargo metadata semantics. The final full `test_validation_copies` gate passes
+10/10 in 89.807 seconds; py_compile and diff-check pass.
+The failure remains open until the final source snapshot is committed, loaded by a
+successor, and a new FIFO-managed package ticket reaches a terminal run beyond manifest
+parsing.
