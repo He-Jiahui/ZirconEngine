@@ -1079,12 +1079,75 @@ class FailureCloseoutWorkflowService:
         command: tuple[str, ...],
     ) -> dict[str, object]:
         with self.database.connect() as connection:
-            job = connection.execute(
+            cargo_job = connection.execute(
                 "SELECT * FROM cargo_jobs WHERE job_id=?", (job_id,)
             ).fetchone()
-            run = connection.execute(
+            cargo_run = connection.execute(
                 "SELECT * FROM cargo_job_runs WHERE run_id=?", (cargo_run_id,)
             ).fetchone()
+            copy = connection.execute(
+                "SELECT * FROM validation_copies WHERE job_id=?", (job_id,)
+            ).fetchone()
+            copy_run = connection.execute(
+                "SELECT * FROM validation_copy_runs WHERE run_id=?", (cargo_run_id,)
+            ).fetchone()
+            ticket = connection.execute(
+                "SELECT * FROM validation_tickets WHERE ticket_id=?", (cargo_run_id,)
+            ).fetchone()
+            copy_link = connection.execute(
+                """SELECT event_id, payload_json FROM validation_ticket_events
+                   WHERE ticket_id=? AND event_type='validation.ticket_copy_linked'
+                   ORDER BY event_id DESC LIMIT 1""",
+                (cargo_run_id,),
+            ).fetchone()
+            run_link = connection.execute(
+                """SELECT event_id, payload_json FROM validation_ticket_events
+                   WHERE ticket_id=? AND event_type='validation.ticket_run_linked'
+                   ORDER BY event_id DESC LIMIT 1""",
+                (cargo_run_id,),
+            ).fetchone()
+        cargo_present = cargo_job is not None or cargo_run is not None
+        copy_present = (
+            copy is not None
+            or copy_run is not None
+            or ticket is not None
+            or copy_link is not None
+            or run_link is not None
+        )
+        if cargo_present and copy_present:
+            raise CoordinatorError(
+                "failure_closeout_validation_contract_invalid",
+                "Managed validation evidence cannot mix Cargo and validation-copy identities",
+            )
+        if cargo_present:
+            return self._cargo_validation_contract(
+                session_id=session_id,
+                job_id=job_id,
+                run_id=cargo_run_id,
+                command=command,
+                job=cargo_job,
+                run=cargo_run,
+            )
+        if copy_present:
+            return self._copy_validation_contract(
+                session_id=session_id,
+                job_id=job_id,
+                run_id=cargo_run_id,
+                command=command,
+                copy=copy,
+                run=copy_run,
+                ticket=ticket,
+                copy_link=copy_link,
+                run_link=run_link,
+            )
+        raise CoordinatorError(
+            "failure_closeout_validation_owner_mismatch",
+            "Managed validation job and run must belong to the closeout Session",
+        )
+
+    def _cargo_validation_contract(
+        self, *, session_id: str, job_id: str, run_id: str, command, job, run
+    ) -> dict[str, object]:
         if (
             job is None
             or run is None
@@ -1118,13 +1181,143 @@ class FailureCloseoutWorkflowService:
                 "Managed validation requires structured compatibility, environment, and compatibility key",
             )
         return {
+            "evidenceKind": "cargo",
             "jobId": job_id,
-            "runId": cargo_run_id,
+            "runId": run_id,
             "laneKind": str(job["lane_kind"]),
             "targetDir": str(job["target_dir"]),
             "compatibilityKey": compatibility_key,
             "compatibility": compatibility,
             "environment": environment,
+        }
+
+    def _copy_validation_contract(
+        self,
+        *,
+        session_id: str,
+        job_id: str,
+        run_id: str,
+        command,
+        copy,
+        run,
+        ticket,
+        copy_link,
+        run_link,
+    ) -> dict[str, object]:
+        if (
+            copy is None
+            or run is None
+            or ticket is None
+            or copy["session_id"] != session_id
+            or run["session_id"] != session_id
+            or ticket["session_id"] != session_id
+            or run["job_id"] != job_id
+        ):
+            raise CoordinatorError(
+                "failure_closeout_validation_owner_mismatch",
+                "Managed validation job and run must belong to the closeout Session",
+            )
+        if copy_link is None or run_link is None:
+            raise CoordinatorError(
+                "failure_closeout_validation_contract_invalid",
+                "Managed validation-copy evidence requires worker-issued copy and run links",
+            )
+        session = self.sessions.get(session_id)
+        if not session.plan_path or ticket["plan_path"] != session.plan_path:
+            raise CoordinatorError(
+                "failure_closeout_validation_owner_mismatch",
+                "Managed validation ticket must belong to the closeout Session plan",
+            )
+        try:
+            run_command = tuple(str(item) for item in json.loads(run["command_json"] or "[]"))
+            ticket_command = tuple(
+                str(item) for item in json.loads(ticket["command_json"] or "[]")
+            )
+            source_manifest = json.loads(ticket["source_manifest_json"] or "{}")
+            toolchain = json.loads(ticket["toolchain_json"] or "{}")
+            coverage = json.loads(ticket["coverage_json"] or "{}")
+            copy_link_payload = json.loads(copy_link["payload_json"] or "{}")
+            run_link_payload = json.loads(run_link["payload_json"] or "{}")
+            canonical_manifest = self._canonical_json(source_manifest)
+            canonical_command = self._canonical_json(list(ticket_command))
+            canonical_toolchain = self._canonical_json(toolchain)
+            canonical_coverage = self._canonical_json(coverage)
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "failure_closeout_validation_contract_invalid",
+                "Managed validation-copy ticket contract is not valid canonical JSON",
+            ) from error
+        if (
+            not isinstance(copy_link_payload, dict)
+            or copy_link_payload.get("jobId") != job_id
+            or not isinstance(run_link_payload, dict)
+            or run_link_payload.get("jobId") != job_id
+            or run_link_payload.get("runId") != run_id
+        ):
+            raise CoordinatorError(
+                "failure_closeout_validation_contract_invalid",
+                "Managed validation-copy worker links do not match the job and run",
+            )
+        if command != run_command or command != ticket_command:
+            raise CoordinatorError(
+                "failure_closeout_validation_command_mismatch",
+                "Managed validation command differs from the prepare-bound command",
+            )
+        if not isinstance(source_manifest, dict) or not isinstance(toolchain, dict) or not isinstance(coverage, dict):
+            raise CoordinatorError(
+                "failure_closeout_validation_contract_invalid",
+                "Managed validation-copy ticket requires structured manifest, toolchain, and coverage",
+            )
+        if any(
+            not isinstance(path, str)
+            or not path
+            or (
+                digest is not None
+                and (
+                    not isinstance(digest, str)
+                    or re.fullmatch(r"[0-9a-fA-F]{64}", digest) is None
+                )
+            )
+            for path, digest in source_manifest.items()
+        ):
+            raise CoordinatorError(
+                "failure_closeout_validation_contract_invalid",
+                "Managed validation-copy source manifest is malformed",
+            )
+        manifest_hash = hashlib.sha256(canonical_manifest.encode("utf-8")).hexdigest()
+        dedupe_key = hashlib.sha256(
+            "\n".join(
+                (
+                    manifest_hash,
+                    canonical_command,
+                    canonical_toolchain,
+                    canonical_coverage,
+                )
+            ).encode("utf-8")
+        ).hexdigest()
+        input_manifest_hash = str(copy["input_manifest_hash"] or "").strip().casefold()
+        if (
+            manifest_hash != str(ticket["source_manifest_hash"] or "").casefold()
+            or dedupe_key != str(ticket["dedupe_key"] or "").casefold()
+            or re.fullmatch(r"[0-9a-f]{64}", input_manifest_hash) is None
+        ):
+            raise CoordinatorError(
+                "failure_closeout_validation_contract_invalid",
+                "Managed validation-copy immutable identities are malformed or inconsistent",
+            )
+        return {
+            "evidenceKind": "validation_copy",
+            "jobId": job_id,
+            "runId": run_id,
+            "compatibilityKey": dedupe_key,
+            "inputManifestHash": input_manifest_hash,
+            "sourceManifestHash": manifest_hash,
+            "sourceManifest": source_manifest,
+            "toolchain": toolchain,
+            "coverage": coverage,
+            "planPath": str(ticket["plan_path"]),
+            "copyLinkEventId": int(copy_link["event_id"]),
+            "runLinkEventId": int(run_link["event_id"]),
         }
 
     def _require_terminal_validation(
@@ -1134,36 +1327,6 @@ class FailureCloseoutWorkflowService:
         job_id: str,
         cargo_run_id: str,
     ) -> tuple[str, ...]:
-        with self.database.connect() as connection:
-            job = connection.execute(
-                "SELECT * FROM cargo_jobs WHERE job_id=?", (job_id,)
-            ).fetchone()
-            run = connection.execute(
-                "SELECT * FROM cargo_job_runs WHERE run_id=?", (cargo_run_id,)
-            ).fetchone()
-        if (
-            job is None
-            or run is None
-            or job["session_id"] != prepared.session_id
-            or run["session_id"] != prepared.session_id
-            or run["job_id"] != job_id
-        ):
-            raise CoordinatorError(
-                "failure_closeout_validation_owner_mismatch",
-                "Managed validation job and run must belong to the closeout Session",
-            )
-        if (
-            job["status"] != "released"
-            or int(job["exit_code"] if job["exit_code"] is not None else -1) != 0
-            or run["status"] != "completed"
-            or int(run["exit_code"] if run["exit_code"] is not None else -1) != 0
-            or json.loads(job["process_tree_live_pids_json"] or "[]")
-            or not job["process_tree_exited_at"]
-        ):
-            raise CoordinatorError(
-                "failure_closeout_validation_not_green",
-                "Managed validation must be terminal exit 0 with no live process tree",
-            )
         command = prepared.validation_command
         contract = self._load_validation_contract(
             session_id=prepared.session_id,
@@ -1171,15 +1334,65 @@ class FailureCloseoutWorkflowService:
             cargo_run_id=cargo_run_id,
             command=command,
         )
-        compatibility = contract["compatibility"]
-        source_manifest = compatibility.get("source_manifest")
+        with self.database.connect() as connection:
+            if contract["evidenceKind"] == "cargo":
+                job = connection.execute(
+                    "SELECT * FROM cargo_jobs WHERE job_id=?", (job_id,)
+                ).fetchone()
+                run = connection.execute(
+                    "SELECT * FROM cargo_job_runs WHERE run_id=?", (cargo_run_id,)
+                ).fetchone()
+                green = (
+                    job is not None
+                    and run is not None
+                    and job["status"] == "released"
+                    and int(job["exit_code"] if job["exit_code"] is not None else -1) == 0
+                    and run["status"] == "completed"
+                    and int(run["exit_code"] if run["exit_code"] is not None else -1) == 0
+                    and not json.loads(job["process_tree_live_pids_json"] or "[]")
+                    and bool(job["process_tree_exited_at"])
+                )
+            else:
+                copy = connection.execute(
+                    "SELECT * FROM validation_copies WHERE job_id=?", (job_id,)
+                ).fetchone()
+                run = connection.execute(
+                    "SELECT * FROM validation_copy_runs WHERE run_id=?", (cargo_run_id,)
+                ).fetchone()
+                ticket = connection.execute(
+                    "SELECT * FROM validation_tickets WHERE ticket_id=?", (cargo_run_id,)
+                ).fetchone()
+                green = (
+                    copy is not None
+                    and run is not None
+                    and ticket is not None
+                    and copy["status"] in {"materialized", "cleanup_pending", "removed", "failed"}
+                    and copy["run_pid"] is None
+                    and int(run["exit_code"] if run["exit_code"] is not None else -1) == 0
+                    and bool(run["completed_at"])
+                    and ticket["status"] == "passed"
+                )
+        if not green:
+            raise CoordinatorError(
+                "failure_closeout_validation_not_green",
+                "Managed validation must be terminal exit 0 with no live process tree",
+            )
+        source_manifest = (
+            contract["compatibility"].get("source_manifest")
+            if contract["evidenceKind"] == "cargo"
+            else contract["sourceManifest"]
+        )
         expected_source = {
             path: digest
             for path, digest in self.snapshots.get(prepared.snapshot_id).manifest.items()
             if not path.casefold().startswith("docs/plans/")
         }
         normalized_source = (
-            {str(path): str(digest).casefold() for path, digest in source_manifest.items()}
+            {
+                str(path): str(digest).casefold()
+                for path, digest in source_manifest.items()
+                if not str(path).casefold().startswith("docs/plans/")
+            }
             if isinstance(source_manifest, dict)
             else {}
         )
@@ -1313,6 +1526,16 @@ class FailureCloseoutWorkflowService:
             ),
             preserved_open_failures=preserved,
             input_fingerprint=str(payload["inputFingerprint"]),
+        )
+
+    @staticmethod
+    def _canonical_json(value: object) -> str:
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
         )
 
     @staticmethod

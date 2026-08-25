@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import io
@@ -473,6 +474,273 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
                 ),
             )
         return command
+
+    def _insert_green_copy_validation(
+        self, *, source_manifest: dict[str, str | None] | None = None
+    ):
+        command = [
+            "python",
+            "-m",
+            "unittest",
+            "tools.session_coordinator.tests.test_failure_closeout",
+            "-v",
+        ]
+        source_manifest = source_manifest or {
+            path: self.snapshot.manifest[path] for path in self.paths
+        }
+        canonical = lambda value: json.dumps(
+            value, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        )
+        manifest_json = canonical(source_manifest)
+        command_json = canonical(command)
+        toolchain_json = canonical({"cargo": "not_required", "python": "3.14"})
+        coverage_json = canonical(
+            {"kind": "focused", "dependencyRoots": ["tools/session_coordinator"]}
+        )
+        manifest_hash = hashlib.sha256(manifest_json.encode("utf-8")).hexdigest()
+        dedupe_key = hashlib.sha256(
+            "\n".join(
+                (manifest_hash, command_json, toolchain_json, coverage_json)
+            ).encode("utf-8")
+        ).hexdigest()
+        now = utc_text()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO validation_copies(
+                       job_id, session_id, job_root, source_root, target_root,
+                       head_commit, manifest_json, status, created_at, removed_at,
+                       input_manifest_hash
+                   ) VALUES ('copy-green', ?, 'copy-root', 'copy-source', 'copy-target',
+                             'head', '[]', 'removed', ?, ?, ?)""",
+                (self.session_id, now, now, "a" * 64),
+            )
+            connection.execute(
+                """INSERT INTO validation_copy_runs(
+                       run_id, job_id, session_id, command_json, exit_code,
+                       stdout_text, stderr_text, started_at, completed_at
+                   ) VALUES ('copy-run-green', 'copy-green', ?, ?, 0,
+                             '', 'OK', ?, ?)""",
+                (self.session_id, command_json, now, now),
+            )
+            connection.execute(
+                """INSERT INTO validation_tickets(
+                       ticket_id, session_id, plan_path, status, dedupe_key,
+                       source_manifest_hash, source_manifest_json, command_json,
+                       toolchain_json, coverage_json, created_at, updated_at
+                   ) VALUES ('copy-run-green', ?, ?, 'passed', ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    self.session_id,
+                    self.fixing.path.relative_to(self.repo).as_posix(),
+                    dedupe_key,
+                    manifest_hash,
+                    manifest_json,
+                    command_json,
+                    toolchain_json,
+                    coverage_json,
+                    now,
+                    now,
+                ),
+            )
+            connection.execute(
+                """INSERT INTO validation_ticket_events(
+                       ticket_id, event_type, payload_json, created_at
+                   ) VALUES ('copy-run-green', 'validation.ticket_copy_linked', ?, ?)""",
+                (canonical({"jobId": "copy-green"}), now),
+            )
+            connection.execute(
+                """INSERT INTO validation_ticket_events(
+                       ticket_id, event_type, payload_json, created_at
+                   ) VALUES ('copy-run-green', 'validation.ticket_run_linked', ?, ?)""",
+                (
+                    canonical(
+                        {"jobId": "copy-green", "runId": "copy-run-green"}
+                    ),
+                    now,
+                ),
+            )
+        return command, dedupe_key
+
+    def test_prepare_and_bind_accept_terminal_validation_copy_ticket(self) -> None:
+        command, dedupe_key = self._insert_green_copy_validation()
+
+        prepared = self.service.prepare(
+            session_id=self.session_id,
+            snapshot_id=self.snapshot.snapshot_id,
+            lifecycle_key=self.lifecycle_key,
+            validation_command=command,
+            validation_job_id="copy-green",
+            validation_run_id="copy-run-green",
+            executor_thread_id="executor-thread",
+            actor=self.session_id,
+        )
+        evidence = self.service.bind_validation(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            job_id="copy-green",
+            cargo_run_id="copy-run-green",
+            actor=self.session_id,
+        )
+
+        self.assertEqual(dedupe_key, prepared.validation_compatibility_key)
+        self.assertEqual("accepted", evidence.verdict)
+
+    def test_validation_copy_ticket_must_remain_terminal_and_green(self) -> None:
+        command, _dedupe_key = self._insert_green_copy_validation()
+        prepared = self.service.prepare(
+            session_id=self.session_id,
+            snapshot_id=self.snapshot.snapshot_id,
+            lifecycle_key=self.lifecycle_key,
+            validation_command=command,
+            validation_job_id="copy-green",
+            validation_run_id="copy-run-green",
+            executor_thread_id="executor-thread",
+            actor=self.session_id,
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copy_runs SET exit_code=101 WHERE run_id='copy-run-green'"
+            )
+            connection.execute(
+                "UPDATE validation_tickets SET status='failed' WHERE ticket_id='copy-run-green'"
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.bind_validation(
+                session_id=self.session_id,
+                closeout_id=prepared.closeout_id,
+                job_id="copy-green",
+                cargo_run_id="copy-run-green",
+                actor=self.session_id,
+            )
+
+        self.assertEqual("failure_closeout_validation_not_green", rejected.exception.code)
+
+    def test_validation_copy_ticket_rejects_snapshot_source_drift(self) -> None:
+        source_manifest = {
+            path: self.snapshot.manifest[path] for path in self.paths
+        }
+        source_manifest[self.paths[0]] = "b" * 64
+        command, _dedupe_key = self._insert_green_copy_validation(
+            source_manifest=source_manifest
+        )
+        prepared = self.service.prepare(
+            session_id=self.session_id,
+            snapshot_id=self.snapshot.snapshot_id,
+            lifecycle_key=self.lifecycle_key,
+            validation_command=command,
+            validation_job_id="copy-green",
+            validation_run_id="copy-run-green",
+            executor_thread_id="executor-thread",
+            actor=self.session_id,
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.bind_validation(
+                session_id=self.session_id,
+                closeout_id=prepared.closeout_id,
+                job_id="copy-green",
+                cargo_run_id="copy-run-green",
+                actor=self.session_id,
+            )
+
+        self.assertEqual(
+            "failure_closeout_validation_source_drift", rejected.exception.code
+        )
+
+    def test_validation_copy_ticket_rejects_foreign_run_identity(self) -> None:
+        command, _dedupe_key = self._insert_green_copy_validation()
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copy_runs SET session_id='reviewer-b' "
+                "WHERE run_id='copy-run-green'"
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.prepare(
+                session_id=self.session_id,
+                snapshot_id=self.snapshot.snapshot_id,
+                lifecycle_key=self.lifecycle_key,
+                validation_command=command,
+                validation_job_id="copy-green",
+                validation_run_id="copy-run-green",
+                executor_thread_id="executor-thread",
+                actor=self.session_id,
+            )
+
+        self.assertEqual(
+            "failure_closeout_validation_owner_mismatch", rejected.exception.code
+        )
+
+    def test_validation_evidence_rejects_mixed_cargo_and_copy_ids(self) -> None:
+        copy_command, _dedupe_key = self._insert_green_copy_validation()
+        self._insert_green_validation()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.prepare(
+                session_id=self.session_id,
+                snapshot_id=self.snapshot.snapshot_id,
+                lifecycle_key=self.lifecycle_key,
+                validation_command=copy_command,
+                validation_job_id="job-green",
+                validation_run_id="copy-run-green",
+                executor_thread_id="executor-thread",
+                actor=self.session_id,
+            )
+
+        self.assertEqual(
+            "failure_closeout_validation_contract_invalid", rejected.exception.code
+        )
+
+    def test_validation_copy_ticket_requires_worker_run_link(self) -> None:
+        command, _dedupe_key = self._insert_green_copy_validation()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """DELETE FROM validation_ticket_events
+                   WHERE ticket_id='copy-run-green'
+                     AND event_type='validation.ticket_run_linked'"""
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.prepare(
+                session_id=self.session_id,
+                snapshot_id=self.snapshot.snapshot_id,
+                lifecycle_key=self.lifecycle_key,
+                validation_command=command,
+                validation_job_id="copy-green",
+                validation_run_id="copy-run-green",
+                executor_thread_id="executor-thread",
+                actor=self.session_id,
+            )
+
+        self.assertEqual(
+            "failure_closeout_validation_contract_invalid", rejected.exception.code
+        )
+
+    def test_validation_copy_ticket_rejects_mismatched_worker_copy_link(self) -> None:
+        command, _dedupe_key = self._insert_green_copy_validation()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """UPDATE validation_ticket_events
+                   SET payload_json='{"jobId":"other-copy"}'
+                   WHERE ticket_id='copy-run-green'
+                     AND event_type='validation.ticket_copy_linked'"""
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.prepare(
+                session_id=self.session_id,
+                snapshot_id=self.snapshot.snapshot_id,
+                lifecycle_key=self.lifecycle_key,
+                validation_command=command,
+                validation_job_id="copy-green",
+                validation_run_id="copy-run-green",
+                executor_thread_id="executor-thread",
+                actor=self.session_id,
+            )
+
+        self.assertEqual(
+            "failure_closeout_validation_contract_invalid", rejected.exception.code
+        )
 
     def test_prepare_binds_exact_snapshot_and_preserves_other_open_lifecycle(self) -> None:
         prepared = self._prepare()
