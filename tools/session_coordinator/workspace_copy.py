@@ -63,6 +63,7 @@ class WorkspaceCopyRecord:
     materialization_phase: str | None = None
     terminal_evidence: ValidationRunEvidence | None = None
     error_details: dict[str, object] = field(default_factory=dict)
+    materialization_kind: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -80,6 +81,7 @@ class WorkspaceCopyRecord:
             "errorPath": self.error_path,
             "errorDetails": dict(self.error_details),
             "materializationPhase": self.materialization_phase,
+            "materializationKind": self.materialization_kind,
             "terminalEvidence": (
                 self.terminal_evidence.to_dict()
                 if self.terminal_evidence is not None
@@ -744,6 +746,7 @@ class WorkspaceCopyService:
             (),
             "materializing",
             materialization_phase="accepted",
+            materialization_kind="cargo",
         )
 
     def _require_cleanup_available(self, connection, job_root: Path) -> None:
@@ -1005,6 +1008,7 @@ class WorkspaceCopyService:
             "materializing",
             external_sources,
             materialization_phase="materializing",
+            materialization_kind="cargo",
         )
 
     def run(
@@ -2017,6 +2021,7 @@ class WorkspaceCopyService:
             row["error_path"],
             materialization_phase,
             error_details=error_details,
+            materialization_kind=row["materialization_kind"],
         )
 
     def _begin_materialization(self, job_id: str) -> None:

@@ -30,6 +30,7 @@ from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.validation_copies import CargoInputClosure
 from tools.session_coordinator.validation_copy_cargo import ValidationCopyCargoExecution
+from tools.session_coordinator.validation_ticket_worker import ValidationTicketWorker
 from tools.session_coordinator.validation_tickets import ValidationTicketService
 from tools.session_coordinator.windows_job_process import (
     create_atomic_kill_on_close_process,
@@ -985,6 +986,98 @@ class WorkspaceCopyTests(unittest.TestCase):
                 (accepted.job_id,),
             ).fetchone()[0]
         self.assertEqual(expected, json.loads(persisted))
+
+    def test_removed_failed_cargo_copy_projects_materialization_kind(self) -> None:
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            side_effect=CoordinatorError(
+                "validation_copy_compile_time_resource_missing",
+                "Compile-time include resource is unavailable",
+                details={
+                    "sourcePath": str(self.repo / "src/consumer.rs"),
+                    "resourcePath": str(self.repo / "src/missing.rs"),
+                },
+            ),
+        ):
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id,
+                metadata_runner=None,
+            )
+
+        self.service.cleanup("session-a", accepted.job_root)
+        status = self.service.status("session-a", accepted.job_id)
+
+        self.assertEqual("removed", status.status)
+        self.assertEqual("cargo", status.materialization_kind)
+        self.assertEqual("cargo", status.to_dict()["materializationKind"])
+
+    def test_ticket_worker_terminalizes_removed_failed_cargo_copy_without_retry(self) -> None:
+        tickets = ValidationTicketService(self.database)
+        source = self.repo / "README.md"
+        receipt = tickets.submit(
+            session_id="session-a",
+            request_id="removed-failed-cargo-copy",
+            source_manifest={
+                "README.md": hashlib.sha256(source.read_bytes()).hexdigest()
+            },
+            command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            toolchain={"cargo": "1.94.1"},
+            coverage={"kind": "focused"},
+        )
+        worker = ValidationTicketWorker(
+            self.database,
+            self.repo,
+            tickets,
+            self.service,
+        )
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            self.assertEqual(1, worker.tick()["materializing"])
+        link = tickets.latest_worker_event(
+            receipt.ticket.ticket_id,
+            "validation.ticket_copy_linked",
+        )
+        job_id = str(link["jobId"])
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            side_effect=CoordinatorError(
+                "validation_copy_compile_time_resource_missing",
+                "Compile-time include resource is unavailable",
+                details={
+                    "sourcePath": str(self.repo / "src/consumer.rs"),
+                    "resourcePath": str(self.repo / "src/missing.rs"),
+                },
+            ),
+        ):
+            self.service._materialize_cargo_async_worker(job_id, metadata_runner=None)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET status='removed', removed_at=datetime('now') "
+                "WHERE job_id=? AND status='failed'",
+                (job_id,),
+            )
+
+        terminal = worker.tick()
+
+        self.assertEqual(1, terminal["failed"])
+        self.assertEqual("failed", tickets.get(receipt.ticket.ticket_id).status)
+        with self.database.connect() as connection:
+            copy_count = connection.execute(
+                "SELECT COUNT(*) FROM validation_copies WHERE session_id='session-a'"
+            ).fetchone()[0]
+            link_count = connection.execute(
+                "SELECT COUNT(*) FROM validation_ticket_events "
+                "WHERE ticket_id=? AND event_type='validation.ticket_copy_linked'",
+                (receipt.ticket.ticket_id,),
+            ).fetchone()[0]
+        self.assertEqual(1, copy_count)
+        self.assertEqual(1, link_count)
 
     def test_cargo_worker_persists_external_source_error_details(self) -> None:
         manifest_path = str(self.repo.parent / "external-runtime/Cargo.toml")
