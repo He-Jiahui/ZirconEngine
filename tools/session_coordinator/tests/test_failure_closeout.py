@@ -647,6 +647,31 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             "failure_closeout_validation_source_drift", rejected.exception.code
         )
 
+    def test_validation_copy_ticket_rejects_noncanonical_source_path(self) -> None:
+        source_manifest = {
+            path: self.snapshot.manifest[path] for path in self.paths
+        }
+        source_manifest["docs/plans/../Cargo.toml"] = "c" * 64
+        command, _dedupe_key = self._insert_green_copy_validation(
+            source_manifest=source_manifest
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.prepare(
+                session_id=self.session_id,
+                snapshot_id=self.snapshot.snapshot_id,
+                lifecycle_key=self.lifecycle_key,
+                validation_command=command,
+                validation_job_id="copy-green",
+                validation_run_id="copy-run-green",
+                executor_thread_id="executor-thread",
+                actor=self.session_id,
+            )
+
+        self.assertEqual(
+            "failure_closeout_validation_contract_invalid", rejected.exception.code
+        )
+
     def test_validation_copy_ticket_rejects_foreign_run_identity(self) -> None:
         command, _dedupe_key = self._insert_green_copy_validation()
         with self.database.transaction() as connection:
@@ -1298,6 +1323,32 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
         source = {path: self.snapshot.manifest[path].upper() for path in self.paths}
         source["Cargo.toml"] = "0" * 64
         self._insert_green_validation(source_manifest=source)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.bind_validation(
+                session_id=self.session_id,
+                closeout_id=prepared.closeout_id,
+                job_id="job-green",
+                cargo_run_id="run-green",
+                actor=self.session_id,
+            )
+
+        self.assertEqual("failure_closeout_validation_source_drift", rejected.exception.code)
+
+    def test_cargo_validation_rejects_extra_plan_manifest_entry(self) -> None:
+        source = {path: self.snapshot.manifest[path].upper() for path in self.paths}
+        source["docs/plans/foreign/extra.md"] = "d" * 64
+        command = self._insert_green_validation(source_manifest=source)
+        prepared = self.service.prepare(
+            session_id=self.session_id,
+            snapshot_id=self.snapshot.snapshot_id,
+            lifecycle_key=self.lifecycle_key,
+            validation_command=command,
+            validation_job_id="job-green",
+            validation_run_id="run-green",
+            executor_thread_id="executor-thread",
+            actor=self.session_id,
+        )
 
         with self.assertRaises(CoordinatorError) as rejected:
             self.service.bind_validation(

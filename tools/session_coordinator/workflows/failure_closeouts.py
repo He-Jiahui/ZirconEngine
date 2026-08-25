@@ -6,7 +6,7 @@ import re
 import subprocess
 import uuid
 from dataclasses import asdict, dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from ..baselines import BaselineService, hash_file
 from ..database import Database
@@ -1270,7 +1270,7 @@ class FailureCloseoutWorkflowService:
             )
         if any(
             not isinstance(path, str)
-            or not path
+            or not self._is_canonical_manifest_path(path)
             or (
                 digest is not None
                 and (
@@ -1391,7 +1391,8 @@ class FailureCloseoutWorkflowService:
             {
                 str(path): str(digest).casefold()
                 for path, digest in source_manifest.items()
-                if not str(path).casefold().startswith("docs/plans/")
+                if contract["evidenceKind"] == "cargo"
+                or not str(path).casefold().startswith("docs/plans/")
             }
             if isinstance(source_manifest, dict)
             else {}
@@ -1536,6 +1537,22 @@ class FailureCloseoutWorkflowService:
             separators=(",", ":"),
             ensure_ascii=True,
             allow_nan=False,
+        )
+
+    @staticmethod
+    def _is_canonical_manifest_path(value: str) -> bool:
+        if value != value.strip() or "\\" in value or any(
+            character in value for character in ("\0", "\r", "\n")
+        ):
+            return False
+        path = PurePosixPath(value)
+        return bool(
+            value
+            and not path.is_absolute()
+            and path.parts
+            and ":" not in path.parts[0]
+            and all(part not in {"", ".", ".."} for part in path.parts)
+            and path.as_posix() == value
         )
 
     @staticmethod
