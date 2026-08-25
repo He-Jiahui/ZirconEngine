@@ -11,8 +11,10 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
   - tools/session_coordinator/tests/test_validation_copies.py
+  - tools/session_coordinator/tests/test_workspace_copy.py
   - tools/session_coordinator/validation_copies.py
   - tools/session_coordinator/validation_copy_external.py
+  - tools/session_coordinator/workspace_copy.py
 ---
 
 # wrapped-cargo-package-closure-scope: 验证失败回写
@@ -50,3 +52,19 @@ CargoInputClosurePlanner.plan unconditionally seeded dependency traversal with e
 ## 修复结果与回传
 
 Forward implementation is locally GREEN and independently reviewed: focused external closure 1/1, full `test_validation_copies` 10/10 in 620.809 seconds, py_compile/diff-check pass, Critical 0 / Important 0. The source is intentionally still `open`: ticket `57103a7429b3442aab759386517c4235` binds the final three-file manifest but was submitted before the daemon loaded those Python modules, so it cannot close the planner failure. The next legal sequence is scoped maintenance commit, controlled rollover, then a new HEAD-aligned managed locked/offline package check under FIFO.
+
+After the committed planner loaded, ticket `57103a7429b3442aab759386517c4235`
+reached the selected-package closure but failed at `owned_overlay` because its Session
+attribution still named the pre-commit bytes. Copy
+`d42a8f1132ce4453833a99d241cacb5a` durably recorded
+`validation_copy_attribution_stale`, but lost the exact overlay path as
+`error_path=null` / `{}` details. The Session then used the public heartbeat, exact
+lease claim and `baseline attribute` protocol to bind all three current hashes at
+epoch 440; replacement ticket `035c9dfc765e4735b29c6372224b2973` preserves source
+manifest `b7f5f161e8560abca601a12310096f27331c10db9f8a4c99eeef0a3f8c64e44a`
+and remains FIFO-managed. The lower diagnostic repair adds canonical `details.path`
+to stale, missing and reappeared owned-overlay errors so asynchronous materialization
+persists an actionable `errorPath` without parsing messages or changing admission.
+RED reproduced `error_path=None`; focused GREEN passes 4/4 across all three error
+branches and the durable Cargo worker projection. This additional diagnostic evidence
+does not replace the required terminal managed package run.

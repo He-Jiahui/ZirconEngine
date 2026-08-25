@@ -987,6 +987,41 @@ class WorkspaceCopyTests(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(expected, json.loads(persisted))
 
+    def test_cargo_worker_persists_stale_owned_overlay_path(self) -> None:
+        owned = self.repo / "owned.txt"
+        owned.write_text("owned\n", encoding="utf-8")
+        self.baselines.attribute("session-a", ["owned.txt"])
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+                overlay_paths=("owned.txt",),
+            )
+        owned.write_text("changed after attribution\n", encoding="utf-8")
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            return_value=CargoInputClosure(("README.md", "owned.txt"), ()),
+        ):
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id,
+                metadata_runner=None,
+            )
+
+        status = self.service.status("session-a", accepted.job_id)
+        self.assertEqual("failed", status.status)
+        self.assertEqual("owned_overlay", status.error_stage)
+        self.assertEqual("validation_copy_attribution_stale", status.error_code)
+        self.assertEqual("owned.txt", status.error_path)
+        self.assertEqual({"path": "owned.txt"}, status.error_details)
+        with self.database.connect() as connection:
+            persisted = connection.execute(
+                "SELECT error_path, error_details_json FROM validation_copies WHERE job_id=?",
+                (accepted.job_id,),
+            ).fetchone()
+        self.assertEqual("owned.txt", persisted["error_path"])
+        self.assertEqual({"path": "owned.txt"}, json.loads(persisted["error_details_json"]))
+
     def test_removed_failed_cargo_copy_projects_materialization_kind(self) -> None:
         with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
             accepted = self.service.materialize_cargo_async(
@@ -1375,6 +1410,29 @@ class WorkspaceCopyTests(unittest.TestCase):
             self.service.materialize("session-a", include_paths=("owned.txt",))
 
         self.assertEqual("validation_copy_attribution_stale", rejected.exception.code)
+        self.assertEqual({"path": "owned.txt"}, rejected.exception.details)
+
+    def test_owned_overlay_missing_error_exposes_exact_path(self) -> None:
+        owned = self.repo / "owned.txt"
+        owned.write_text("owned\n", encoding="utf-8")
+        self.baselines.attribute("session-a", ["owned.txt"])
+        owned.unlink()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.materialize("session-a", include_paths=("owned.txt",))
+
+        self.assertEqual("validation_copy_owned_source_missing", rejected.exception.code)
+        self.assertEqual({"path": "owned.txt"}, rejected.exception.details)
+
+    def test_owned_overlay_reappeared_error_exposes_exact_path(self) -> None:
+        self.baselines.attribute("session-a", ["owned.txt"])
+        (self.repo / "owned.txt").write_text("reappeared\n", encoding="utf-8")
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.materialize("session-a", include_paths=("owned.txt",))
+
+        self.assertEqual("validation_copy_owned_source_reappeared", rejected.exception.code)
+        self.assertEqual({"path": "owned.txt"}, rejected.exception.details)
 
     def test_run_uses_adjacent_target_and_records_evidence(self) -> None:
         result = self.service.materialize("session-a", include_paths=("README.md",))

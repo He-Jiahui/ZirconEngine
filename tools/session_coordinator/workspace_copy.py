@@ -2373,6 +2373,7 @@ class WorkspaceCopyService:
                     raise CoordinatorError(
                         "validation_copy_owned_source_reappeared",
                         f"Owned deletion changed after attribution: {path}",
+                        details={"path": path},
                     )
                 if destination.exists():
                     destination.unlink()
@@ -2381,11 +2382,13 @@ class WorkspaceCopyService:
                 raise CoordinatorError(
                     "validation_copy_owned_source_missing",
                     f"Owned validation source is missing: {path}",
+                    details={"path": path},
                 )
             if hash_file(source) != expected_hash:
                 raise CoordinatorError(
                     "validation_copy_attribution_stale",
                     f"Owned source changed after attribution: {path}",
+                    details={"path": path},
                 )
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(source.read_bytes())
