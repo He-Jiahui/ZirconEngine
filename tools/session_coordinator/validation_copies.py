@@ -1,129 +1,18 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import subprocess
 import tomllib
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
-from typing import Callable, Mapping, Sequence
+from pathlib import Path
+from typing import Callable, Mapping
 
 from .models import CoordinatorError
-
-
-def _relative_path(value: object, *, code: str) -> str:
-    if not isinstance(value, str):
-        raise CoordinatorError(code, "Validation source path must be text")
-    normalized = value.strip().replace("\\", "/").strip("/")
-    path = PurePosixPath(normalized)
-    if not normalized or path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
-        raise CoordinatorError(code, "Validation source path must be a safe relative path")
-    return path.as_posix()
-
-
-@dataclass(frozen=True, slots=True)
-class ExternalGitSource:
-    repo_root: Path
-    commit: str
-    mount_path: str
-    include_roots: tuple[str, ...]
-    source_hash: str
-
-    @classmethod
-    def from_payload(cls, payload: Mapping[str, object]) -> "ExternalGitSource":
-        required = {
-            "repoRoot",
-            "commit",
-            "mountPath",
-            "includeRoots",
-        }
-        if (
-            not isinstance(payload, Mapping)
-            or not required <= set(payload)
-            or not set(payload) <= required | {"sourceHash"}
-        ):
-            raise CoordinatorError(
-                "validation_copy_external_source_invalid",
-                "External Git source requires repoRoot, commit, mountPath, and includeRoots",
-            )
-        repo_root = Path(str(payload["repoRoot"])).resolve()
-        commit = str(payload["commit"]).strip()
-        mount_path = _relative_path(
-            payload["mountPath"], code="validation_copy_external_mount_escape"
-        )
-        raw_roots = payload["includeRoots"]
-        if not isinstance(raw_roots, Sequence) or isinstance(raw_roots, (str, bytes)):
-            raise CoordinatorError(
-                "validation_copy_external_source_invalid",
-                "External Git includeRoots must be a non-empty list",
-            )
-        include_roots = tuple(
-            sorted(
-                {
-                    _relative_path(
-                        root, code="validation_copy_external_include_root_invalid"
-                    )
-                    for root in raw_roots
-                },
-                key=str.casefold,
-            )
-        )
-        if not include_roots:
-            raise CoordinatorError(
-                "validation_copy_external_source_invalid",
-                "External Git source must declare include roots",
-            )
-        source_hash = hashlib.sha256(
-            json.dumps(
-                {
-                    "repoRoot": str(repo_root),
-                    "commit": commit,
-                    "mountPath": mount_path,
-                    "includeRoots": include_roots,
-                },
-                sort_keys=True,
-                separators=(",", ":"),
-            ).encode("utf-8")
-        ).hexdigest()
-        return cls(repo_root, commit, mount_path, include_roots, source_hash)
-
-    def pinned(self) -> "ExternalGitSource":
-        if not self.repo_root.is_dir():
-            raise CoordinatorError(
-                "validation_copy_external_repository_missing",
-                "External Git repository root does not exist",
-                details={"repoRoot": str(self.repo_root)},
-            )
-        result = subprocess.run(
-            ["git", "rev-parse", "--verify", f"{self.commit}^{{commit}}"],
-            cwd=self.repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            raise CoordinatorError(
-                "validation_copy_external_commit_missing",
-                "External Git source commit is unavailable",
-                details={"repoRoot": str(self.repo_root), "commit": self.commit},
-            )
-        commit = result.stdout.strip()
-        payload = {
-            "repoRoot": str(self.repo_root),
-            "commit": commit,
-            "mountPath": self.mount_path,
-            "includeRoots": list(self.include_roots),
-        }
-        return ExternalGitSource.from_payload(payload)
-
-    def to_payload(self) -> dict[str, object]:
-        return {
-            "repoRoot": str(self.repo_root),
-            "commit": self.commit,
-            "mountPath": self.mount_path,
-            "includeRoots": list(self.include_roots),
-            "sourceHash": self.source_hash,
-        }
+from .validation_copy_external import (
+    ExternalGitSource,
+    external_topology_paths,
+    external_tree_paths,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -477,8 +366,77 @@ class CargoInputClosurePlanner:
         descriptors = tuple(source.pinned() for source in external_sources)
         repository_roots: set[str] = set()
         build_repository_roots: set[str] = set()
-        used_external: dict[str, ExternalGitSource] = {}
-        discovered_roots: dict[Path, set[str]] = {}
+        manifest_build_scopes = {
+            Path(str(package["manifest_path"])).resolve(): package_id
+            in build_closure_ids
+            for package_id, package in packages.items()
+            if package.get("source") is None and package.get("manifest_path")
+        }
+        used_external: dict[str, tuple[ExternalGitSource, set[str]]] = {}
+        external_tree_cache: dict[tuple[str, str], frozenset[str]] = {}
+        external_topology_cache: dict[tuple[str, str, str], set[str]] = {}
+        discovered_inputs: dict[Path, dict[Path, bool]] = {}
+
+        def external_include_path(
+            manifest: Path, external_root: Path, include_sources: bool
+        ) -> str:
+            relative_manifest = manifest.relative_to(external_root)
+            if not include_sources:
+                return relative_manifest.as_posix()
+            relative_root = relative_manifest.parent.as_posix()
+            if relative_root in {"", "."}:
+                raise CoordinatorError(
+                    "validation_copy_external_source_layout_unsupported",
+                    "External Cargo package source must be below its Git root",
+                    details={"manifestPath": str(manifest)},
+                )
+            return relative_root
+
+        def record_external(
+            source: ExternalGitSource, manifest: Path, include_sources: bool
+        ) -> None:
+            key = source.mount_path.casefold()
+            entry = used_external.get(key)
+            if entry is not None and (
+                entry[0].repo_root != source.repo_root
+                or entry[0].commit != source.commit
+            ):
+                raise CoordinatorError(
+                    "validation_copy_external_mount_conflict",
+                    "External Git sources map different immutable identities to one mount",
+                    details={
+                        "mountPath": source.mount_path,
+                        "existingRepoRoot": str(entry[0].repo_root),
+                        "existingCommit": entry[0].commit,
+                        "conflictingRepoRoot": str(source.repo_root),
+                        "conflictingCommit": source.commit,
+                    },
+                )
+            if entry is None:
+                entry = (source, set())
+                used_external[key] = entry
+            cache_key = (str(source.repo_root), source.commit, str(manifest))
+            topology_paths = external_topology_cache.get(cache_key)
+            if topology_paths is None:
+                tree_key = (str(source.repo_root), source.commit)
+                tracked_paths = external_tree_cache.get(tree_key)
+                if tracked_paths is None:
+                    tracked_paths = external_tree_paths(source)
+                    external_tree_cache[tree_key] = tracked_paths
+                topology_paths = external_topology_paths(
+                    source, manifest, tracked_paths
+                )
+                external_topology_cache[cache_key] = topology_paths
+            entry[1].update(topology_paths)
+            entry[1].add(
+                external_include_path(manifest, source.repo_root, include_sources)
+            )
+
+        def discover_external(manifest: Path, include_sources: bool) -> None:
+            external_root = self._external_git_root(manifest)
+            manifests = discovered_inputs.setdefault(external_root, {})
+            manifests[manifest] = manifests.get(manifest, False) or include_sources
+
         for package_id in closure_ids:
             package = packages.get(package_id)
             if package is None:
@@ -509,22 +467,14 @@ class CargoInputClosurePlanner:
             )
             if descriptor is None:
                 if discover_external_sources:
-                    external_root = self._external_git_root(manifest)
-                    relative_root = manifest.parent.relative_to(external_root).as_posix()
-                    if relative_root in {"", "."}:
-                        raise CoordinatorError(
-                            "validation_copy_external_source_layout_unsupported",
-                            "Discovered external Cargo package must be below its sibling Git root",
-                            details={"manifestPath": str(manifest)},
-                        )
-                    discovered_roots.setdefault(external_root, set()).add(relative_root)
+                    discover_external(manifest, package_id in build_closure_ids)
                     continue
                 raise CoordinatorError(
                     "validation_copy_external_source_missing",
                     "Cargo local path dependency has no pinned external source descriptor",
                     details={"manifestPath": str(manifest)},
                 )
-            used_external[descriptor.mount_path.casefold()] = descriptor
+            record_external(descriptor, manifest, package_id in build_closure_ids)
 
         root_manifest = self.repo_root / "Cargo.toml"
         manifest_queue = [(root_manifest, False)] if root_manifest.is_file() else []
@@ -555,14 +505,19 @@ class CargoInputClosurePlanner:
                     manifest.relative_to(self.repo_root).as_posix()
                 )
             for dependency_manifest in self._manifest_path_dependencies(manifest):
+                dependency_includes_sources = manifest_build_scopes.get(
+                    dependency_manifest, include_sources
+                )
                 if dependency_manifest.is_relative_to(self.repo_root):
                     relative_root = dependency_manifest.parent.relative_to(
                         self.repo_root
                     ).as_posix()
                     repository_roots.add(relative_root or ".")
-                    if include_sources:
+                    if dependency_includes_sources:
                         build_repository_roots.add(relative_root or ".")
-                    manifest_queue.append((dependency_manifest, include_sources))
+                    manifest_queue.append(
+                        (dependency_manifest, dependency_includes_sources)
+                    )
                     continue
                 descriptor = next(
                     (
@@ -583,7 +538,11 @@ class CargoInputClosurePlanner:
                     None,
                 )
                 if descriptor is not None:
-                    used_external[descriptor.mount_path.casefold()] = descriptor
+                    record_external(
+                        descriptor,
+                        dependency_manifest,
+                        dependency_includes_sources,
+                    )
                     continue
                 if not discover_external_sources:
                     raise CoordinatorError(
@@ -591,21 +550,33 @@ class CargoInputClosurePlanner:
                         "Cargo manifest path dependency has no pinned external source descriptor",
                         details={"manifestPath": str(dependency_manifest)},
                     )
-                external_root = self._external_git_root(dependency_manifest)
-                relative_root = dependency_manifest.parent.relative_to(
-                    external_root
-                ).as_posix()
-                if relative_root in {"", "."}:
-                    raise CoordinatorError(
-                        "validation_copy_external_source_layout_unsupported",
-                        "Discovered external Cargo package must be below its sibling Git root",
-                        details={"manifestPath": str(dependency_manifest)},
-                    )
-                discovered_roots.setdefault(external_root, set()).add(relative_root)
+                discover_external(
+                    dependency_manifest,
+                    dependency_includes_sources,
+                )
 
-        for external_root, include_roots in discovered_roots.items():
-            descriptor = self._discovered_sibling_source(external_root, include_roots)
-            used_external[descriptor.mount_path.casefold()] = descriptor
+        for external_root, manifests in discovered_inputs.items():
+            include_roots = {
+                external_include_path(manifest, external_root, include_sources)
+                for manifest, include_sources in manifests.items()
+            }
+            descriptor = self._discovered_sibling_source(
+                external_root, include_roots
+            )
+            for manifest, include_sources in manifests.items():
+                record_external(descriptor, manifest, include_sources)
+
+        narrowed_external = tuple(
+            ExternalGitSource.from_payload(
+                {
+                    "repoRoot": str(source.repo_root),
+                    "commit": source.commit,
+                    "mountPath": source.mount_path,
+                    "includeRoots": sorted(include_roots, key=str.casefold),
+                }
+            )
+            for source, include_roots in used_external.values()
+        )
 
         roots = tuple(sorted(build_repository_roots, key=str.casefold))
         if roots:
@@ -665,7 +636,9 @@ class CargoInputClosurePlanner:
         )
         return CargoInputClosure(
             tuple(sorted(paths, key=str.casefold)),
-            tuple(sorted(used_external.values(), key=lambda item: item.mount_path.casefold())),
+            tuple(
+                sorted(narrowed_external, key=lambda item: item.mount_path.casefold())
+            ),
         )
 
     def _compile_time_resource_paths(
@@ -853,21 +826,6 @@ class CargoInputClosurePlanner:
             )
         commit = head.stdout.strip()
         include_roots = set(package_roots)
-        for root_file in (
-            "Cargo.toml",
-            "Cargo.lock",
-            "rust-toolchain",
-            "rust-toolchain.toml",
-        ):
-            tracked = subprocess.run(
-                ["git", "cat-file", "-e", f"{commit}:{root_file}"],
-                cwd=external_root,
-                check=False,
-                capture_output=True,
-                encoding="utf-8",
-            )
-            if tracked.returncode == 0:
-                include_roots.add(root_file)
         return ExternalGitSource.from_payload(
             {
                 "repoRoot": str(external_root),

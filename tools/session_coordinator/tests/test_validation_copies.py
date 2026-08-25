@@ -27,10 +27,24 @@ class ValidationCopySourceTests(unittest.TestCase):
         root = Path(self.temporary.name)
         self.repo = init_repo(root / "repo")
         self.external = init_repo(root / "zr_vm")
+        external_workspace = self.external / "Cargo.toml"
+        external_workspace.write_text(
+            "[workspace]\nmembers=['binding']\n"
+            "[workspace.package]\nversion='0.1.0'\nedition='2021'\n"
+        )
         external_manifest = self.external / "binding/Cargo.toml"
         external_manifest.parent.mkdir(parents=True)
-        external_manifest.write_text("[package]\nname='binding'\nversion='0.1.0'\n")
-        subprocess.run(["git", "add", "binding/Cargo.toml"], cwd=self.external, check=True)
+        external_manifest.write_text(
+            "[package]\nname='binding'\nversion.workspace=true\nedition.workspace=true\n"
+        )
+        external_source = self.external / "binding/src/lib.rs"
+        external_source.parent.mkdir(parents=True)
+        external_source.write_text("pub fn binding() {}\n")
+        subprocess.run(
+            ["git", "add", "Cargo.toml", "binding/Cargo.toml", "binding/src/lib.rs"],
+            cwd=self.external,
+            check=True,
+        )
         subprocess.run(
             ["git", "commit", "-q", "-m", "test: add external binding"],
             cwd=self.external,
@@ -169,8 +183,8 @@ class ValidationCopySourceTests(unittest.TestCase):
             "app/src/schema.txt": "schema-v1\n",
             "local_dep/Cargo.toml": "[package]\nname='local_dep'\nversion='0.1.0'\n",
             "local_dep/src/lib.rs": "pub fn local() {}\n",
-            "workspace_tool/Cargo.toml": "[package]\nname='workspace_tool'\nversion='0.1.0'\n",
-            "workspace_tool/src/lib.rs": "pub fn tool() {}\n",
+            "app/workspace_tool/Cargo.toml": "[package]\nname='workspace_tool'\nversion='0.1.0'\n",
+            "app/workspace_tool/src/lib.rs": "pub fn tool() {}\n",
         }
         for relative, content in files.items():
             target = self.repo / relative
@@ -202,7 +216,7 @@ class ValidationCopySourceTests(unittest.TestCase):
                 {
                     "id": "tool-id",
                     "name": "workspace_tool",
-                    "manifest_path": str(self.repo / "workspace_tool/Cargo.toml"),
+                    "manifest_path": str(self.repo / "app/workspace_tool/Cargo.toml"),
                 },
             ],
             "workspace_members": ["app-id", "local-id", "tool-id"],
@@ -232,12 +246,16 @@ class ValidationCopySourceTests(unittest.TestCase):
                 "rust-toolchain.toml",
                 "app/src/schema.txt",
                 "local_dep/src/lib.rs",
-                "workspace_tool/Cargo.toml",
+                "app/workspace_tool/Cargo.toml",
             }
             <= set(closure.repository_paths)
         )
-        self.assertNotIn("workspace_tool/src/lib.rs", closure.repository_paths)
-        self.assertEqual((descriptor,), closure.external_sources)
+        self.assertNotIn("app/workspace_tool/src/lib.rs", closure.repository_paths)
+        self.assertEqual(1, len(closure.external_sources))
+        self.assertEqual(
+            ("binding/Cargo.toml", "Cargo.toml"),
+            closure.external_sources[0].include_roots,
+        )
         with self.assertRaises(CoordinatorError) as missing:
             planner.plan(("cargo", "test", "-p", "app", "--lib"))
         self.assertEqual("validation_copy_external_source_missing", missing.exception.code)
@@ -250,7 +268,7 @@ class ValidationCopySourceTests(unittest.TestCase):
         self.assertEqual(self.external.resolve(), discovered.external_sources[0].repo_root)
         self.assertEqual(self.external_commit, discovered.external_sources[0].commit)
         self.assertEqual("zr_vm", discovered.external_sources[0].mount_path)
-        self.assertIn("binding", discovered.external_sources[0].include_roots)
+        self.assertIn("binding/Cargo.toml", discovered.external_sources[0].include_roots)
 
         materialized = self.service.materialize_cargo(
             "session-a",
@@ -258,12 +276,80 @@ class ValidationCopySourceTests(unittest.TestCase):
             metadata_runner=lambda _command: metadata,
             discover_external_sources=True,
         )
+        self.assertTrue((materialized.job_root / "zr_vm/Cargo.toml").is_file())
         self.assertTrue((materialized.job_root / "zr_vm/binding/Cargo.toml").is_file())
+        self.assertFalse((materialized.job_root / "zr_vm/binding/src/lib.rs").exists())
         self.assertTrue(
-            (materialized.source_root / "workspace_tool/Cargo.toml").is_file()
+            (materialized.source_root / "app/workspace_tool/Cargo.toml").is_file()
         )
         self.assertFalse(
-            (materialized.source_root / "workspace_tool/src/lib.rs").exists()
+            (materialized.source_root / "app/workspace_tool/src/lib.rs").exists()
+        )
+
+        metadata["resolve"]["nodes"][0]["deps"].append({"pkg": "external-id"})
+        selected_external = planner.plan(
+            ("cargo", "test", "-p", "app", "--lib"),
+            external_sources=(descriptor,),
+        )
+        self.assertEqual(
+            ("binding", "binding/Cargo.toml", "Cargo.toml"),
+            selected_external.external_sources[0].include_roots,
+        )
+
+        foreign = init_repo(self.external.parent / "foreign")
+        foreign_manifest = foreign / "binding/Cargo.toml"
+        foreign_manifest.parent.mkdir(parents=True)
+        foreign_manifest.write_text("[package]\nname='foreign-binding'\nversion='0.1.0'\n")
+        subprocess.run(
+            ["git", "add", "binding/Cargo.toml"], cwd=foreign, check=True
+        )
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add foreign binding"],
+            cwd=foreign,
+            check=True,
+        )
+        foreign_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=foreign,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        foreign_descriptor = ExternalGitSource.from_payload(
+            {
+                "repoRoot": str(foreign),
+                "commit": foreign_commit,
+                "mountPath": "zr_vm",
+                "includeRoots": ["binding"],
+            }
+        )
+        metadata["packages"].append(
+            {
+                "id": "foreign-id",
+                "name": "foreign-binding",
+                "manifest_path": str(foreign_manifest),
+            }
+        )
+        metadata["resolve"]["nodes"].append({"id": "foreign-id", "deps": []})
+        metadata["resolve"]["nodes"][0]["deps"].append({"pkg": "foreign-id"})
+
+        with self.assertRaises(CoordinatorError) as duplicate_mount:
+            planner.plan(
+                ("cargo", "test", "-p", "app", "--lib"),
+                external_sources=(descriptor, foreign_descriptor),
+            )
+        self.assertEqual(
+            "validation_copy_external_mount_conflict", duplicate_mount.exception.code
+        )
+
+        with self.assertRaises(CoordinatorError) as discovery_conflict:
+            planner.plan(
+                ("cargo", "test", "-p", "app", "--lib"),
+                external_sources=(foreign_descriptor,),
+                discover_external_sources=True,
+            )
+        self.assertEqual(
+            "validation_copy_external_mount_conflict", discovery_conflict.exception.code
         )
 
     def test_package_scoped_compile_resources_ignore_unselected_workspace_members(
