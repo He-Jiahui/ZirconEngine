@@ -4,6 +4,7 @@ import io
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import sys
 import tarfile
@@ -2570,6 +2571,228 @@ class WorkspaceCopyTests(unittest.TestCase):
                 (result.job_id,),
             ).fetchone()["status"]
         self.assertEqual("removed", status)
+
+    def test_periodic_recovery_reconciles_missing_terminal_copy_roots(self) -> None:
+        failed = self.service.materialize("session-a", include_paths=("README.md",))
+        materialized = self.service.materialize(
+            "session-a", include_paths=("README.md",)
+        )
+        retained = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET status = 'failed' WHERE job_id = ?",
+                (failed.job_id,),
+            )
+        shutil.rmtree(failed.job_root)
+        shutil.rmtree(materialized.job_root)
+
+        recovered = self.service.recover_interrupted_jobs(
+            process_alive=lambda _pid: False, startup=False
+        )
+
+        self.assertEqual((0, 2), recovered)
+        with self.database.connect() as connection:
+            rows = {
+                row["job_id"]: row
+                for row in connection.execute(
+                    """SELECT job_id, status, removed_at
+                       FROM validation_copies WHERE job_id IN (?, ?, ?)""",
+                    (failed.job_id, materialized.job_id, retained.job_id),
+                )
+            }
+            events = connection.execute(
+                """SELECT session_id, payload_json FROM events
+                   WHERE event_type = 'validation_copy.missing_root_recovered'
+                   ORDER BY event_id"""
+            ).fetchall()
+        self.assertEqual("removed", rows[failed.job_id]["status"])
+        self.assertIsNotNone(rows[failed.job_id]["removed_at"])
+        self.assertEqual("removed", rows[materialized.job_id]["status"])
+        self.assertIsNotNone(rows[materialized.job_id]["removed_at"])
+        self.assertEqual("materialized", rows[retained.job_id]["status"])
+        self.assertIsNone(rows[retained.job_id]["removed_at"])
+        self.assertEqual(["session-a", "session-a"], [row["session_id"] for row in events])
+        self.assertEqual(
+            {"failed", "materialized"},
+            {json.loads(row["payload_json"])["priorStatus"] for row in events},
+        )
+
+    def test_periodic_recovery_does_not_reconcile_running_missing_root(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET status = 'running', run_pid = 4242 "
+                "WHERE job_id = ?",
+                (result.job_id,),
+            )
+        shutil.rmtree(result.job_root)
+
+        recovered = self.service.recover_interrupted_jobs(
+            process_alive=lambda pid: pid == 4242, startup=False
+        )
+
+        self.assertEqual((0, 0), recovered)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status, run_pid, removed_at FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()
+        self.assertEqual("running", row["status"])
+        self.assertEqual(4242, row["run_pid"])
+        self.assertIsNone(row["removed_at"])
+
+    def test_periodic_recovery_preserves_locally_reserved_missing_root(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        shutil.rmtree(result.job_root)
+        self.service._reserve_local_run(result.job_id)
+        try:
+            recovered = self.service.recover_interrupted_jobs(
+                process_alive=lambda _pid: False, startup=False
+            )
+        finally:
+            self.service._release_local_run(result.job_id)
+
+        self.assertEqual((0, 0), recovered)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status, removed_at FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()
+        self.assertEqual("materialized", row["status"])
+        self.assertIsNone(row["removed_at"])
+
+    def test_periodic_recovery_rechecks_run_reservation_before_missing_root_cas(
+        self,
+    ) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        shutil.rmtree(result.job_root)
+        validate_cleanup_root = self.service._validate_cleanup_root
+        reserved = False
+
+        def reserve_after_scan(candidate: Path) -> None:
+            nonlocal reserved
+            validate_cleanup_root(candidate)
+            self.service._reserve_local_run(result.job_id)
+            reserved = True
+
+        try:
+            with mock.patch.object(
+                self.service,
+                "_validate_cleanup_root",
+                side_effect=reserve_after_scan,
+            ):
+                recovered = self.service.recover_interrupted_jobs(
+                    process_alive=lambda _pid: False, startup=False
+                )
+        finally:
+            if reserved:
+                self.service._release_local_run(result.job_id)
+
+        self.assertEqual((0, 0), recovered)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status, removed_at FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()
+        self.assertEqual("materialized", row["status"])
+        self.assertIsNone(row["removed_at"])
+
+    def test_periodic_recovery_rechecks_root_absence_after_running_lock(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        shutil.rmtree(result.job_root)
+
+        @contextmanager
+        def recreate_root_on_lock_entry():
+            result.job_root.mkdir(parents=True)
+            yield
+
+        with mock.patch.object(
+            self.service,
+            "_running_lock",
+            recreate_root_on_lock_entry(),
+        ):
+            recovered = self.service._recover_missing_copy_roots()
+
+        self.assertEqual(0, recovered)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status, removed_at FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()
+            event_count = connection.execute(
+                """SELECT COUNT(*) FROM events
+                   WHERE event_type = 'validation_copy.missing_root_recovered'
+                     AND payload_json LIKE ?""",
+                (f'%"jobId": "{result.job_id}"%',),
+            ).fetchone()[0]
+        self.assertEqual("materialized", row["status"])
+        self.assertIsNone(row["removed_at"])
+        self.assertEqual(0, event_count)
+
+    def test_periodic_recovery_rechecks_root_absence_after_mutation_gate(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        shutil.rmtree(result.job_root)
+
+        @contextmanager
+        def recreate_root_on_gate_entry():
+            result.job_root.mkdir(parents=True)
+            yield
+
+        with mock.patch.object(
+            self.service._terminal,
+            "_mutation_gate",
+            lambda: recreate_root_on_gate_entry(),
+        ):
+            recovered = self.service._recover_missing_copy_roots()
+
+        self.assertEqual(0, recovered)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status, removed_at FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()
+            event_count = connection.execute(
+                """SELECT COUNT(*) FROM events
+                   WHERE event_type = 'validation_copy.missing_root_recovered'
+                     AND payload_json LIKE ?""",
+                (f'%"jobId": "{result.job_id}"%',),
+            ).fetchone()[0]
+        self.assertEqual("materialized", row["status"])
+        self.assertIsNone(row["removed_at"])
+        self.assertEqual(0, event_count)
+
+    def test_periodic_recovery_acquires_mutation_gate_before_running_lock(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        shutil.rmtree(result.job_root)
+        acquisitions: list[str] = []
+
+        @contextmanager
+        def mutation_gate():
+            acquisitions.append("mutation_enter")
+            yield
+            acquisitions.append("mutation_exit")
+
+        @contextmanager
+        def running_lock():
+            acquisitions.append("running_enter")
+            yield
+            acquisitions.append("running_exit")
+
+        with (
+            mock.patch.object(
+                self.service._terminal,
+                "_mutation_gate",
+                lambda: mutation_gate(),
+            ),
+            mock.patch.object(self.service, "_running_lock", running_lock()),
+        ):
+            recovered = self.service._recover_missing_copy_roots()
+
+        self.assertEqual(1, recovered)
+        self.assertEqual(
+            ["mutation_enter", "running_enter", "running_exit", "mutation_exit"],
+            acquisitions,
+        )
 
     def test_startup_recovery_removes_interrupted_planned_copy(self) -> None:
         planned = self.service.plan("session-a", include_paths=("README.md",))

@@ -10,6 +10,7 @@ import time
 from collections import deque
 from contextlib import nullcontext
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, ContextManager, TextIO
 
 from .database import Database
@@ -421,6 +422,88 @@ class ValidationCopyTerminalLifecycle:
             # Keep the original terminal-evidence failure authoritative and
             # preserve the materialized copy for coordinator recovery.
             return
+
+    def recover_missing_roots(
+        self,
+        *,
+        validate_cleanup_root: Callable[[Path], None],
+        running_lock: ContextManager[None],
+        active_run_jobs: Callable[[], frozenset[str]],
+    ) -> int:
+        """Converge idle durable copies after their managed root disappears."""
+        with self._database.connect() as connection:
+            rows = connection.execute(
+                """SELECT job_id, session_id, job_root, status
+                   FROM validation_copies
+                   WHERE status IN ('materialized', 'failed') AND run_pid IS NULL"""
+            ).fetchall()
+
+        missing: list[tuple[str, str, str, str]] = []
+        for row in rows:
+            job_id = str(row["job_id"])
+            try:
+                raw_candidate = Path(str(row["job_root"]))
+                validate_cleanup_root(raw_candidate.resolve())
+            except Exception:
+                continue
+            if raw_candidate.exists() or raw_candidate.is_symlink():
+                continue
+            missing.append(
+                (
+                    job_id,
+                    str(row["session_id"]),
+                    str(row["job_root"]),
+                    str(row["status"]),
+                )
+            )
+
+        if not missing:
+            return 0
+        recovered = 0
+        gate = (
+            self._mutation_gate()
+            if self._mutation_gate is not None
+            else nullcontext()
+        )
+        with gate, running_lock:
+            locally_active = active_run_jobs()
+            still_missing = [
+                row
+                for row in missing
+                if not Path(row[2]).exists() and not Path(row[2]).is_symlink()
+            ]
+            if not still_missing:
+                return 0
+            with self._database.transaction() as connection:
+                for job_id, session_id, job_root, prior_status in still_missing:
+                    if job_id in locally_active:
+                        continue
+                    cursor = connection.execute(
+                        """UPDATE validation_copies
+                           SET status='removed', removed_at=?
+                           WHERE job_id=? AND job_root=? AND status=? AND run_pid IS NULL""",
+                        (utc_text(), job_id, job_root, prior_status),
+                    )
+                    if cursor.rowcount != 1:
+                        continue
+                    connection.execute(
+                        """INSERT INTO events(session_id, event_type, payload_json, created_at)
+                           VALUES (?, 'validation_copy.missing_root_recovered', ?, ?)""",
+                        (
+                            session_id,
+                            json.dumps(
+                                {
+                                    "jobId": job_id,
+                                    "jobRoot": job_root,
+                                    "priorStatus": prior_status,
+                                },
+                                sort_keys=True,
+                            ),
+                            utc_text(),
+                        ),
+                    )
+                    recovered += 1
+        return recovered
 
     @staticmethod
     def _capture_stream_tail(value: str | None) -> str:

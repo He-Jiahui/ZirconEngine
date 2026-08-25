@@ -1829,6 +1829,7 @@ class WorkspaceCopyService:
             except Exception:
                 continue
             recovered_cleanup += 1
+        recovered_cleanup += self._recover_missing_copy_roots()
         if startup:
             self._recover_interrupted_cargo_materializations()
             with self.database.connect() as connection:
@@ -1854,6 +1855,13 @@ class WorkspaceCopyService:
                     continue
                 recovered_cleanup += 1
         return recovered_running, recovered_cleanup
+
+    def _recover_missing_copy_roots(self) -> int:
+        return self._terminal.recover_missing_roots(
+            validate_cleanup_root=self._validate_cleanup_root,
+            running_lock=self._running_lock,
+            active_run_jobs=lambda: frozenset(self._active_run_jobs),
+        )
 
     def _recover_interrupted_cargo_materializations(self) -> None:
         """Restart only durable Cargo requests that no local worker currently owns.
