@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-23
 summary_slug: cross-plan-fixed-artifact-closeout-attribution
 origin_plan: docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md
@@ -25,6 +25,7 @@ related_code:
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_failure_return_delegations tools.session_coordinator.tests.test_migrations tools.session_coordinator.tests.test_ownership_transfers -v
   - python -B -m unittest tools.session_coordinator.tests.test_database.DatabaseTests.test_latest_schema_persists_delegated_failure_return_proofs tools.session_coordinator.tests.test_server.ServerTests.test_failure_return_seals_origin_destination_authorization tools.session_coordinator.tests.test_failure_closeout.FailureCloseoutWorkflowTests.test_active_origin_owner_delegation_commits_exact_fixed_artifact tools.session_coordinator.tests.test_failure_closeout.FailureCloseoutWorkflowTests.test_origin_owned_fixed_artifact_without_authorization_stays_rejected tools.session_coordinator.tests.test_failure_closeout.FailureCloseoutWorkflowTests.test_commit_is_exact_notifies_and_keeps_resolving_failure_open -v
+resolved_at: 2026-08-26
 ---
 
 # Coordinator01: cross-plan fixed artifact cannot reach Failure closeout
@@ -120,30 +121,7 @@ state-machine reachability defect, not an engine-source failure or stale evidenc
 
 ## 修复结果与回传
 
-Coordinator commit `753cbf527265e35dd1ea22ff495892acd9c4f6f8` implements a
-durable, exact-path delegated return proof in schema 66. `failure.return` seals the
-origin/fixing Session IDs, lifecycle, destination, content hash, baseline epoch and
-authorization event. Failure closeout preparation and commit revalidate that proof
-under the Git mutex, reject unrelated paths or drift, and consume it once only after
-the scoped commit succeeds. Ordinary non-delegated attribution and lease checks are
-unchanged.
-
-Maintenance finalizer request `7416fe1a98984a42becc6470b87ceb8e` ran two focused
-validation commands covering 15 tests and committed exactly the 11 Coordinator source
-and test paths recorded by that request. Controlled rollover action
-`7e74cd50ed884dc1b3317b7e1506f3d3` loaded healthy read-write schema-66 successor
-`ec103d862aa040f5ab603fed82244663`.
-
-The original lifecycle's delegated proof
-`ff8bba22c2f849eba55d9a683dd2dca8` was consumed exactly once by Runtime15 closeout
-`71b52f29c63c4a1fa89e01b988e47eb7`. Commit
-`c4761b14c6748c4fb0ac7edef67183d8d5afb5eb` contains the exact Runtime15 source/test
-changes, the Frameworks01 fixed artifact and the Runtime15 return receipt. The proof
-durably records the closeout fingerprint, commit SHA and consumption time; replay is
-now rejected.
-
-Open state: `Coordinator contract and real consumer accepted / local lifecycle return
-pending origin destination lease`. The formal return for this Coordinator failure is
-ready, but its Frameworks01 fixed destination must first be leased by the active
-Frameworks01 origin Session. Coordinator01 will not impersonate that Session or bypass
-the origin-lease gate merely to close this record.
+- 根因：Child-record-only failure return authorized an active origin-owned fixed artifact, but ordinary scoped finalization still required every path to be attributed to the fixing Session, leaving the valid lifecycle unreachable.
+- 架构修复：Schema 66 added an exact durable delegated-return proof bound to lifecycle, origin/fixing Sessions, normalized path, content hash, baseline epoch and authorization event; closeout prepare/commit revalidates and consumes it atomically under the Git mutex without weakening ordinary attribution.
+- 验证：Commit 753cbf527 is in current HEAD; current-source delegation/transfer/migration tests passed 18/18 and end-to-end closeout tests passed 5/5. Production proof ff8bba22c2f849eba55d9a683dd2dca8 was consumed once by closeout 71b52f29c63c4a1fa89e01b988e47eb7 in commit c4761b14c6748c4fb0ac7edef67183d8d5afb5eb.
+- 回传：Frameworks01 and distinct fixing Sessions can now complete exact child-record-only returns while origin ownership remains active; unrelated paths, drift, and proof replay remain rejected.
