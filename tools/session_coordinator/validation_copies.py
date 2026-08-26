@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bisect import bisect_left
 import json
 import subprocess
 import tomllib
@@ -254,17 +255,13 @@ def _compile_time_resource(
             suffix = suffix.lstrip("/\\\\")
         candidate = (base / suffix).resolve()
         if dynamic_tail:
-            candidate = candidate if candidate.is_dir() else candidate.parent
+            candidate = (
+                candidate if suffix.endswith(("/", "\\")) else candidate.parent
+            )
     if not candidate.is_relative_to(repo_root):
         raise CoordinatorError(
             "validation_copy_compile_time_resource_outside_repository",
             "Compile-time include resolves outside the repository",
-            details={"sourcePath": str(source), "resourcePath": str(candidate)},
-        )
-    if not candidate.exists():
-        raise CoordinatorError(
-            "validation_copy_compile_time_resource_missing",
-            "Compile-time include resource is unavailable",
             details={"sourcePath": str(source), "resourcePath": str(candidate)},
         )
     return candidate
@@ -691,8 +688,8 @@ class CargoInputClosurePlanner:
         selected_roots = {
             (self.repo_root / root).resolve() for root in selected_package_roots
         }
-        resource_roots: set[str] = set()
-        for relative in tracked_paths:
+        resource_sources: dict[str, str] = {}
+        for relative in sorted(tracked_paths, key=str.casefold):
             if not relative.endswith(".rs"):
                 continue
             source = (self.repo_root / relative).resolve()
@@ -713,10 +710,29 @@ class CargoInputClosurePlanner:
                     package_root=package_root,
                     repo_root=self.repo_root,
                 )
-                resource_roots.add(resource.relative_to(self.repo_root).as_posix())
-        if not resource_roots:
+                resource_root = resource.relative_to(self.repo_root).as_posix()
+                resource_sources.setdefault(resource_root, str(source))
+        if not resource_sources:
             return set()
-        return self._tracked_compile_time_resources(resource_roots)
+        resources = self._tracked_compile_time_resources(set(resource_sources))
+        ordered_resources = sorted(resources)
+        for resource_root in resource_sources:
+            descendant_prefix = resource_root.rstrip("/") + "/"
+            resource_index = bisect_left(ordered_resources, resource_root)
+            if resource_index < len(ordered_resources) and (
+                ordered_resources[resource_index] == resource_root
+                or ordered_resources[resource_index].startswith(descendant_prefix)
+            ):
+                continue
+            raise CoordinatorError(
+                "validation_copy_compile_time_resource_missing",
+                "Compile-time include resource is unavailable",
+                details={
+                    "sourcePath": resource_sources[resource_root],
+                    "resourcePath": str((self.repo_root / resource_root).resolve()),
+                },
+            )
+        return resources
 
     def _tracked_compile_time_resources(self, resource_roots: set[str]) -> set[str]:
         return self._tracked_git_paths(

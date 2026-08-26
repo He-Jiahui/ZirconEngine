@@ -556,6 +556,92 @@ class ValidationCopySourceTests(unittest.TestCase):
             "templates/ignored/never-materialize.bin", closure.repository_paths
         )
 
+    def test_compile_time_resource_uses_tracked_baseline_when_worktree_file_is_deleted(
+        self,
+    ) -> None:
+        files = {
+            "Cargo.toml": "[workspace]\nmembers=['app']\n",
+            "Cargo.lock": "# lock\n",
+            "app/Cargo.toml": "[package]\nname='app'\nversion='0.1.0'\n",
+            "app/src/lib.rs": "const _: &str = include_str!(\"schema.txt\");\n",
+            "app/src/schema.txt": "committed schema\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add baseline resource fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        (self.repo / "app/src/schema.txt").unlink()
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(self.repo / "app/Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["app-id"],
+            "resolve": {"nodes": [{"id": "app-id", "deps": []}]},
+        }
+
+        closure = CargoInputClosurePlanner(
+            self.repo,
+            metadata_runner=lambda _command: metadata,
+        ).plan(("cargo", "test", "-p", "app", "--lib"))
+
+        self.assertIn("app/src/schema.txt", closure.repository_paths)
+
+    def test_compile_time_resource_rejects_live_untracked_file(self) -> None:
+        tracked = {
+            "Cargo.toml": "[workspace]\nmembers=['app']\n",
+            "Cargo.lock": "# lock\n",
+            "app/Cargo.toml": "[package]\nname='app'\nversion='0.1.0'\n",
+            "app/src/lib.rs": "const _: &str = include_str!(\"schema.txt\");\n",
+        }
+        for relative, content in tracked.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *tracked], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add untracked resource fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        (self.repo / "app/src/schema.txt").write_text(
+            "untracked schema\n", encoding="utf-8"
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(self.repo / "app/Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["app-id"],
+            "resolve": {"nodes": [{"id": "app-id", "deps": []}]},
+        }
+
+        with self.assertRaises(CoordinatorError) as raised:
+            CargoInputClosurePlanner(
+                self.repo,
+                metadata_runner=lambda _command: metadata,
+            ).plan(("cargo", "test", "-p", "app", "--lib"))
+
+        self.assertEqual(
+            "validation_copy_compile_time_resource_missing", raised.exception.code
+        )
+        self.assertEqual(
+            (self.repo / "app/src/schema.txt").resolve(),
+            Path(str(raised.exception.details["resourcePath"])),
+        )
+
     def test_compile_time_resource_discovery_uses_bounded_git_arguments(self) -> None:
         resource_count = 2_400
         resource_roots = {
