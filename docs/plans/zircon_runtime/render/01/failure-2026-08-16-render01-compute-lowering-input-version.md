@@ -38,6 +38,11 @@ Compute lowering 只接收资源名、类型、访问与写入模式，不携带
 - scoped rustfmt 与 diff check 通过。
 - 当前源码受管 Editor 产品构建中该 E0063 归零。
 
+## 禁止临时方案
+
+- 不得伪造 producer pass/version、关闭 Render01 feature 或以 test-only cfg 隐藏缺失字段。
+- 不得借此改变 compute binding、external binding、write-mode 行为或扩大 UI12 的修复范围。
+
 ## 修复结果与回传
 
 Open state: `UI12 在无有效文件租约后补齐兼容构造器字段；待当前源码 Editor 构建验证后回传 Render01`。
