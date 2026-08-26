@@ -10,7 +10,9 @@ fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
   - docs/plans/performance/01/renderdoc_capture_audit.py
+  - tools/tests/test_renderdoc_capture_audit.py
 tests:
+  - python -B -m unittest tools.tests.test_renderdoc_capture_audit -v
   - current-source MVP cold-frame RenderDoc capture
   - same-process second stable-frame RenderDoc capture
   - GPU timestamp availability and missing-counter reporting
@@ -51,3 +53,13 @@ RenderDoc 1.44 已成功 replay 现有 D3D12 capture：4,357 actions、58 draws�
 Open state: `连续的ZR_RENDERDOC_CAPTURE_FRAME_COUNT=2只适合相邻帧，不足以代表该temporal full-chain产品路径的settled warm frame：第二帧会编译history-enabled图变体。ignored exporter export_render17_pfm1_render_graph_cold_warm_wgpu_png现先创建docs/tests/runtime/render，要求进程已注入RenderDoc，并在WGPU初始化前通过RenderDoc v1 API配置进程唯一的capture模板；它随后手动捕获cold帧、渲染history-transition帧、再手动捕获settled-warm帧，写入cold/warm两张PNG，要求两次capture stop均成功以及恰有两份匹配模板的.rdc，并额外写入同一对帧的JSON profile manifest。manifest把图缓存计数标为累计值，capture-frame profile与可能延迟的resolved GPU profile分开记录；RenderDoc draw/dispatch/copy与GPU event duration标为unavailable_pending_renderdoc_replay，不能替代RDC回放。二次独立静态审查已完成，未发现Critical、Important或Minor问题；其确认RenderDoc v1 ABI前缀、Windows调用约定、注入模块生命周期和进程级GetAPI互斥均正确。scene与retained UI现共享RHI WGPU timestamp owner，UI样本以Option和异步回读延迟上报，缺失样本不写成0；scene timer使用frame-profiler generation而非mesh-command cache generation，三槽异步回读按generation有序出队。上述是当前源码前向修复，不是验收：当前目录仍无本轮current-source PNG/RDC，且没有受控Cargo构建、draw/dispatch/copy/upload或GPU timing复盘。待这些实际证据完成后回传`。
 
 2026-08-10 independent review continuation: the current evidence contract received `Critical 0 / Important 0`; the only Minor finding was unformatted owned Rust sources, repaired mechanically and rechecked with `rustfmt --check`. The reviewer separately confirmed injected-template ordering, cold/history-transition/settled-warm sequencing, the exact-two-RDC assertion, manifest provenance, and the boundary between direct presentation and explicit CPU capture. This does not change the `open` status: a managed current-source Cargo/WGPU run, two current PNGs, current RDC replay, and unavailable-or-measured draw/dispatch/copy/GPU timing are still required.
+
+2026-08-27 audit-report continuation: `renderdoc_capture_audit.py` no longer
+collapses an exposed duration counter with zero returned samples to `0 ms`.
+The JSON report now distinguishes `unavailable_counter_not_exposed`,
+`unavailable_no_samples`, and `available`, includes the sample count, and emits
+`gpu_duration_total_ms: null` for both unavailable states. Fake-controller
+regressions pass 3/3 and cover both unavailable cases plus measured ordering and
+total duration. This removes one evidence-integrity defect but does not provide
+the missing current-source cold/settled-warm captures or replay metrics, so the
+failure remains `open`.

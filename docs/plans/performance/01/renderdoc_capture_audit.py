@@ -70,7 +70,7 @@ def _flag_counts(actions):
     }
 
 
-def _gpu_duration_rows(controller, actions_by_event):
+def _gpu_duration_report(controller, actions_by_event):
     counters = controller.EnumerateCounters()
     descriptions = [
         {
@@ -80,7 +80,12 @@ def _gpu_duration_rows(controller, actions_by_event):
         for counter in counters
     ]
     if rd.GPUCounter.EventGPUDuration not in counters:
-        return descriptions, []
+        return descriptions, {
+            "status": "unavailable_counter_not_exposed",
+            "sample_count": 0,
+            "total_ms": None,
+            "top_25": [],
+        }
 
     rows = []
     for result in controller.FetchCounters([rd.GPUCounter.EventGPUDuration]):
@@ -96,7 +101,19 @@ def _gpu_duration_rows(controller, actions_by_event):
             }
         )
     rows.sort(key=lambda row: row["seconds"], reverse=True)
-    return descriptions, rows
+    if not rows:
+        return descriptions, {
+            "status": "unavailable_no_samples",
+            "sample_count": 0,
+            "total_ms": None,
+            "top_25": [],
+        }
+    return descriptions, {
+        "status": "available",
+        "sample_count": len(rows),
+        "total_ms": sum(row["milliseconds"] for row in rows),
+        "top_25": rows[:25],
+    }
 
 
 def _ranked_counts(values, limit):
@@ -125,7 +142,7 @@ def main():
     try:
         actions = _action_rows(controller)
         actions_by_event = {row["event_id"]: row for row in actions}
-        counter_descriptions, gpu_durations = _gpu_duration_rows(
+        counter_descriptions, gpu_duration = _gpu_duration_report(
             controller, actions_by_event
         )
         debug_messages = [
@@ -156,10 +173,10 @@ def main():
             "debug_message_count": len(debug_messages),
             "debug_messages": debug_messages,
             "available_counters": counter_descriptions,
-            "gpu_duration_total_ms": sum(
-                row["milliseconds"] for row in gpu_durations
-            ),
-            "gpu_duration_top_25": gpu_durations[:25],
+            "gpu_duration_status": gpu_duration["status"],
+            "gpu_duration_sample_count": gpu_duration["sample_count"],
+            "gpu_duration_total_ms": gpu_duration["total_ms"],
+            "gpu_duration_top_25": gpu_duration["top_25"],
             "root_action_count": sum(row["depth"] == 0 for row in actions),
             "command_list_begin_count": sum(
                 "CommandBufferBoundary" in row["flags"]
