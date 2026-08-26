@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-22
 summary_slug: cargo-cleanup-deletes-live-validation-copy-parent
 origin_plan: docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md
@@ -17,6 +17,7 @@ related_code:
 tests:
   - python -m unittest tools.session_coordinator.tests.test_cleanup -v
   - python -m unittest tools.session_coordinator.tests.test_workspace_copy -v
+resolved_at: 2026-08-26
 ---
 
 # Coordinator01: Cargo cleanup deletes a live validation-copy parent
@@ -103,50 +104,7 @@ Cargo cleanup service's filesystem mutation.
 
 ## 修复结果与回传
 
-RED proof on 2026-08-22 reproduced the destructive behavior in six focused cases.
-The pre-fix implementation deleted the parent target, nested target, pressure target,
-explicit-plan target, and interrupted-recovery target while their validation-copy
-rows remained `materialized`; the `removed`/non-overlap control passed.
-
-The local fix adds one canonical live-copy query in `cleanup_deletion.py` and calls it
-inside the reservation transaction for prompt/retry cleanup, pressure eviction,
-explicit-plan apply, and restart recovery. A denial uses
-`validation_copy_overlap` and persists `cleanup.validation_copy_overlap_denied` with
-the trigger, canonical cleanup target, validation-copy ID, lifecycle status, matched
-path kind, and matched path. Restart recovery records
-`blocked_by_validation_copy_after_restart`, leaves the copy/status untouched, clears
-the stale Cargo reservation, and marks Cargo cleanup retryable. The pre-existing
-workspace-copy check against an established cleanup reservation is unchanged.
-
-Local GREEN evidence:
-
-- focused validation-copy cleanup tests: `6/6`;
-- complete `tools.session_coordinator.tests.test_cleanup`: `41/41`;
-- existing workspace-copy reservation guard tests: `3/3`;
-- `git diff --check`: pass.
-
-Independent review required two follow-ups before acceptance: each runtime denial is
-now durable instead of response-only, and the parent regression uses a strict parent
-of the validation-copy job root rather than path equality. Review-fixed snapshot
-`2038` was materialized by managed ticket
-`42b1c4062dd74f83bee61513957eee30` with source-manifest hash
-`a05149317ca3e47579d6b8b5709213e954ad4ac1c3daec967f30471379225cfe`;
-the complete 41-test cleanup module plus three reverse workspace-copy guards passed
-`44/44` from the immutable copy.
-
-The repair was committed by the scoped maintenance finalizer as
-`7762880fd1d8db3d3872888ba8377910177574af`. Controlled rollover action
-`34497e6df5294076994a8ad5fc3a032c` then loaded healthy, read-write schema-65
-successor `fe6522979a994d3d84d99e10a59c822f`. The unrelated 18-path staged projection
-retained its exact pre-finalize fingerprint across both operations.
-
-The successor subsequently materialized and ran validation copy
-`77fddbd58f8b4e6fb2089c62f0ff0c43` for managed ticket
-`e48636e4fa324b65973158358b756256`. All 17 isolated-patch tests passed in
-140.316 seconds; durable run completion with exit code 0 preceded the copy's normal
-`removed` transition. This is a real validation-copy consumer under the loaded
-cleanup guard, not a replay of the destroyed Frameworks01 copy.
-
-Open state: `Coordinator fix committed and loaded / Frameworks01 fresh retry and
-origin return pending`. Frameworks01 may request a new immutable materialization,
-but must never retry, recreate, or rewrite the destroyed copy.
+- 根因：Cargo cleanup revalidated jobs, pools, and cleanup reservations but omitted non-removed validation-copy roots, so a parent or child Cargo target could pass the final destructive gate.
+- 架构修复：Added a transactional canonical parent-child overlap guard for every live validation-copy job_root and target_root at prompt cleanup, pressure eviction, explicit-plan apply, and restart recovery; denials are typed and durable while the reverse reservation fence remains intact.
+- 验证：Commit 7762880fd is in current HEAD; current-source cleanup module passed 41/41; managed immutable validation previously passed 44/44 and successor copy 77fddbd58f8b4e6fb2089c62f0ff0c43 completed 17/17 before normal removal.
+- 回传：Frameworks01 may request a fresh immutable materialization under the loaded guard; destroyed copy e5c61237dda44d6c9fa9ba227322e3e8 remains immutable terminal evidence and is not recreated or rewritten.
