@@ -901,6 +901,56 @@ class ValidationTicketTests(unittest.TestCase):
         self.assertEqual(1, len(self.workspace_copy.materializations))
         self.assertEqual([], self.workspace_copy.generic_materializations)
 
+    def test_worker_preserves_failure_evidence_from_a_removed_cargo_copy(self) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="removed-cargo-failure-evidence",
+            source_manifest={"tools/owned.py": digest},
+            command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            toolchain={"cargo": "1.94.1", "rustc": "1.94.1"},
+            coverage={"kind": "focused"},
+        )
+        self.assertEqual(1, self.worker.tick()["materializing"])
+        copy = next(iter(self.workspace_copy.records.values()))
+        expected = {
+            "sourcePath": str(self.repo / "zircon_runtime/src/tests/host_adapter.rs"),
+            "resourcePath": str(
+                self.repo / "zircon_runtime_interface/src/runtime_api/host_requests.rs"
+            ),
+        }
+        copy.status = "removed"
+        copy.materialization_phase = "failed"
+        copy.error_code = "validation_copy_compile_time_resource_missing"
+        copy.error_stage = "closure_planning"
+        copy.error_path = expected["resourcePath"]
+        copy.error_details = expected
+
+        terminal = self.worker.tick()
+
+        self.assertEqual(1, terminal["failed"])
+        self.assertEqual("failed", self.service.get(receipt.ticket.ticket_id).status)
+        self.assertEqual(1, len(self.workspace_copy.materializations))
+        with self.database.connect() as connection:
+            event = connection.execute(
+                """
+                SELECT payload_json FROM validation_ticket_events
+                WHERE ticket_id=? AND event_type='validation.ticket_status_changed'
+                ORDER BY event_id DESC LIMIT 1
+                """,
+                (receipt.ticket.ticket_id,),
+            ).fetchone()
+        evidence = json.loads(event[0])["evidence"]
+        self.assertEqual(
+            "validation_copy_compile_time_resource_missing", evidence["errorCode"]
+        )
+        self.assertEqual("closure_planning", evidence["errorStage"])
+        self.assertEqual(expected["resourcePath"], evidence["errorPath"])
+        self.assertEqual(expected, evidence["errorDetails"])
+
     def test_worker_restarts_a_removed_generic_copy_before_run(self) -> None:
         source = self.repo / "tools" / "owned.py"
         source.parent.mkdir(parents=True)

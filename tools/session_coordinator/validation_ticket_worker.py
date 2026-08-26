@@ -172,7 +172,14 @@ class ValidationTicketWorker:
         status = str(record.status)
         if status in _ACTIVE_COPY_STATES:
             return "materializing"
-        if status == "failed":
+        copy_failed = status == "failed" or (
+            status == "removed"
+            and (
+                str(getattr(record, "materialization_phase", "")) == "failed"
+                or bool(getattr(record, "error_code", None))
+            )
+        )
+        if copy_failed:
             terminal_status = (
                 "snapshot_stale"
                 if str(record.error_code) in _SNAPSHOT_STALE_COPY_ERRORS
