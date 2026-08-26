@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-26
 summary_slug: artifact-cleanup-reservation-starvation
@@ -15,6 +15,7 @@ related_code:
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_failed_recovered_reservation_does_not_starve_current_candidate tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_failed_recovered_reservation_rotates_behind_pending_reservation -v
   - python -B -m unittest tools.session_coordinator.tests.test_artifact_governance -v
+resolved_at: 2026-08-26
 ---
 
 # Coordinator01: failed artifact cleanup reservation starves independent candidates
@@ -70,12 +71,7 @@ the producer path, delete a live tree, or weaken `require_clean()`.
 
 ## 修复结果与回传
 
-The two focused regressions first failed: the independent candidate remained present and the oldest
-failed reservation remained first. After the repair they passed `2/2`. The complete artifact
-governance suite passed `28/28` in 125.457 seconds; the pre-change baseline was `26/26` in 141.853
-seconds. `py_compile` and scoped `git diff --check` also passed.
-
-Keep this failure open until the scoped commit is loaded by a healthy successor and an official
-cleanup attempt proves that a locked reservation remains protected while an independent eligible
-candidate advances. Tooling15 must separately register or release its bootstrap root before the
-artifact audit can become fully clean.
+- 根因：Artifact cleanup counted retryable reservation failures against the deletion budget, retained their oldest ordering timestamp, and retried the same path twice in one call, allowing one locked producer to starve independent candidates.
+- 架构修复：Count only successful recovered deletions, exclude already-attempted paths from the current scan, and rotate failed artifact reservations by refreshing reserved_at while preserving filesystem identity and fail-closed admission.
+- 验证：Focused RED/GREEN passed 2/2; full artifact-governance suite passed 28/28 inside maintenance finalizer 369856fcfa654b38888690a4d5d6dd86; commit e82381c81813c6d1947218fe788056e7994dccfc loaded by rollover 11c68c9382424021aa799c7e0442db42 on healthy schema68 successor 5db6f88e3cf540b6ba7f4c10ec5b6fbb. Official cleanup 69dfae39d31140f79fd5661c0a3344b9 preserved locked tooling15-wave101 and deleted independent mvp-resource-management-comparisons. Four stale mvp-test-fixtures reservations are absent.
+- 回传：Artifact cleanup now preserves locked producers without allowing them to monopolize bounded cleanup progress; startup recovery has cleared the four missing fixture reservations.
