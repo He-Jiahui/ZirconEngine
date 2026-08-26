@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-26
 summary_slug: failure-lifecycle-history-erasure
@@ -17,6 +17,7 @@ related_code:
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_verified_fix_moves_back_and_updates_both_relative_links tools.session_coordinator.tests.test_database.DatabaseTests.test_schema_68_backfills_immutable_failure_lifecycle_history -v
   - python -B -m unittest tools.session_coordinator.tests.test_failures tools.session_coordinator.tests.test_database -v
+resolved_at: 2026-08-26
 ---
 
 # Coordinator01: Failure graph import erases lifecycle history
@@ -66,4 +67,7 @@ the graph import or the low-latency local validation-failure index.
 
 ## 修复结果与回传
 
-Open state: `implementation under validation`; no closeout is claimed yet.
+- 根因：The replaceable failure_nodes projection was also the only durable lifecycle record, so importing a returned fixed artifact erased the original added path and timestamp.
+- 架构修复：Schema 68 adds append-only added/fixed lifecycle events, backfills schema-67 projections, records graph imports and low-latency local failures, and rejects update/delete at the SQLite boundary.
+- 验证：Focused lifecycle and migration tests passed 2/2; full test_failures plus test_database passed 56/56 in 92.057 seconds; py_compile and scoped diff-check passed; implementation commit b6775b43a53f4878e024f257cab14dc58bd0b769.
+- 回传：Failure history now survives current-graph replacement without re-opening fixed nodes or weakening current cycle diagnostics.
