@@ -26,17 +26,17 @@ resolved_at: 2026-08-17
 - 来源计划：`docs/plans/optimize/zircon_tooling/10-test-architecture-partition-selection-isolation-fixture-flake-results-review.md`
 - 来源执行切片：runtime lib-test API drift convergence shader contract gate
 - 修复责任计划：`docs/plans/zircon_runtime/render/08-material-shader-permutation.md`
-- 原始交接判断：当时将最低共享原因定位到 material shader template include selection 与 Forward pass specialization，因此交给 Render 08；后续真实 Standard-PBR request 复现证明该判断不成立。
+- 交接原因：当时将最低共享原因定位到 material shader template include selection 与 Forward pass specialization，因此交给 Render 08；后续真实 Standard-PBR request 复现证明该判断不成立。
 
-## 原始失败现象与复现证据
+## 失败现象与复现证据
 
 协调器产物的直接行为复现显示，`environment_only_forward_specialization_excludes_unreachable_environment_api` 失败：带 `ENVIRONMENT_ONLY_PBR` 的 Forward assembly 仍包含通用环境 provider 的 `@group(1) @binding(16)`。该观察保留为 failure 生命周期的原始证据；它来自 custom `user_surface` 请求，不能证明 Standard-PBR specialization 失败。
 
-## 原始根因假设（已证伪）
+## 最低共享层根因
 
 failure 提交时曾假设 module registry/include selection 与 pass specialization 未形成唯一 environment-only closure。真实 Standard-PBR request 的最终 assembly 证明生产 closure 正确；通用 provider 来自 custom surface 的既定合同，因此该生产侧根因假设已证伪。
 
-## 原始验收假设与纠正
+## 架构修复验收
 
 - `ENVIRONMENT_ONLY_PBR` Forward assembly 必须只保留专用环境 closure，排除 `@group(1) @binding(16)` 及所有不可达通用 provider API。
 - 专用 normalized normal/view contract、零向量 early-out 与 generic PBR assembly 均不得退化。
