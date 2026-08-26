@@ -638,6 +638,40 @@ class FailureGraphTests(unittest.TestCase):
         self.assertIn("fixed 已修复", fixing.path.read_text(encoding="utf-8"))
         self.assertNotIn(str(self.root), fixing.path.read_text(encoding="utf-8"))
         self.assertEqual([], self.service.validator_errors())
+        with self.database.connect() as connection:
+            lifecycle_events = connection.execute(
+                """
+                SELECT event_kind, artifact_path
+                FROM failure_lifecycle_events
+                WHERE lifecycle_key=?
+                ORDER BY event_id
+                """,
+                (node.lifecycle_key,),
+            ).fetchall()
+        self.assertEqual(["added", "fixed"], [row["event_kind"] for row in lifecycle_events])
+        self.assertEqual(
+            [
+                failure.relative_to(self.root).as_posix(),
+                fixed.relative_to(self.root).as_posix(),
+            ],
+            [row["artifact_path"] for row in lifecycle_events],
+        )
+
+        self.service.import_repository()
+        with self.database.connect() as connection:
+            replayed_events = connection.execute(
+                """
+                SELECT event_kind, artifact_path
+                FROM failure_lifecycle_events
+                WHERE lifecycle_key=?
+                ORDER BY event_id
+                """,
+                (node.lifecycle_key,),
+            ).fetchall()
+        self.assertEqual(
+            [(row["event_kind"], row["artifact_path"]) for row in lifecycle_events],
+            [(row["event_kind"], row["artifact_path"]) for row in replayed_events],
+        )
 
     def test_return_rewrites_only_source_link_tokens_inside_table_rows(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/07-editor.md")

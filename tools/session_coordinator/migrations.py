@@ -14,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 67
+LATEST_SCHEMA_VERSION = 68
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2758,6 +2758,52 @@ def _migration_67(connection: Connection) -> None:
     )
 
 
+def _migration_68(connection: Connection) -> None:
+    """Persist the immutable added/fixed history behind the Failure graph."""
+    connection.executescript(
+        """
+        CREATE TABLE failure_lifecycle_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lifecycle_key TEXT NOT NULL,
+            event_kind TEXT NOT NULL CHECK (event_kind IN ('added', 'fixed')),
+            artifact_path TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            UNIQUE(lifecycle_key, event_kind)
+        );
+        CREATE INDEX idx_failure_lifecycle_events_chain
+            ON failure_lifecycle_events(lifecycle_key, event_id);
+
+        INSERT INTO failure_lifecycle_events(
+            lifecycle_key, event_kind, artifact_path, created_at, recorded_at
+        )
+        SELECT lifecycle_key, 'added',
+               CASE kind
+                   WHEN 'failure' THEN artifact_path
+                   ELSE RTRIM(fixing_child_dir, '/') || '/failure-' ||
+                        SUBSTR(created_at, 1, 10) || '-' || summary_slug || '.md'
+               END,
+               created_at, imported_at
+        FROM failure_nodes;
+
+        INSERT INTO failure_lifecycle_events(
+            lifecycle_key, event_kind, artifact_path, created_at, recorded_at
+        )
+        SELECT lifecycle_key, 'fixed', artifact_path,
+               COALESCE(resolved_at, created_at), imported_at
+        FROM failure_nodes
+        WHERE kind='fixed' AND status='fixed';
+
+        CREATE TRIGGER failure_lifecycle_events_no_update
+        BEFORE UPDATE ON failure_lifecycle_events
+        BEGIN SELECT RAISE(ABORT, 'failure lifecycle events are immutable'); END;
+        CREATE TRIGGER failure_lifecycle_events_no_delete
+        BEFORE DELETE ON failure_lifecycle_events
+        BEGIN SELECT RAISE(ABORT, 'failure lifecycle events are immutable'); END;
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2826,6 +2872,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     65: _migration_65,
     66: _migration_66,
     67: _migration_67,
+    68: _migration_68,
 }
 
 

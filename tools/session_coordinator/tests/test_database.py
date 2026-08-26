@@ -277,6 +277,96 @@ class DatabaseTests(unittest.TestCase):
                 ).fetchone()
             self.assertEqual(("existing-hash", "existing"), tuple(row))
 
+    def test_schema_68_backfills_immutable_failure_lifecycle_history(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with mock.patch(
+                "tools.session_coordinator.migrations.LATEST_SCHEMA_VERSION", 67
+            ):
+                self.assertEqual(67, migrate(database))
+            with database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO failure_nodes(
+                        lifecycle_key, artifact_path, kind, status, created_at,
+                        resolved_at, summary_slug, origin_plan, fixing_plan,
+                        origin_child_dir, fixing_child_dir, priority, imported_at
+                    ) VALUES (
+                        'origin|fixer|open',
+                        'docs/plans/fixer/01/failure-2026-08-24-open.md',
+                        'failure', 'open', '2026-08-24', NULL, 'open',
+                        'docs/plans/origin/01-origin.md',
+                        'docs/plans/fixer/01-fixer.md',
+                        'docs/plans/origin/01', 'docs/plans/fixer/01', 0,
+                        '2026-08-24T01:00:00+00:00'
+                    )
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO failure_nodes(
+                        lifecycle_key, artifact_path, kind, status, created_at,
+                        resolved_at, summary_slug, origin_plan, fixing_plan,
+                        origin_child_dir, fixing_child_dir, priority, imported_at
+                    ) VALUES (
+                        'origin|fixer|closed',
+                        'docs/plans/origin/01/fixed-2026-08-25-closed.md',
+                        'fixed', 'fixed', '2026-08-24', '2026-08-25', 'closed',
+                        'docs/plans/origin/01-origin.md',
+                        'docs/plans/fixer/01-fixer.md',
+                        'docs/plans/origin/01', 'docs/plans/fixer/01', 0,
+                        '2026-08-25T01:00:00+00:00'
+                    )
+                    """
+                )
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                rows = connection.execute(
+                    """
+                    SELECT lifecycle_key, event_kind, artifact_path, created_at
+                    FROM failure_lifecycle_events
+                    ORDER BY lifecycle_key, event_id
+                    """
+                ).fetchall()
+                with self.assertRaisesRegex(
+                    sqlite3.IntegrityError, "failure lifecycle events are immutable"
+                ):
+                    connection.execute(
+                        "UPDATE failure_lifecycle_events SET artifact_path='rewritten.md'"
+                    )
+                connection.rollback()
+                with self.assertRaisesRegex(
+                    sqlite3.IntegrityError, "failure lifecycle events are immutable"
+                ):
+                    connection.execute("DELETE FROM failure_lifecycle_events")
+
+            self.assertEqual(
+                [
+                    (
+                        "origin|fixer|closed",
+                        "added",
+                        "docs/plans/fixer/01/failure-2026-08-24-closed.md",
+                        "2026-08-24",
+                    ),
+                    (
+                        "origin|fixer|closed",
+                        "fixed",
+                        "docs/plans/origin/01/fixed-2026-08-25-closed.md",
+                        "2026-08-25",
+                    ),
+                    (
+                        "origin|fixer|open",
+                        "added",
+                        "docs/plans/fixer/01/failure-2026-08-24-open.md",
+                        "2026-08-24",
+                    ),
+                ],
+                [tuple(row) for row in rows],
+            )
+
     def test_schema_63_preserves_existing_failure_diagnostics_with_empty_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")

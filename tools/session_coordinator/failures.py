@@ -338,6 +338,7 @@ class FailureGraphService:
                         now,
                     ),
                 )
+                self._record_lifecycle_row(connection, row, recorded_at=now)
             for diagnostic in prepared.diagnostics:
                 connection.execute(
                     """
@@ -799,6 +800,72 @@ class FailureGraphService:
                     imported_at,
                 ),
             )
+            self._record_lifecycle_event(
+                connection,
+                lifecycle_key=lifecycle_key,
+                event_kind="added",
+                artifact_path=relative_artifact,
+                created_at=created_at.isoformat(),
+                recorded_at=imported_at,
+            )
+
+    @classmethod
+    def _record_lifecycle_row(
+        cls,
+        connection: Connection,
+        row: _FailureImportRow,
+        *,
+        recorded_at: str,
+    ) -> None:
+        added_artifact = row.artifact_path
+        if row.kind == "fixed":
+            added_artifact = (
+                f"{row.fixing_child_dir.rstrip('/')}/failure-"
+                f"{row.created_at[:10]}-{row.summary_slug}.md"
+            )
+        cls._record_lifecycle_event(
+            connection,
+            lifecycle_key=row.lifecycle_key,
+            event_kind="added",
+            artifact_path=added_artifact,
+            created_at=row.created_at,
+            recorded_at=recorded_at,
+        )
+        if row.kind == "fixed" and row.status == "fixed":
+            cls._record_lifecycle_event(
+                connection,
+                lifecycle_key=row.lifecycle_key,
+                event_kind="fixed",
+                artifact_path=row.artifact_path,
+                created_at=row.resolved_at or row.created_at,
+                recorded_at=recorded_at,
+            )
+
+    @staticmethod
+    def _record_lifecycle_event(
+        connection: Connection,
+        *,
+        lifecycle_key: str,
+        event_kind: str,
+        artifact_path: str,
+        created_at: str,
+        recorded_at: str,
+    ) -> None:
+        connection.execute(
+            """
+            INSERT INTO failure_lifecycle_events(
+                lifecycle_key, event_kind, artifact_path, created_at, recorded_at
+            ) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(lifecycle_key, event_kind) DO NOTHING
+            """,
+            (
+                lifecycle_key,
+                event_kind,
+                artifact_path,
+                created_at,
+                recorded_at,
+            ),
+        )
 
     @staticmethod
     def _require_failure_text(field_name: str, value: object) -> str:
