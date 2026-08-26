@@ -43,4 +43,10 @@ Frameworks02 Windows managed job `cbbe13aff0db495181c4ec16e984c51f` / run `a4e89
 
 ## 修复结果与回传
 
-Open state: `待验证`; no Cargo pass is claimed.
+Open state: `Windows 1314 fixture classification is present / current-source Cargo blocked before the exact test`; no Cargo pass is claimed.
+
+## 产出记录与时间
+
+| 时间 | 状态 | 证据与后续 |
+|---|---|---|
+| 2026-08-27 | `open / managed compile reached / exact test not executed` | Windows helper 仍同时识别 `PermissionDenied` 与 raw OS error `1314`，且 production project-root containment 源码未改动。Fresh managed `validate-matrix.ps1` job `2b227f610a374f2f878af4c69b9b4121` 进入 `cargo test -p zircon_runtime --locked --lib project_root_registration_rejects_a_canonical_symlink_escape`，随后以 wrapper exit `1` / Cargo exit `101` 终止于 587 条外部 current-source 编译错误；首条为 `text/glyph_artifact/geometry.rs:320` 的 Rust 2024 let-chain，随后还有 `scene_renderer/ui/render/rich_text.rs:95` let-chain、`runtime_interface/src/runtime_api/host_requests.rs` compile-time resource 缺失，以及 Runtime11/Render owner 的可见性与导入错误。`package_assets.rs` 没有 rustc 诊断，目标测试计数为 0；这些证据不能替代 exact/registration GREEN，故本 failure 保持 open，等待外部编译债收敛后由 Runtime04 重跑同一受管门。 |
