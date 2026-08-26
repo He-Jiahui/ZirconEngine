@@ -1,6 +1,7 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
+failure_scope: local
 created_at: 2026-08-26
 summary_slug: validation-copy-baseline-resource-live-worktree-drift
 origin_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -13,6 +14,7 @@ related_code:
   - tools/session_coordinator/tests/test_validation_copies.py
 tests:
   - "python -B -m unittest tools.session_coordinator.tests.test_validation_copies -v"
+resolved_at: 2026-08-26
 ---
 
 # Session Coordinator 01: validation copy baseline resource follows live worktree
@@ -59,4 +61,7 @@ baseline materializer 消费的闭包。外部 worktree 删除会错误否定 HE
 
 ## 修复结果与回传
 
-待完成。
+- 根因：Compile-time resource discovery mixed live filesystem existence with the Git-tracked immutable input domain, rejecting tracked baseline files deleted only from the worktree while silently omitting live untracked resources.
+- 架构修复：Resolve compile-time resource roots without live existence probes, enumerate them through bounded Git tracked-path queries, deterministically verify exact or descendant coverage, and preserve actionable sourcePath/resourcePath failures.
+- 验证：RED reproduced both inverse identity failures; GREEN passed the complete validation-copy suite 12/12 in 212.486s and again inside maintenance finalizer e9282d263e89453d88360ecd30081c60, plus compileall, diff-check, and current-source host_requests closure proof. Commit a71cebf35c0be232ce734e483636d6c31c664ad0 is loaded by rollover 6b509d1d45464940aa1524a5fbacba16 on successor b9b794663af24176ab80879bda294f44.
+- 回传：Validation copies now derive compile-time resource availability from tracked immutable inputs rather than unrelated live worktree presence; deleted baseline resources remain materializable and undeclared untracked resources fail closed.
