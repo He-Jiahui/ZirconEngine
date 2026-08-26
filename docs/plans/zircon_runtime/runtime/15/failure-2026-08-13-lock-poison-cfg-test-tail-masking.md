@@ -3,11 +3,12 @@ handoff_kind: failure
 status: open
 created_at: 2026-08-13
 summary_slug: lock-poison-cfg-test-tail-masking
-origin_plan: docs/plans/engine-code-review-findings-2026-06.md
+origin_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 fixing_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
-origin_child_dir: docs/plans/zircon_runtime/runtime
+origin_child_dir: docs/plans/zircon_runtime/runtime/15
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
+failure_scope: local
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/rust_source_view.rs
@@ -36,17 +37,22 @@ tests:
 
 ## 来源执行者
 
-- 来源计划：`docs/plans/engine-code-review-findings-2026-06.md`
+- 来源计划：`docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md`
+- 来源执行切片：Runtime15 lock-poison and production-structure guard convergence
 - 修复责任计划：`docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md`
+- 交接原因：The false-green parser and every affected structure guard are owned by Runtime15; the global review document identified the defect but is not a numbered execution owner.
+- 发现来源：`docs/plans/engine-code-review-findings-2026-06.md`
 - 当前阶段：`resolving_failure`
 
-## 失败现象与最低根因
+## 失败现象与复现证据
 
 Runtime15 lock-poison 守卫过去以第一次文本 `\n#[cfg(test)]` 为边界截断整个 Rust 文件。只要测试 helper 位于生产 item 之前，后续生产代码就完全不参与扫描。例如 `core/resource/event_stream.rs` 的 test-only `poison_state` 位于 `ResourceEventReceiver` 之前，旧 global gate 无法看见 receiver 及文件剩余生产实现。
 
+## 最低共享层根因
+
 同根问题不只存在于 global gate。`lock_poison_policy` 曾有 14 个 `production_section` 调用，`asset_render_input/asset_pipeline.rs` 还维护了第二个手写 `split("\n#[cfg(test)]\nmod tests")`；三个外置 Runtime15 lock-poison 守卫也各自复制首次 `cfg(test)` 截断。只修 global gate 会保留其余 false-green。
 
-## 架构修复合同
+## 架构修复验收
 
 - 统一由一个 lexical/cfg production-view owner 处理 Rust 输入，删除手写 `split` 截断。
 - 注释、普通/raw/byte/C raw 字符串、字符字面量与 lifetime 不得伪造 attribute 或直接锁调用。
