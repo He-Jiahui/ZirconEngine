@@ -215,6 +215,23 @@ class ActionService:
             confirmation_phrase=phrase,
         )
 
+    def start_loopback_validation(
+        self, context: ActionContext, parameters: dict[str, object]
+    ) -> ActionRecord:
+        """Submit the closed validation catalog from the local console in one step."""
+        preview = self.preview(context, ActionKind.VALIDATION_START.value, parameters)
+        if preview.confirmation_phrase is None:
+            raise CoordinatorError(
+                "validation_confirmation_missing",
+                "Validation action did not issue a confirmation phrase",
+            )
+        return self.confirm(
+            context,
+            preview.action_id,
+            phrase=preview.confirmation_phrase,
+            reason="本机控制台立即启动验证通道",
+        )
+
     def confirm(
         self,
         context: ActionContext,

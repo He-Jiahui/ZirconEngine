@@ -18,6 +18,7 @@ class ControlSnapshotService:
     """Reads all persisted control domains from one SQLite snapshot transaction."""
 
     _TERMINAL_HISTORY_LIMIT = 50
+    _PREVIEW_HISTORY_LIMIT = 50
     _AUDIT_EVENT_LIMIT = 200
 
     def __init__(
@@ -49,17 +50,19 @@ class ControlSnapshotService:
                         connection, terminal_history_limit=self._TERMINAL_HISTORY_LIMIT
                     ),
                     "sessions": self._sessions(connection),
-                    "codexSessions": self._codex_sessions(connection, service),
-                    "failures": self._failures(connection),
+                    "codexSessions": self._codex_sessions(
+                        connection, service, include_rows=False
+                    ),
+                    "failures": {"nodes": [], "diagnostics": []},
                     "collaboration": self._collaboration(connection),
-                    "validation": self._validation(connection),
+                    "validation": self._validation_summary(connection),
                     "experience": {
                         **self._experience(connection),
-                        "continuations": self.continuations.project(connection),
+                        "continuations": [],
                         "intervention": self._intervention(connection),
                     },
-                    "git": self._git(connection),
-                    "audit": self._audit(connection),
+                    "git": {"finalizeRequests": []},
+                    "audit": [],
                 }
                 connection.commit()
             except BaseException:
@@ -67,23 +70,49 @@ class ControlSnapshotService:
                 raise
         return snapshot
 
+    def codex_sessions_projection(self) -> dict[str, object]:
+        with self.database.connect() as connection:
+            return self._codex_sessions(
+                connection, self.service_state(connection), include_rows=True
+            )
+
+    def failure_projection(self) -> dict[str, object]:
+        with self.database.connect() as connection:
+            return self._failures(connection)
+
+    def git_projection(self) -> dict[str, object]:
+        with self.database.connect() as connection:
+            return self._git(connection)
+
+    def validation_projection(self) -> dict[str, object]:
+        with self.database.connect() as connection:
+            return self._validation_projection(connection)
+
+    def continuation_projection(self) -> dict[str, object]:
+        with self.database.connect() as connection:
+            return {"continuations": self.continuations.project(connection)}
+
     @staticmethod
-    def _codex_sessions(connection, service: dict[str, object]) -> dict[str, object]:
+    def _codex_sessions(
+        connection, service: dict[str, object], *, include_rows: bool
+    ) -> dict[str, object]:
         limit = 1000
-        rows = connection.execute(
-            """
-            SELECT thread_id, source_location, state, originator, cli_version,
-                   thread_source, last_event, last_turn_id, bound_session_id,
-                   diagnostic_code, first_seen_at, last_activity_at, last_synced_at
-            FROM codex_sessions
-            ORDER BY CASE state
-                WHEN 'active' THEN 0 WHEN 'idle' THEN 1
-                WHEN 'archived' THEN 2 ELSE 3 END,
-                last_activity_at DESC, thread_id
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
+        rows = ()
+        if include_rows:
+            rows = connection.execute(
+                """
+                SELECT thread_id, source_location, state, originator, cli_version,
+                       thread_source, last_event, last_turn_id, bound_session_id,
+                       diagnostic_code, first_seen_at, last_activity_at, last_synced_at
+                FROM codex_sessions
+                ORDER BY CASE state
+                    WHEN 'active' THEN 0 WHEN 'idle' THEN 1
+                    WHEN 'archived' THEN 2 ELSE 3 END,
+                    last_activity_at DESC, thread_id
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
         state_counts = {state: 0 for state in ("active", "idle", "archived", "unavailable")}
         for row in connection.execute(
             "SELECT state, COUNT(*) AS count FROM codex_sessions GROUP BY state"
@@ -127,7 +156,7 @@ class ControlSnapshotService:
                 for row in rows
             ],
             "total": total,
-            "truncated": total > limit,
+            "truncated": total > limit if include_rows else total > 0,
             "stateCounts": state_counts,
             "sourceCounts": source_counts,
             "queueDepth": int(worker_state.get("queueDepth", 0)),
@@ -265,7 +294,42 @@ class ControlSnapshotService:
         return {"baseline": dict(baseline) if baseline else None, "leases": leases, "patches": patches}
 
     @staticmethod
-    def _validation(connection) -> dict[str, object]:
+    def _validation_summary(connection) -> dict[str, object]:
+        """Keep the initial control snapshot to live queue state only."""
+        current_targets = ControlSnapshotService._current_cargo_targets(connection)
+        cpu_burst = connection.execute(
+            """
+            SELECT
+                CASE WHEN EXISTS(
+                    SELECT 1 FROM cargo_lane_reservations
+                    WHERE lane_scope='cpu' AND execution_mode='burst'
+                      AND status IN ('leased', 'running', 'finished')
+                ) THEN 1 ELSE 0 END AS active,
+                COALESCE(SUM(CASE
+                    WHEN lane_scope='cpu' AND execution_mode='warm'
+                     AND burst_eligible=1 AND status='pending' THEN 1
+                    ELSE 0
+                END), 0) AS eligible_pending
+            FROM cargo_lane_reservations
+            """
+        ).fetchone()
+        reservations = ControlSnapshotService._cargo_reservations(connection)
+        return {
+            "cargoJobs": [],
+            "validationCopies": [],
+            "currentCargoTargets": current_targets,
+            "cargoReservations": reservations,
+            "runHealth": [],
+            "cpuBurst": {
+                "capacity": 1,
+                "active": int(cpu_burst["active"]),
+                "eligiblePending": int(cpu_burst["eligible_pending"]),
+            },
+            "artifactLifecycle": ControlSnapshotService._artifact_lifecycle(current_targets),
+        }
+
+    @staticmethod
+    def _validation_projection(connection) -> dict[str, object]:
         jobs = []
         for row in connection.execute(
             """
@@ -309,23 +373,14 @@ class ControlSnapshotService:
             (ControlSnapshotService._TERMINAL_HISTORY_LIMIT,),
         ):
             copies.append(dict(row))
-        current_targets = ControlSnapshotService._current_cargo_targets(connection)
-        cpu_burst = connection.execute(
-            """
-            SELECT
-                CASE WHEN EXISTS(
-                    SELECT 1 FROM cargo_lane_reservations
-                    WHERE lane_scope='cpu' AND execution_mode='burst'
-                      AND status IN ('leased', 'running', 'finished')
-                ) THEN 1 ELSE 0 END AS active,
-                COALESCE(SUM(CASE
-                    WHEN lane_scope='cpu' AND execution_mode='warm'
-                     AND burst_eligible=1 AND status='pending' THEN 1
-                    ELSE 0
-                END), 0) AS eligible_pending
-            FROM cargo_lane_reservations
-            """
-        ).fetchone()
+        projection = ControlSnapshotService._validation_summary(connection)
+        projection["cargoJobs"] = jobs
+        projection["validationCopies"] = copies
+        projection["runHealth"] = ControlSnapshotService._run_health(connection)
+        return projection
+
+    @staticmethod
+    def _cargo_reservations(connection) -> list[dict[str, object]]:
         reservations = []
         for row in connection.execute(
             """
@@ -362,19 +417,7 @@ class ControlSnapshotService:
                     "expiresAt": row["expires_at"],
                 }
             )
-        return {
-            "cargoJobs": jobs,
-            "validationCopies": copies,
-            "currentCargoTargets": current_targets,
-            "cargoReservations": reservations,
-            "runHealth": ControlSnapshotService._run_health(connection),
-            "cpuBurst": {
-                "capacity": 1,
-                "active": int(cpu_burst["active"]),
-                "eligiblePending": int(cpu_burst["eligible_pending"]),
-            },
-            "artifactLifecycle": ControlSnapshotService._artifact_lifecycle(current_targets),
-        }
+        return reservations
 
     @staticmethod
     def _run_health(connection) -> list[dict[str, object]]:
@@ -632,17 +675,26 @@ class ControlSnapshotService:
                 SELECT request_id FROM finalize_requests
                 WHERE status IN ('committed', 'failed')
                 ORDER BY created_at DESC, request_id DESC LIMIT ?
+            ),
+            recent_previewed AS (
+                SELECT request_id FROM finalize_requests
+                WHERE status = 'previewed'
+                ORDER BY created_at DESC, request_id DESC LIMIT ?
             )
             SELECT request_id, session_id, message, paths_json, categories_json,
                    untracked_json, validation_json, maintenance, status,
                    commit_sha, error_text, created_at, completed_at, start_head,
                    index_existed, ref_updated_sha
             FROM finalize_requests
-            WHERE status NOT IN ('committed', 'failed')
+            WHERE status = 'finalizing'
+               OR request_id IN (SELECT request_id FROM recent_previewed)
                OR request_id IN (SELECT request_id FROM recent_terminal)
             ORDER BY created_at DESC, request_id DESC
             """,
-            (ControlSnapshotService._TERMINAL_HISTORY_LIMIT,),
+            (
+                ControlSnapshotService._TERMINAL_HISTORY_LIMIT,
+                ControlSnapshotService._PREVIEW_HISTORY_LIMIT,
+            ),
         ):
             item = dict(row)
             for key in ("paths_json", "categories_json", "untracked_json", "validation_json"):

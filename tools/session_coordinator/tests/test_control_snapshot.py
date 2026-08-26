@@ -51,11 +51,11 @@ class ControlSnapshotTests(unittest.TestCase):
                     (json.dumps(details),),
                 )
 
-            snapshot = ControlSnapshotService(
+            projection = ControlSnapshotService(
                 database, WorkflowProjectionService(), lambda _connection: {"status": "ok"}
-            ).build()
+            ).failure_projection()
 
-        self.assertEqual(details, snapshot["failures"]["diagnostics"][0]["details"])
+        self.assertEqual(details, projection["diagnostics"][0]["details"])
 
     def test_intervention_projects_one_actionable_failure_and_validation_queue(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -115,9 +115,11 @@ class ControlSnapshotTests(unittest.TestCase):
                     )
                     """
                 )
-            snapshot = ControlSnapshotService(
+            service = ControlSnapshotService(
                 database, WorkflowProjectionService(), lambda _connection: {"status": "ok"}
-            ).build()
+            )
+            snapshot = service.build()
+            git = service.git_projection()
 
         self.assertEqual(
             {
@@ -175,12 +177,14 @@ class ControlSnapshotTests(unittest.TestCase):
             sessions.set_status("waiting-owner", SessionStatus.ACTIVE)
             sessions.set_status("waiting-owner", SessionStatus.WAITING_VALIDATION)
 
-            snapshot = ControlSnapshotService(
+            service = ControlSnapshotService(
                 database,
                 WorkflowProjectionService(),
                 lambda _connection: {"status": "ok"},
                 repo_root=repo,
-            ).build()
+            )
+            snapshot = service.build()
+            continuations = service.continuation_projection()
 
         self.assertEqual(
             [
@@ -198,7 +202,7 @@ class ControlSnapshotTests(unittest.TestCase):
                     "returnToPrimary": True,
                 }
             ],
-            snapshot["experience"]["continuations"],
+            continuations["continuations"],
         )
         self.assertEqual(
             0,
@@ -285,12 +289,13 @@ class ControlSnapshotTests(unittest.TestCase):
                     ),
                 )
 
-            snapshot = ControlSnapshotService(
+            service = ControlSnapshotService(
                 database,
                 WorkflowProjectionService(),
                 lambda _connection: {"status": "ok"},
                 repo_root=repo,
-            ).build()
+            )
+            continuations = service.continuation_projection()
 
         self.assertEqual(
             [
@@ -321,7 +326,7 @@ class ControlSnapshotTests(unittest.TestCase):
                     "returnToPrimary": True,
                 }
             ],
-            snapshot["experience"]["continuations"],
+            continuations["continuations"],
         )
 
     def test_reviewer_wait_does_not_receive_a_write_continuation(self) -> None:
@@ -389,18 +394,19 @@ class ControlSnapshotTests(unittest.TestCase):
                     ),
                 )
 
-            snapshot = ControlSnapshotService(
+            service = ControlSnapshotService(
                 database,
                 WorkflowProjectionService(),
                 lambda _connection: {"status": "ok"},
                 repo_root=repo,
-            ).build()
+            )
+            continuations = service.continuation_projection()
 
         self.assertEqual(
             ["waiting-primary"],
             [
                 item["sessionId"]
-                for item in snapshot["experience"]["continuations"]
+                for item in continuations["continuations"]
             ],
         )
 
@@ -456,18 +462,20 @@ class ControlSnapshotTests(unittest.TestCase):
                     """
                 )
 
-            snapshot = ControlSnapshotService(
+            service = ControlSnapshotService(
                 database,
                 WorkflowProjectionService(),
                 lambda _connection: {"status": "ok"},
                 repo_root=repo,
-            ).build()
+            )
+            snapshot = service.build()
+            continuations = service.continuation_projection()
 
         self.assertEqual(
-            "validation", snapshot["experience"]["continuations"][0]["waitKind"]
+            "validation", continuations["continuations"][0]["waitKind"]
         )
         self.assertEqual(
-            "active-owner", snapshot["experience"]["continuations"][0]["sessionId"]
+            "active-owner", continuations["continuations"][0]["sessionId"]
         )
         self.assertEqual(
             1,
@@ -595,28 +603,105 @@ class ControlSnapshotTests(unittest.TestCase):
                     """
                 )
 
-            snapshot = ControlSnapshotService(
+            service = ControlSnapshotService(
                 database, WorkflowProjectionService(), lambda _connection: {"status": "ok"}
-            ).build()
+            )
+            snapshot = service.build()
+            git = service.git_projection()
+            validation = service.validation_projection()
 
         self.assertEqual(51, len(snapshot["sessions"]))
         self.assertIn("active-session", {row["sessionId"] for row in snapshot["sessions"]})
         self.assertEqual(51, len(snapshot["workflows"]))
         self.assertIn("active-run", {row["runId"] for row in snapshot["workflows"]})
-        self.assertEqual(51, len(snapshot["git"]["finalizeRequests"]))
+        self.assertEqual(51, len(git["finalizeRequests"]))
         self.assertIn(
             "active-finalize",
-            {row["request_id"] for row in snapshot["git"]["finalizeRequests"]},
+            {row["request_id"] for row in git["finalizeRequests"]},
         )
-        self.assertEqual(51, len(snapshot["validation"]["cargoJobs"]))
+        self.assertEqual([], snapshot["validation"]["cargoJobs"])
+        self.assertEqual([], snapshot["validation"]["validationCopies"])
+        self.assertEqual(51, len(validation["cargoJobs"]))
         self.assertIn(
-            "active-cargo", {row["job_id"] for row in snapshot["validation"]["cargoJobs"]}
+            "active-cargo", {row["job_id"] for row in validation["cargoJobs"]}
         )
-        self.assertEqual(51, len(snapshot["validation"]["validationCopies"]))
+        self.assertEqual(51, len(validation["validationCopies"]))
         self.assertIn(
             "active-copy",
-            {row["job_id"] for row in snapshot["validation"]["validationCopies"]},
+            {row["job_id"] for row in validation["validationCopies"]},
         )
+
+    def test_git_projection_bounds_preview_history_but_keeps_finalizing_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="preview-session")
+            sessions.register(session_id="finalizing-session")
+            with database.transaction() as connection:
+                for index in range(51):
+                    stamp = f"2026-07-16T01:{index:02d}:00+00:00"
+                    connection.execute(
+                        """
+                        INSERT INTO finalize_requests(
+                            request_id, session_id, message, paths_json, categories_json,
+                            untracked_json, validation_json, maintenance, status, created_at
+                        ) VALUES (?, 'preview-session', 'preview', '[]', '{}', '[]', '[]', 0,
+                                  'previewed', ?)
+                        """,
+                        (f"preview-{index:02d}", stamp),
+                    )
+                connection.execute(
+                    """
+                    INSERT INTO finalize_requests(
+                        request_id, session_id, message, paths_json, categories_json,
+                        untracked_json, validation_json, maintenance, status, created_at
+                    ) VALUES ('finalizing-request', 'finalizing-session', 'finalizing',
+                              '[]', '{}', '[]', '[]', 0, 'finalizing',
+                              '2026-07-16T02:00:00+00:00')
+                    """
+                )
+
+            projection = ControlSnapshotService(
+                database, WorkflowProjectionService(), lambda _connection: {"status": "ok"}
+            ).git_projection()["finalizeRequests"]
+
+        request_ids = {row["request_id"] for row in projection}
+        self.assertEqual(51, len(projection))
+        self.assertNotIn("preview-00", request_ids)
+        self.assertIn("preview-01", request_ids)
+        self.assertIn("preview-50", request_ids)
+        self.assertIn("finalizing-request", request_ids)
+
+    def test_summary_snapshot_defers_git_finalize_request_details(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            SessionService(database, repo).register(session_id="git-session")
+            with database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO finalize_requests(
+                        request_id, session_id, message, paths_json, categories_json,
+                        untracked_json, validation_json, maintenance, status, created_at
+                    ) VALUES ('deferred-git', 'git-session', 'detail only',
+                              '["src/lib.rs"]', '{}', '[]', '[]', 0, 'previewed',
+                              '2026-07-16T01:00:00+00:00')
+                    """
+                )
+
+            service = ControlSnapshotService(
+                database, WorkflowProjectionService(), lambda _connection: {"status": "ok"}
+            )
+            summary = service.build()
+            detail = service.git_projection()
+
+        self.assertEqual([], summary["git"]["finalizeRequests"])
+        self.assertEqual(["deferred-git"], [row["request_id"] for row in detail["finalizeRequests"]])
 
     def test_validation_lifecycle_summary_counts_only_existing_latest_targets(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -659,7 +744,7 @@ class ControlSnapshotTests(unittest.TestCase):
             shutil.rmtree(historical.target_dir)
 
             with database.connect() as connection:
-                projection = ControlSnapshotService._validation(connection)
+                projection = ControlSnapshotService._validation_projection(connection)
 
         self.assertEqual(
             {
@@ -695,7 +780,7 @@ class ControlSnapshotTests(unittest.TestCase):
             jobs.acquire("lane-owner", CargoLaneKind.TEST)
 
             with database.connect() as connection:
-                projection = ControlSnapshotService._validation(connection)
+                projection = ControlSnapshotService._validation_projection(connection)
 
         lane_fields = {
             "job_id",
@@ -752,14 +837,14 @@ class ControlSnapshotTests(unittest.TestCase):
                     ("2026-07-17T12:00:00+00:00", job.job_id),
                 )
             with database.connect() as connection:
-                observed = ControlSnapshotService._validation(connection)
+                observed = ControlSnapshotService._validation_projection(connection)
             with database.transaction() as connection:
                 connection.execute(
                     "UPDATE cargo_jobs SET process_tree_exited_at=? WHERE job_id=?",
                     ("2026-07-17T12:01:00+00:00", job.job_id),
                 )
             with database.connect() as connection:
-                reconciling = ControlSnapshotService._validation(connection)
+                reconciling = ControlSnapshotService._validation_projection(connection)
 
         self.assertEqual(
             "observed",
@@ -806,7 +891,7 @@ class ControlSnapshotTests(unittest.TestCase):
                 )
 
             with database.connect() as connection:
-                projection = ControlSnapshotService._validation(connection)
+                projection = ControlSnapshotService._validation_projection(connection)
 
         self.assertEqual(
             [
@@ -893,7 +978,7 @@ class ControlSnapshotTests(unittest.TestCase):
                     (job.job_id, str(stdout), str(stderr)),
                 )
             with database.connect() as connection:
-                projection = ControlSnapshotService._validation(connection)
+                projection = ControlSnapshotService._validation_projection(connection)
 
         self.assertEqual(
             [{
@@ -938,7 +1023,7 @@ class ControlSnapshotTests(unittest.TestCase):
                     (job.job_id, str(stdout), str(stderr)),
                 )
             with database.connect() as connection:
-                projection = ControlSnapshotService._validation(connection)
+                projection = ControlSnapshotService._validation_projection(connection)
 
         health = projection["runHealth"]
         self.assertEqual("output_observed", health[0]["outputState"])
@@ -1038,7 +1123,7 @@ class ControlSnapshotTests(unittest.TestCase):
                 },
             )
 
-            projection = service.build()["codexSessions"]
+            projection = service.codex_sessions_projection()
 
             self.assertEqual(1005, projection["total"])
             self.assertTrue(projection["truncated"])
@@ -1175,13 +1260,14 @@ class ControlSnapshotTests(unittest.TestCase):
                 lambda _connection: {"status": "ok"},
             )
 
-            snapshot = service.build()
+            with database.connect() as connection:
+                audit = service._audit(connection)
 
-            event = snapshot["audit"][-1]
+            event = audit[-1]
             self.assertEqual("legacy.oversized", event["type"])
             self.assertEqual(True, event["payload"]["truncated"])
             self.assertGreater(event["payload"]["originalBytes"], 16 * 1024)
-            self.assertNotIn(marker, json.dumps(snapshot))
+            self.assertNotIn(marker, json.dumps(audit))
 
     def test_snapshot_omits_heavy_internal_manifests_and_patch_objects(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1238,10 +1324,11 @@ class ControlSnapshotTests(unittest.TestCase):
             )
 
             snapshot = service.build()
+            validation = service.validation_projection()
 
             baseline = snapshot["collaboration"]["baseline"]
             patch = snapshot["collaboration"]["patches"][0]
-            copy = snapshot["validation"]["validationCopies"][0]
+            copy = validation["validationCopies"][0]
             self.assertGreater(baseline["manifest_bytes"], 16 * 1024)
             self.assertGreater(patch["content_bytes"], 16 * 1024)
             self.assertEqual(1, patch["has_current_objects"])
@@ -1251,7 +1338,10 @@ class ControlSnapshotTests(unittest.TestCase):
             self.assertNotIn("base_objects", patch)
             self.assertNotIn("current_objects", patch)
             self.assertNotIn("manifest", copy)
-            self.assertNotIn(marker, json.dumps(snapshot))
+            self.assertNotIn(
+                marker,
+                json.dumps({"snapshot": snapshot, "validation": validation}),
+            )
 
 
 if __name__ == "__main__":

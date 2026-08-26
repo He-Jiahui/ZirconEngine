@@ -9,13 +9,13 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from tools.session_coordinator.client import CoordinatorClient
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.control_plane.actions.models import ActionContext, ActionKind
 from tools.session_coordinator.database import Database
-from tools.session_coordinator.models import WebControlRole
+from tools.session_coordinator.models import CoordinatorError, WebControlRole
 from tools.session_coordinator.server import RunningCoordinator
 from tools.session_coordinator.tests.helpers import init_repo
 
@@ -146,7 +146,7 @@ class ControlHttpTests(unittest.TestCase):
                 self.assertIn(b"control console", page.read())
                 page.close()
 
-    def test_observer_bootstrap_opens_cookie_snapshot_without_bearer(self) -> None:
+    def test_loopback_read_projection_does_not_require_browser_cookie(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
@@ -154,27 +154,218 @@ class ControlHttpTests(unittest.TestCase):
             with RunningCoordinator.start(config) as running:
                 client = CoordinatorClient.from_runtime(config)
                 client.command("session.register", {"session_id": "session-a"})
-                ticket = client.issue_ui_ticket(actor="test")
-                cookie_jar = http.cookiejar.CookieJar()
-                opener = urllib.request.build_opener(
-                    urllib.request.HTTPCookieProcessor(cookie_jar),
-                    _NoRedirectHandler(),
-                )
-                bootstrap = opener.open(
-                    f"{running.base_url}{ticket['bootstrapPath']}", timeout=2
-                )
-                self.assertEqual(303, bootstrap.status)
-                bootstrap.close()
-
                 snapshot_request = urllib.request.Request(
                     f"{running.base_url}/control/v1/snapshot",
                     headers={"Origin": running.base_url},
                 )
-                snapshot = json.loads(opener.open(snapshot_request, timeout=2).read())
+                snapshot = json.loads(urllib.request.urlopen(snapshot_request, timeout=2).read())
+                logs_request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/logs?limit=1",
+                    headers={"Origin": running.base_url},
+                )
+                logs = json.loads(urllib.request.urlopen(logs_request, timeout=2).read())
+                details = {}
+                for name, path in {
+                    "failures": "/control/v1/failures",
+                    "failureHistory": "/control/v1/failures/history?limit=10",
+                    "git": "/control/v1/git",
+                    "codex": "/control/v1/codex-sessions",
+                    "validation": "/control/v1/validation",
+                    "validationHistory": "/control/v1/validation/history?limit=10",
+                    "continuations": "/control/v1/continuations",
+                }.items():
+                    detail_request = urllib.request.Request(
+                        f"{running.base_url}{path}",
+                        headers={"Origin": running.base_url},
+                    )
+                    details[name] = json.loads(
+                        urllib.request.urlopen(detail_request, timeout=2).read()
+                    )
+                auth_request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/auth/session",
+                    headers={"Origin": running.base_url},
+                )
+                auth = json.loads(urllib.request.urlopen(auth_request, timeout=2).read())
+                catalog_request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/actions/catalog",
+                    headers={"Origin": running.base_url},
+                )
+                catalog = json.loads(urllib.request.urlopen(catalog_request, timeout=2).read())
+                mutation_request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/actions/preview",
+                    data=json.dumps(
+                        {
+                            "kind": ActionKind.SESSION_HEARTBEAT.value,
+                            "parameters": {"sessionId": "session-a"},
+                        }
+                    ).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Origin": running.base_url,
+                    },
+                    method="POST",
+                )
+                with self.assertRaises(urllib.error.HTTPError) as rejected_mutation:
+                    urllib.request.urlopen(mutation_request, timeout=2)
 
             self.assertTrue(snapshot["ok"])
             self.assertEqual("session-a", snapshot["data"]["sessions"][0]["sessionId"])
+            self.assertTrue(logs["ok"])
+            self.assertTrue(all(detail["ok"] for detail in details.values()))
+            self.assertEqual("loopback-viewer", auth["data"]["actor"])
+            self.assertEqual("observer", auth["data"]["role"])
+            self.assertFalse(auth["data"]["mutationEnabled"])
+            self.assertTrue(catalog["data"]["actions"])
+            self.assertEqual(401, rejected_mutation.exception.code)
+            rejected_mutation.exception.close()
             self.assertNotIn("token", json.dumps(snapshot).lower())
+
+    def test_loopback_console_can_start_whitelisted_validation_without_cookie(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                started = SimpleNamespace(
+                    to_dict=lambda: {"actionId": "queued-validation", "status": "executing"}
+                )
+                request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/validation/queue/start",
+                    data=json.dumps(
+                        {
+                            "sessionId": "session-a",
+                            "template": "web-check",
+                            "runId": "run-a",
+                            "milestoneId": "M1",
+                        }
+                    ).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Origin": running.base_url,
+                    },
+                    method="POST",
+                )
+                with patch.object(
+                    running.httpd.control_http.router.actions,
+                    "start_loopback_validation",
+                    return_value=started,
+                ) as launch:
+                    response = json.loads(urllib.request.urlopen(request, timeout=2).read())
+
+                context, parameters = launch.call_args.args
+
+            self.assertTrue(response["ok"])
+            self.assertEqual("queued-validation", response["data"]["action"]["actionId"])
+            self.assertEqual(WebControlRole.OPERATOR, context.role)
+            self.assertEqual("loopback-console", context.actor)
+            self.assertIsNone(context.web_session_id)
+            self.assertEqual("session-a", context.bound_session_id)
+            self.assertEqual("web-check", parameters["template"])
+
+    def test_loopback_console_advances_next_validation_ticket_without_cookie(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/validation/queue/continue",
+                    data=b"{}",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Origin": running.base_url,
+                    },
+                    method="POST",
+                )
+                selected = {
+                    "ticket": {
+                        "ticketId": "ticket-next",
+                        "sessionId": "session-a",
+                        "status": "materializing",
+                    },
+                    "progress": {"materializing": 1},
+                }
+                with patch.object(
+                    running.httpd.control_http.router,
+                    "validation_queue_continue",
+                    return_value=selected,
+                    create=True,
+                ) as advance:
+                    response = json.loads(urllib.request.urlopen(request, timeout=2).read())
+
+            advance.assert_called_once_with()
+        self.assertTrue(response["ok"])
+        self.assertEqual("ticket-next", response["data"]["ticket"]["ticketId"])
+        self.assertEqual("materializing", response["data"]["ticket"]["status"])
+
+    def test_manual_queue_advance_uses_the_shared_non_reentrant_worker_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                application = running.httpd.application
+                selected = SimpleNamespace(
+                    ticket_id="ticket-next",
+                    session_id="session-a",
+                    plan_path="docs/plans/tooling/01.md",
+                    status="materializing",
+                )
+                tickets = SimpleNamespace(
+                    active_ticket=Mock(side_effect=[None, selected]),
+                    get=Mock(),
+                )
+                application.validation_ticket_worker = SimpleNamespace(
+                    tickets=tickets,
+                    tick=Mock(return_value={"materializing": 1}),
+                )
+
+                with patch.object(
+                    application.supervision, "require_mutation_allowed"
+                ) as require_admission:
+                    result = application.advance_validation_queue(
+                        actor="loopback-console", require_admission=True
+                    )
+                    self.assertTrue(
+                        application._validation_ticket_tick_lock.acquire(False)
+                    )
+                    try:
+                        with self.assertRaises(CoordinatorError) as rejected:
+                            application.advance_validation_queue(
+                                actor="loopback-console", require_admission=True
+                            )
+                    finally:
+                        application._validation_ticket_tick_lock.release()
+
+            self.assertEqual(2, require_admission.call_count)
+            self.assertTrue(
+                all(
+                    item.args == ("validation.queue_continue",)
+                    for item in require_admission.call_args_list
+                )
+            )
+            self.assertEqual("validation_queue_busy", rejected.exception.code)
+            application.validation_ticket_worker.tick.assert_called_once_with()
+            self.assertEqual("ticket-next", result["ticket"]["ticketId"])
+            self.assertEqual({"materializing": 1}, result["progress"])
+
+    def test_loopback_validation_start_still_requires_same_origin(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/validation/queue/start",
+                    data=b"{}",
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with self.assertRaises(urllib.error.HTTPError) as rejected:
+                    urllib.request.urlopen(request, timeout=2)
+
+            self.assertEqual(403, rejected.exception.code)
+            rejected.exception.close()
 
     def test_runtime_descriptor_exposes_instance_and_api_version(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -345,7 +536,7 @@ class ControlHttpTests(unittest.TestCase):
                 self.assertNotIn(running.token, body)
                 rejected.exception.close()
 
-    def test_artifact_http_requires_browser_origin_and_session(self) -> None:
+    def test_artifact_http_requires_browser_origin_but_not_a_cookie(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
@@ -362,10 +553,10 @@ class ControlHttpTests(unittest.TestCase):
                     f"{running.base_url}/control/v1/artifacts/opaque",
                     headers={"Origin": running.base_url},
                 )
-                with self.assertRaises(urllib.error.HTTPError) as rejected_session:
+                with self.assertRaises(urllib.error.HTTPError) as rejected_missing:
                     urllib.request.urlopen(without_session, timeout=2)
-                self.assertEqual(401, rejected_session.exception.code)
-                rejected_session.exception.close()
+                self.assertEqual(404, rejected_missing.exception.code)
+                rejected_missing.exception.close()
 
     def test_non_loopback_bind_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

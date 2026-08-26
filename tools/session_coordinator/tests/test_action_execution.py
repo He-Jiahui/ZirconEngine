@@ -155,6 +155,37 @@ class ActionExecutionTests(unittest.TestCase):
         self.assertEqual("succeeded", result.status.value)
         self.assertEqual(["src/feature.py"], self.leases.owned_paths("session-a"))
 
+    def test_loopback_validation_start_previews_and_confirms_as_one_audited_action(self) -> None:
+        preview = SimpleNamespace(action_id="preview-a", confirmation_phrase="confirm validation.start")
+        completed = SimpleNamespace(status=SimpleNamespace(value="executing"))
+        context = ActionContext(
+            actor="loopback-console",
+            role=WebControlRole.OPERATOR,
+            web_session_id=None,
+            bound_session_id="session-a",
+            daemon_instance_id="instance-a",
+        )
+        parameters = {
+            "sessionId": "session-a",
+            "template": "web-check",
+            "runId": "run-a",
+            "milestoneId": "M1",
+        }
+
+        with mock.patch.object(self.service, "preview", return_value=preview) as preview_action, mock.patch.object(
+            self.service, "confirm", return_value=completed
+        ) as confirm_action:
+            result = self.service.start_loopback_validation(context, parameters)
+
+        self.assertIs(completed, result)
+        preview_action.assert_called_once_with(context, ActionKind.VALIDATION_START.value, parameters)
+        confirm_action.assert_called_once_with(
+            context,
+            "preview-a",
+            phrase="confirm validation.start",
+            reason="本机控制台立即启动验证通道",
+        )
+
     def test_denial_cancel_and_execution_failure_are_audited(self) -> None:
         observer = ActionContext(
             actor="cli",

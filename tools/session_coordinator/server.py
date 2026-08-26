@@ -378,6 +378,7 @@ class CoordinatorApplication:
         )
         self._mutation_lock = threading.RLock()
         self._maintenance_lock = threading.Lock()
+        self._validation_ticket_tick_lock = threading.Lock()
         self.baselines = BaselineService(self.database, config.repo_root)
         self.object_store = ObjectStore(self.database, config.object_root)
         self.snapshots = SnapshotService(
@@ -2294,6 +2295,61 @@ class CoordinatorApplication:
         self.artifact_receipts.finalize_run(run_id)
         self.milestone_workflows.import_validation_result(run_id)
 
+    def advance_validation_queue(
+        self,
+        *,
+        actor: str,
+        require_admission: bool,
+    ) -> dict[str, object]:
+        """Advance the single FIFO validation worker without racing maintenance."""
+        worker = self.validation_ticket_worker
+        if worker is None:
+            raise CoordinatorError(
+                "validation_queue_unavailable", "Validation queue worker is unavailable"
+            )
+        if self.read_only:
+            raise CoordinatorError(
+                "not_on_main",
+                f"Coordinator mutations require main; current branch is {self.branch}",
+            )
+        if require_admission:
+            self.supervision.require_mutation_allowed("validation.queue_continue")
+        if not self._validation_ticket_tick_lock.acquire(blocking=False):
+            raise CoordinatorError(
+                "validation_queue_busy", "Another validation queue advancement is in progress"
+            )
+        try:
+            previous = worker.tickets.active_ticket()
+            progress = worker.tick()
+            active = worker.tickets.active_ticket()
+            ticket = active or (
+                worker.tickets.get(previous.ticket_id) if previous is not None else None
+            )
+            if any(progress.values()):
+                with self.database.transaction() as connection:
+                    connection.execute(
+                        "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                        (
+                            "validation.ticket_worker_tick",
+                            json.dumps({"actor": actor, **progress}, sort_keys=True),
+                        ),
+                    )
+            return {
+                "ticket": (
+                    {
+                        "ticketId": ticket.ticket_id,
+                        "sessionId": ticket.session_id,
+                        "planPath": ticket.plan_path,
+                        "status": ticket.status,
+                    }
+                    if ticket is not None
+                    else None
+                ),
+                "progress": progress,
+            }
+        finally:
+            self._validation_ticket_tick_lock.release()
+
     def _require_artifact_governance(self) -> ArtifactGovernanceService:
         if self.artifact_governance is None:
             raise CoordinatorError(
@@ -2521,6 +2577,9 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
             workflows=application.workflow_projections,
             database=application.database,
             actions=application.control_actions,
+            validation_queue_continue=lambda: application.advance_validation_queue(
+                actor="loopback-console", require_admission=True
+            ),
             maintenance_authorizer=application._require_maintenance_capability,
             live_workflow_eligibility=application.milestone_workflows.live_eligibility,
             codex_wake=application.codex_worker.wake,
@@ -2996,16 +3055,9 @@ class RunningCoordinator:
                     )
             if application.validation_ticket_worker is not None and not application.read_only:
                 try:
-                    ticket_result = application.validation_ticket_worker.tick()
-                    if any(ticket_result.values()):
-                        with application.database.transaction() as connection:
-                            connection.execute(
-                                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
-                                (
-                                    "validation.ticket_worker_tick",
-                                    json.dumps(ticket_result, sort_keys=True),
-                                ),
-                            )
+                    application.advance_validation_queue(
+                        actor="maintenance", require_admission=False
+                    )
                 except Exception as error:  # pragma: no cover - defensive worker boundary
                     if stop_event.is_set():
                         break

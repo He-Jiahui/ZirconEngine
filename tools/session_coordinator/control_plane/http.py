@@ -78,7 +78,6 @@ class ControlPlaneHttp:
                     self._write_binary(handler, asset)
                     return
             if handler.command in {"GET", "HEAD"} and route.startswith("/control/v1/artifacts/"):
-                self.router.authenticate(handler.headers, runtime_authorized=runtime_authorized)
                 artifact_id = route.removeprefix("/control/v1/artifacts/")
                 response = self.artifact_downloads.download(
                     artifact_id, handler.headers.get("Range")
@@ -117,7 +116,6 @@ class ControlPlaneHttp:
     def _stream_events(
         self, handler, *, runtime_authorized: bool, correlation_id: str
     ) -> None:
-        self.router.authenticate(handler.headers, runtime_authorized=runtime_authorized)
         query = parse_qs(urlsplit(handler.path).query)
         cursor_text = handler.headers.get("Last-Event-ID") or query.get("cursor", ["0"])[0]
         try:

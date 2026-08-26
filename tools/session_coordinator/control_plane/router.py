@@ -11,10 +11,11 @@ from ..event_payloads import (
 )
 from ..models import CoordinatorError, WebControlRole
 from ..workflows.projections import WorkflowProjectionService
-from .actions.models import ActionContext
+from .actions.models import ActionContext, ValidationStartParameters
 from .actions.service import ActionService
 from .auth import WebControlAuth, WebSessionRecord
 from .contracts import CONTROL_API_VERSION, ControlResponse
+from .history import ControlHistoryService
 from .snapshot import ControlSnapshotService
 
 
@@ -29,6 +30,23 @@ class ControlIdentity:
 class ControlPlaneRouter:
     """Routes bounded control contracts without depending on HTTP server internals."""
 
+    _PUBLIC_READ_PATHS = frozenset(
+        {
+            "/control/v1/meta",
+            "/control/v1/auth/session",
+            "/control/v1/actions/catalog",
+            "/control/v1/snapshot",
+            "/control/v1/logs",
+            "/control/v1/failures",
+            "/control/v1/failures/history",
+            "/control/v1/git",
+            "/control/v1/codex-sessions",
+            "/control/v1/validation",
+            "/control/v1/validation/history",
+            "/control/v1/continuations",
+        }
+    )
+
     def __init__(
         self,
         *,
@@ -38,6 +56,7 @@ class ControlPlaneRouter:
         workflows: WorkflowProjectionService,
         database,
         actions: ActionService | None = None,
+        validation_queue_continue: Callable[[], dict[str, object]] | None = None,
         maintenance_authorizer: Callable[[dict[str, object]], None] | None = None,
         live_workflow_eligibility: Callable[[str, str], dict[str, object]] | None = None,
         codex_wake: Callable[[str], bool] | None = None,
@@ -48,7 +67,9 @@ class ControlPlaneRouter:
         self.snapshot = snapshot
         self.workflows = workflows
         self.database = database
+        self.history = ControlHistoryService(database)
         self.actions = actions
+        self.validation_queue_continue = validation_queue_continue
         self.maintenance_authorizer = maintenance_authorizer
         self.live_workflow_eligibility = live_workflow_eligibility
         self.codex_wake = codex_wake
@@ -183,7 +204,48 @@ class ControlPlaneRouter:
                 headers={"Cache-Control": "no-store"},
             )
 
-        identity = self.authenticate(headers, runtime_authorized=runtime_authorized)
+        if method == "POST" and path == "/control/v1/validation/queue/start":
+            if runtime_authorized:
+                raise CoordinatorError(
+                    "browser_validation_queue_required",
+                    "Validation queue start is reserved for the loopback browser console",
+                )
+            parameters = ValidationStartParameters.parse(self._json_body(body))
+            context = ActionContext(
+                actor="loopback-console",
+                role=WebControlRole.OPERATOR,
+                web_session_id=None,
+                bound_session_id=parameters.session_id,
+                daemon_instance_id=self.instance_id,
+            )
+            record = self._actions().start_loopback_validation(
+                context, parameters.to_payload()
+            )
+            return ControlResponse(202, {"action": record.to_dict()})
+
+        if method == "POST" and path == "/control/v1/validation/queue/continue":
+            if runtime_authorized:
+                raise CoordinatorError(
+                    "browser_validation_queue_required",
+                    "Validation queue continuation is reserved for the loopback browser console",
+                )
+            if self._json_body(body):
+                raise CoordinatorError(
+                    "invalid_request",
+                    "Validation queue continuation does not accept parameters",
+                )
+            if self.validation_queue_continue is None:
+                raise CoordinatorError(
+                    "validation_queue_unavailable",
+                    "Validation queue worker is unavailable",
+                )
+            return ControlResponse(202, self.validation_queue_continue())
+
+        identity = (
+            self._loopback_observer_identity()
+            if not runtime_authorized and self.is_public_read(method, path)
+            else self.authenticate(headers, runtime_authorized=runtime_authorized)
+        )
         if method not in {"GET", "HEAD"} and not runtime_authorized:
             session = self.auth.validate_csrf(
                 headers.get("Cookie", ""),
@@ -255,6 +317,26 @@ class ControlPlaneRouter:
                 return ControlResponse(200, {"action": record.to_dict()})
         if method == "GET" and path == "/control/v1/snapshot":
             return ControlResponse(200, self.snapshot.build())
+        if method == "GET" and path == "/control/v1/failures":
+            return ControlResponse(200, self.snapshot.failure_projection())
+        if method == "GET" and path == "/control/v1/failures/history":
+            return ControlResponse(
+                200,
+                self.history.failures(limit=self._history_limit(raw_path, default=100)),
+            )
+        if method == "GET" and path == "/control/v1/git":
+            return ControlResponse(200, self.snapshot.git_projection())
+        if method == "GET" and path == "/control/v1/codex-sessions":
+            return ControlResponse(200, self.snapshot.codex_sessions_projection())
+        if method == "GET" and path == "/control/v1/validation":
+            return ControlResponse(200, self.snapshot.validation_projection())
+        if method == "GET" and path == "/control/v1/validation/history":
+            return ControlResponse(
+                200,
+                self.history.validation(limit=self._history_limit(raw_path, default=50)),
+            )
+        if method == "GET" and path == "/control/v1/continuations":
+            return ControlResponse(200, self.snapshot.continuation_projection())
         if method == "GET" and path == "/control/v1/logs":
             return ControlResponse(200, self._logs(raw_path))
         if method == "GET" and path.startswith("/control/v1/workflows/"):
@@ -310,6 +392,21 @@ class ControlPlaneRouter:
             "nextBefore": int(selected[-1]["event_id"]) if truncated and selected else None,
         }
 
+    @staticmethod
+    def _history_limit(raw_path: str, *, default: int) -> int:
+        query = parse_qs(urlsplit(raw_path).query)
+        try:
+            limit = int(query.get("limit", [str(default)])[0])
+        except ValueError as error:
+            raise CoordinatorError(
+                "history_limit_invalid", "History limit must be an integer"
+            ) from error
+        if limit < 1 or limit > 200:
+            raise CoordinatorError(
+                "history_limit_invalid", "History limit must be between 1 and 200"
+            )
+        return limit
+
     def _action_activity(
         self, raw_path: str, context: ActionContext
     ) -> dict[str, object]:
@@ -339,6 +436,17 @@ class ControlPlaneRouter:
         return ControlIdentity(
             session.actor, session.role, session.session_id, session.bound_session_id
         )
+
+    @classmethod
+    def is_public_read(cls, method: str, path: str) -> bool:
+        return method == "GET" and (
+            path in cls._PUBLIC_READ_PATHS or path.startswith("/control/v1/workflows/")
+        )
+
+    @staticmethod
+    def _loopback_observer_identity() -> ControlIdentity:
+        # Loopback and browser-origin validation remain enforced by ControlHttp.
+        return ControlIdentity("loopback-viewer", WebControlRole.OBSERVER.value, None)
 
     def _actions(self) -> ActionService:
         if self.actions is None:
