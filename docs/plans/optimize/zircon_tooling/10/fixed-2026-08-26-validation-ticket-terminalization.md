@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-23
 summary_slug: validation-ticket-terminalization
 origin_plan: docs/plans/optimize/zircon_tooling/10-test-architecture-partition-selection-isolation-fixture-flake-results-review.md
@@ -15,6 +15,7 @@ tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_validation_tickets -v
   - validation ticket 9cc6e9bab31941b2b8aca8bfc0cd28fd
   - candidate validation ticket 44e8ea02753c448b980a3689cbce58f6 (six-module batch, 181 passed)
+resolved_at: 2026-08-26
 ---
 
 # Tooling 06: validation ticket loses an interrupted generic materialization
@@ -55,11 +56,7 @@ The older ticket `e56f23fb55b14274994f3dab84c493b3` did eventually produce a run
 
 ## 修复结果与回传
 
-- 候选快照已通过独立六模块回归批：validation ticket
-  `44e8ea02753c448b980a3689cbce58f6` 对 validation ticket、workspace copy、
-  Cargo runner、Cargo jobs 与 Windows Job Object 的 181 项测试均通过。
-- 该批次证明 worker 的恢复分支和本地回归覆盖；它不替代来源 Tooling10 M0
-  的真实受管运行回放。Coordinator 必须先加载此 worker，再重放来源批次并取得
-  durable terminal run result。
-
-Open state: `待原始受管回放`; no Tooling10 pass or performance qualification is claimed.
+- 根因：The validation ticket worker treated every removed copy as terminal run evidence, including interrupted pre-run generic copies and failed Cargo materializations whose structured error remained only on the copy row.
+- 架构修复：Classify removed copies by durable materialization and run state: restart interrupted generic copies before run, consume durable run results when present, and project failed-copy error code, stage, path, and details without rematerialization.
+- 验证：Managed Tooling10 replay ticket 6548cf29f8a54b16b9771e54dce8cdd3 reached a real run and passed; Tooling06 focused ticket 39d61975c6bf42a5a07ec1d07d7a88f0 passed 4/4; full local validation-ticket suite passed 30/30; production copy 63b603b02f5f4eeaa2d6536c8a538f85 was removed while ticket 14095292da8645d58e9b16d690f0368e retained structured error code, stage, path, and details.
+- 回传：Validation-ticket terminalization is restart-safe and preserves durable failed-copy evidence; ownership returns to Tooling10 with no product Cargo qualification claimed.
