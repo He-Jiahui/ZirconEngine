@@ -2,7 +2,7 @@
 handoff_kind: failure
 status: open
 created_at: 2026-08-05
-updated_at: 2026-08-05
+updated_at: 2026-08-26
 summary_slug: task-diagnostics-editor-log-source-bridge
 origin_plan: docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
 fixing_plan: docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
@@ -11,8 +11,10 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/11
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
+  - zircon_runtime/src/core/runtime/tasks/diagnostic_observation
   - zircon_runtime/src/core/runtime/tasks/report.rs
-  - zircon_editor/src/core/logging
+  - zircon_editor/src/core/logging/runtime_task_diagnostics
+  - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
 tests:
   - bounded task diagnostic observation and no editor-crate dependency
   - runtime diagnostic severity/message projection through the editor host bridge
@@ -52,10 +54,11 @@ This is not permission for Runtime11 to import `zircon_editor` or construct `Log
 
 ## 修复结果与回传
 
-Open state: `source_contract_drift_recorded / no_local_rollback / target_validation_pending`. Editor17 keeps the integrated logging core and Play source forward; this record assigns the missing Runtime11 producer bridge without claiming a runtime test or managed validation result.
+Implementation state: `bounded_source_implemented / canonical_editor_projection_implemented / focused_static_passed / independent_source_review_accepted / managed_validation_pending`. Runtime11 owns a 256-entry terminal journal, hard 64-entry read batches, typed scheduler/task identity, a monotonic observation cursor, and 4 KiB UTF-8-safe messages. The terminal source has an independent enable flag, so editor log consumption does not activate full lifecycle counter/timing sampling. Task IDs use the existing 64 diagnostics shards rather than a scheduler-global allocator. Panic maps to runtime-neutral Error and cancellation to Warning. The retained editor host advances one cursor and emits through the existing `EditorLogService` with `LogSource::runtime()`; no runtime-to-editor dependency or second log store was added. Dependency panic before launch now increments `panicked` rather than the previous incorrect `cancelled` path, and the first dependency terminal callback exclusively owns handle state, metrics and observation. Folder-backed scheduler tests and diagnostic snapshots leave `job_scheduler.rs = 347` and `diagnostics.rs = 427`. The focused structure/dependency audit passes 2/2; selected JobSystem audit fields report `expected_module_count = 13`, `behavior_test_anchor_count = 46`, `missing_behavior_test_anchors = []`, `missing_api_snippets = {}`, `oversized_modules = []`, and `runtime_editor_dependency_references = []`. Independent source review reports zero Critical/Important/Minor findings and accepts the slice for managed Cargo validation. The aggregate audit remains blocked only by the pre-existing mesh-builder direct-Rayon path outside this slice. Managed Cargo execution and final acceptance are still pending, so this handoff is not closed or accepted.
 
 ## 产出记录与时间
 
 | 日期 | 切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
 | 2026-08-05 | Runtime11 task diagnostics -> Editor17 M3.1 source bridge | `open_handoff_recorded` | Current-source inspection confirms task diagnostics expose internal scheduler/report facts but no bounded host observation consumed by `EditorLogService`. The target is Runtime11 plus the existing host boundary; no source code, Cargo validation or compatibility logger was added. |
+| 2026-08-26 | Runtime11 bounded terminal observation + EditorLog projection | `implementation_pending_validation` | Implemented 256 retained observations, hard 64-entry batches with cursor-progression coverage, 4 KiB messages, shard-local typed identity, observation-only enablement, exact gap count, panic/error and cancel/warning mapping, first-terminal-winner consistency, canonical runtime-source projection, and deduplicated repeat pump. Folder-backed splits restore `job_scheduler.rs = 347` and `diagnostics.rs = 427`. Focused structure/no-editor-dependency unittests pass 2/2; selected static audit fields are 13 modules / 46 behavior anchors with missing/oversized/dependency-reference sets empty; rustfmt check and scoped `git diff --check` pass. Independent source review reports 0 Critical / 0 Important / 0 Minor findings and accepts the slice for managed Cargo validation. The aggregate audit is blocked by the pre-existing `graphics/.../mesh_draw_command_list/builder.rs` direct-Rayon path; managed Cargo and final acceptance receipts remain pending. |
