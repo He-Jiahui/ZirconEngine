@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-27
 summary_slug: failure-schema-diagnostic-path-projection
@@ -15,6 +15,7 @@ related_code:
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_invalid_artifact_status_is_diagnostic_not_graph_import_failure tools.session_coordinator.tests.test_failures.FailureGraphTests.test_schema_diagnostics_persist_the_exact_plan_path -v
   - python -B -m unittest tools.session_coordinator.tests.test_failures -v
+resolved_at: 2026-08-27
 ---
 
 # Coordinator01: failure schema diagnostics omit captured paths
@@ -68,13 +69,7 @@ identity even though the validator message starts with that exact snapshot path.
 
 ## 修复结果与回传
 
-Open state: `implementation GREEN / production successor import pending`.
-The immutable snapshot now retains its all-Markdown manifest separately from the
-failure-artifact CAS manifest. Schema diagnostics bind only an exact captured
-path prefix and preserve that path through database readback. Focused
-regressions pass `4/4`, the complete failure service suite passes `31/31`, and
-the session-registration slow-parse concurrency regression passes `1/1`.
-Python compile, the focused handoff validator, and scoped diff-check also pass.
-A successor loaded from the committed source and one production import remain
-required before the canonical fixed return. This repair does not claim any
-foreign schema diagnostic is resolved.
+- 根因：Failure schema validation ran on an immutable copy of every plan Markdown file but discarded that captured file identity when constructing GraphDiagnostic rows.
+- 架构修复：Preserve a separate all-Markdown captured manifest while leaving the failure-artifact CAS manifest unchanged, and bind a schema diagnostic only to an exact captured path prefix followed by a colon.
+- 验证：Focused regressions pass 4/4, the complete failure service suite passes 31/31, the session-registration slow-parse concurrency regression passes 1/1, py_compile and handoff validation pass, and production import 02a5de2b59924a7b93edf17cff6cb7b9 reports 165 of 165 schema diagnostics with paths and zero missing.
+- 回传：Failure audit consumers can now navigate both malformed handoff artifacts and main-plan link errors by durable exact snapshot path without changing any foreign failure.
