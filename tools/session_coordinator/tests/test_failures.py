@@ -599,6 +599,43 @@ class FailureGraphTests(unittest.TestCase):
         self.assertEqual(1, audit.node_count)
         self.assertEqual("open", audit.nodes[0].status)
         self.assertIn("schema_validation", {item.code for item in audit.diagnostics})
+        expected_path = failure.relative_to(self.root).as_posix()
+        status_errors = [
+            item
+            for item in audit.diagnostics
+            if item.code == "schema_validation" and "status: open" in item.message
+        ]
+        persisted = [
+            item
+            for item in self.service.audit().diagnostics
+            if item.code == "schema_validation" and "status: open" in item.message
+        ]
+        self.assertEqual(status_errors, persisted)
+        self.assertTrue(all(item.paths == (expected_path,) for item in status_errors))
+
+    def test_schema_diagnostics_persist_the_exact_plan_path(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        self.fixture.add_handoff(origin, fixing, "missing-fixing-link")
+        fixing.path.write_text("# fixing plan without handoff link\n", encoding="utf-8")
+        expected_path = fixing.path.relative_to(self.root).as_posix()
+
+        imported = [
+            item
+            for item in self.service.import_repository().diagnostics
+            if item.code == "schema_validation"
+            and item.message.startswith(f"{expected_path}:")
+        ]
+        persisted = [
+            item
+            for item in self.service.audit().diagnostics
+            if item.code == "schema_validation"
+            and item.message.startswith(f"{expected_path}:")
+        ]
+
+        self.assertGreaterEqual(len(imported), 1)
+        self.assertEqual(imported, persisted)
+        self.assertTrue(all(item.paths == (expected_path,) for item in imported))
 
     def test_parse_diagnostics_persist_the_exact_artifact_path(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")

@@ -182,7 +182,7 @@ class FailureGraphService:
     ) -> FailureImportSnapshot:
         """Parse and analyze the repository without holding a database writer."""
         validator = self._validator_module()
-        records, parse_errors, validation_errors, artifact_manifest = (
+        records, parse_errors, validation_errors, artifact_manifest, captured_manifest = (
             self._parse_immutable_snapshot(validator, expected_artifacts)
         )
         diagnostics: list[GraphDiagnostic] = [
@@ -194,7 +194,12 @@ class FailureGraphService:
             for error in parse_errors
         ]
         diagnostics.extend(
-            GraphDiagnostic("schema_validation", error) for error in validation_errors
+            GraphDiagnostic(
+                "schema_validation",
+                error,
+                _artifact_paths_for_diagnostic(error, captured_manifest),
+            )
+            for error in validation_errors
         )
 
         by_lifecycle: dict[str, list[Any]] = {}
@@ -372,16 +377,26 @@ class FailureGraphService:
 
     def _parse_immutable_snapshot(
         self, validator: ModuleType, expected_artifacts: list[dict[str, str]] | None
-    ) -> tuple[list[Any], list[str], list[str], tuple[tuple[str, str], ...]]:
+    ) -> tuple[
+        list[Any],
+        list[str],
+        list[str],
+        tuple[tuple[str, str], ...],
+        tuple[tuple[str, str], ...],
+    ]:
         """Read once, hash the same bytes, then parse only an immutable plan copy."""
         plans_root = self.repo_root / "docs" / "plans"
         captured: dict[str, bytes] = {}
         for path in sorted(plans_root.rglob("*.md"), key=lambda item: str(item).casefold()):
             if path.is_file():
                 captured[path.relative_to(self.repo_root).as_posix()] = path.read_bytes()
-        actual = [
-            {"path": path, "hash": hashlib.sha256(content).hexdigest()}
+        captured_manifest = tuple(
+            (path, hashlib.sha256(content).hexdigest())
             for path, content in captured.items()
+        )
+        actual = [
+            {"path": path, "hash": content_hash}
+            for path, content_hash in captured_manifest
             if _is_failure_artifact(Path(path))
         ]
         if expected_artifacts is not None and actual != expected_artifacts:
@@ -414,6 +429,7 @@ class FailureGraphService:
             parse_errors,
             validation_errors,
             tuple((item["path"], item["hash"]) for item in actual),
+            captured_manifest,
         )
 
     def _annotate_handoff_scopes(
