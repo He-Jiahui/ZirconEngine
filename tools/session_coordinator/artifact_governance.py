@@ -285,19 +285,35 @@ class ArtifactGovernanceService:
             self.product_staging.recover()
             self._recover_missing_fixture_leases()
             recovered = self._recover_reservations(max_candidates=max_candidates)
-            processed = len(recovered.deleted) + len(recovered.failed)
+            # A retryable reservation failure must not consume the deletion budget;
+            # otherwise one locked producer starves every independent candidate.
+            processed = len(recovered.deleted)
             if processed >= max_candidates:
                 return recovered
-            current = self._cleanup(max_candidates=max_candidates - processed)
+            attempted_paths = {
+                item.path.casefold() for item in recovered.failed
+            } | {path.casefold() for path in recovered.deleted}
+            current = self._cleanup(
+                max_candidates=max_candidates - processed,
+                excluded_paths=attempted_paths,
+            )
             return UnmanagedArtifactCleanup(
                 recovered.deleted + current.deleted,
                 recovered.failed + current.failed,
             )
 
-    def _cleanup(self, *, max_candidates: int) -> UnmanagedArtifactCleanup:
+    def _cleanup(
+        self, *, max_candidates: int, excluded_paths: set[str] | None = None
+    ) -> UnmanagedArtifactCleanup:
         deleted: list[str] = []
         failed: list[UnmanagedArtifact] = []
-        for candidate in self.scan()[:max_candidates]:
+        excluded = excluded_paths or set()
+        candidates = tuple(
+            candidate
+            for candidate in self.scan()
+            if candidate.path.casefold() not in excluded
+        )
+        for candidate in candidates[:max_candidates]:
             path = Path(candidate.path)
             identity = self._reserve_candidate(candidate)
             if identity is None:
@@ -571,6 +587,13 @@ class ArtifactGovernanceService:
                             path=str(row["target_dir"]),
                             owner_pid=None,
                         )
+            else:
+                connection.execute(
+                    """UPDATE cleanup_reservations
+                       SET reserved_at=?
+                       WHERE target_key=? AND reservation_kind='artifact'""",
+                    (utc_text(), key),
+                )
             self._insert_event(
                 connection,
                 (

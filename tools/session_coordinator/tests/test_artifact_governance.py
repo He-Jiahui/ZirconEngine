@@ -458,6 +458,85 @@ class ArtifactGovernanceTests(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(1, remaining)
 
+    def test_failed_recovered_reservation_does_not_starve_current_candidate(self) -> None:
+        locked = self.builds_root / "a-locked-reservation"
+        current = self.builds_root / "b-current-candidate"
+        locked.mkdir()
+        current.mkdir()
+        identity = __import__(
+            "tools.session_coordinator.windows_tree_delete",
+            fromlist=["filesystem_identity"],
+        ).filesystem_identity(locked)
+        key = str(locked.resolve()).replace("/", "\\").casefold()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO cleanup_reservations(
+                       target_key, target_dir, reserved_at,
+                       reservation_kind, filesystem_identity
+                   ) VALUES (?, ?, '2026-08-13T00:00:00+00:00', 'artifact', ?)""",
+                (key, str(locked.resolve()), identity),
+            )
+
+        def remove(path: Path, *, expected_identity: str) -> None:
+            if path == locked.resolve():
+                raise PermissionError("simulated live producer lock")
+            __import__("shutil").rmtree(path)
+
+        with mock.patch(
+            "tools.session_coordinator.artifact_governance._remove_candidate_tree",
+            side_effect=remove,
+        ):
+            result = self.governance.cleanup(max_candidates=1)
+
+        self.assertEqual((str(current.resolve()),), result.deleted)
+        self.assertEqual((str(locked.resolve()),), tuple(item.path for item in result.failed))
+        self.assertTrue(locked.is_dir())
+        self.assertFalse(current.exists())
+
+    def test_failed_recovered_reservation_rotates_behind_pending_reservation(self) -> None:
+        first = self.builds_root / "a-locked-reservation"
+        second = self.builds_root / "b-pending-reservation"
+        third = self.builds_root / "c-pending-reservation"
+        first.mkdir()
+        second.mkdir()
+        third.mkdir()
+        filesystem_identity = __import__(
+            "tools.session_coordinator.windows_tree_delete",
+            fromlist=["filesystem_identity"],
+        ).filesystem_identity
+        with self.database.transaction() as connection:
+            for path, reserved_at in (
+                (first, "2026-08-13T00:00:00+00:00"),
+                (second, "2026-08-13T00:00:01+00:00"),
+                (third, "2026-08-13T00:00:02+00:00"),
+            ):
+                key = str(path.resolve()).replace("/", "\\").casefold()
+                connection.execute(
+                    """INSERT INTO cleanup_reservations(
+                           target_key, target_dir, reserved_at,
+                           reservation_kind, filesystem_identity
+                       ) VALUES (?, ?, ?, 'artifact', ?)""",
+                    (key, str(path.resolve()), reserved_at, filesystem_identity(path)),
+                )
+
+        with mock.patch(
+            "tools.session_coordinator.artifact_governance._remove_candidate_tree",
+            side_effect=PermissionError("simulated live producer lock"),
+        ):
+            result = self.governance.cleanup(max_candidates=1)
+
+        self.assertEqual(
+            (str(first.resolve()), str(second.resolve())),
+            tuple(item.path for item in result.failed),
+        )
+        with self.database.connect() as connection:
+            next_path = connection.execute(
+                """SELECT target_dir FROM cleanup_reservations
+                   WHERE reservation_kind='artifact'
+                   ORDER BY reserved_at, target_key LIMIT 1"""
+            ).fetchone()["target_dir"]
+        self.assertEqual(str(third.resolve()), next_path)
+
     def test_restart_keeps_outside_artifact_reservation_without_deleting(self) -> None:
         outside = self.builds_root.parent / "outside-reservation"
         outside.mkdir()
