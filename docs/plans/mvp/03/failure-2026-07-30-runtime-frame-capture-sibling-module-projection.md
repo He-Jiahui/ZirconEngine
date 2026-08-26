@@ -54,6 +54,22 @@ MVP F2 新增的产品截图写出调用未从 `surface_present` 正确投影到
 
 ## 修复结果与回传
 
+### 2026-08-27 受管验证前置阻塞
+
+- 以 Coordinator01 failure-cleanup session 发起
+  `zircon_app` focused lib-test
+  `frame_capture_projects_to_the_runtime_entry_root_sibling`；该 gate 会真实编译
+  `zircon_app`，用于直接复核旧 E0433 边界。
+- 协调器在 validation ticket/Cargo job 创建前以
+  `unmanaged_artifacts_detected` fail-closed。唯一当前路径为
+  `D:\ZirconBuilds\tooling15-wave137-runtime-20260827-054615`，其 artifact cleanup
+  reservation 于 `2026-08-26T21:55:50.161328+00:00` 仍存在；对应 Tooling15 bootstrap
+  进程仍存活，MVP03 未删除、终止或接管该 owner 的产物。
+- 本次没有启动 Cargo/rustc，也不构成新的动态 GREEN。HEAD 中仍保留唯一
+  `super::super::frame_capture::write_runtime_frame_png(...)` 调用和两条 committed
+  source guard；failure 继续保持 `open`，待 artifact governance 恢复后由 FIFO
+  重提一次 focused gate。
+
 ### 2026-08-24 受管验证前置阻塞
 
 - validation ticket：`d1ec49cbdb304826a21bb59a7faccbba`
