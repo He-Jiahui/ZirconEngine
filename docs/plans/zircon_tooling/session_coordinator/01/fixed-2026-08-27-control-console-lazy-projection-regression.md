@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-27
 summary_slug: control-console-lazy-projection-regression
 origin_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -24,11 +24,19 @@ related_code:
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_control_snapshot tools.session_coordinator.tests.test_control_lazy_projections tools.session_coordinator.tests.test_control_history -v
   - python -B -m unittest tools.session_coordinator.tests.test_action_execution tools.session_coordinator.tests.test_control_http -v
+resolved_at: 2026-08-27
 ---
 
 # Coordinator01: control-console lazy projections leave the backend regression suite inconsistent
 
-## 失败现象与 RED 证据
+## 来源执行者
+
+- 来源计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 来源执行切片：control snapshot load reduction, history projection and local validation queue controls
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 交接原因：Coordinator01 owns the control snapshot, loopback HTTP facade and validation queue composition changed by this local regression.
+
+## 失败现象与复现证据
 
 The initial control snapshot was split from heavy failure, Git, validation,
 continuation and history rows so the browser can load bounded domain projections.
@@ -75,7 +83,9 @@ worker without a shared reentrancy gate in the committed baseline.
 - Do not include the concurrently edited Web source or generated `dist` assets in
   this backend failure closeout.
 
-## 当前状态
+## 修复结果与回传
 
-`open / RED reproduced / backend scope transferred`. The exact ownership transfer
-fingerprint is `6b2f431c57c5c312e4f0a33e970746618f1dafc98af997170a356bf0bce033ab`.
+- 根因：The control summary/detail contract and its regression suite were not cut over atomically.
+- 架构修复：Bounded domain projections, sanitized history endpoints, closed loopback validation actions, and one shared non-reentrant queue advancement gate now form the backend contract.
+- 验证：Projection/history 26/26; action/HTTP 40/40; Python compilation and scoped diff checks passed; implementation commit a8a66c063afc13a69d5dd9766615ac538091d0a3.
+- 回传：The control console backend is copy-stable; Web source and generated assets remain with their existing owner.
