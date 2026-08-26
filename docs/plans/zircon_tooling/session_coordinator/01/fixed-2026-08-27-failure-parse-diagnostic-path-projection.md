@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-27
 summary_slug: failure-parse-diagnostic-path-projection
@@ -15,6 +15,7 @@ related_code:
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_parse_diagnostics_persist_the_exact_artifact_path -v
   - python -B -m unittest tools.session_coordinator.tests.test_failures -v
+resolved_at: 2026-08-27
 ---
 
 # Coordinator01: failure parse diagnostics omit the artifact path
@@ -69,12 +70,7 @@ path from arbitrary message content.
 
 ## 修复结果与回传
 
-Open state: `implementation GREEN / production successor import pending`.
-`FailureGraphService` now binds a parse diagnostic only when its message starts
-with an exact path from the same immutable artifact manifest. The focused
-regressions pass `2/2`, the complete failure service suite passes `30/30`, and
-the database readback test proves the exact path survives persistence. Python
-compile and the focused handoff validator also pass. A successor loaded from the
-committed source and one production import/audit projection remain required
-before the canonical fixed return. No foreign failure artifact is modified or
-claimed fixed by this Coordinator repair.
+- 根因：Failure import discarded artifact identity when converting validator parse errors into GraphDiagnostic rows, even though the same immutable snapshot already carried the exact artifact manifest.
+- 架构修复：Bind a parse diagnostic path only when its message begins with an exact captured manifest path followed by a colon, then persist that structured path through the existing diagnostic table.
+- 验证：Focused RED failed on empty paths; focused regressions pass 2/2, the complete failure service suite passes 30/30, py_compile and handoff validation pass, and schema-68 production import 7cf9d84723a94ba6bec170d0054ca9ae projects exact paths for all four remaining parse errors.
+- 回传：Coordinator failure audit consumers can now navigate and filter malformed handoffs by durable exact artifact path without rewriting the foreign artifacts.
