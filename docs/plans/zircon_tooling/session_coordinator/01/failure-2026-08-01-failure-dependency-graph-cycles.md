@@ -261,3 +261,28 @@ self-edge diagnostic is claimed fixed by this Coordinator-only repair.
   progress evidence, not a Coordinator regression. No edge was rewritten or
   suppressed: this failure remains open until the relevant origin owners
   complete verified returns or correct factually wrong ownership.
+
+### 2026-08-27 schema-68 inventory refresh
+
+- Durable `failure.import` request
+  `489c24dbdf674233879429f4cdd8d0b3` completed at
+  `2026-08-26T17:18:34.994038Z`. The immutable snapshot preserves the same
+  component identity
+  `3e2fd33bcde97cf5d7aae821101d1983cd08ff8b44aba16091da0679a0e56aa9`
+  with `23 plans / 66 edges / 76 exact artifacts`.
+- The same snapshot reports `11 excessive_depth`, `186 schema_validation`,
+  `7 parse_error`, and `2 invalid_local_failure_scope` diagnostics. These
+  counts remain explicit repair work; no diagnostic was suppressed.
+- Coordinator01-owned schema diagnostics are now zero. Focused schema-only
+  repairs were committed as `911ed89338566e5fbda5e3bbc8a96104eacd3302`,
+  `3775330e49b67e335bd1ef58c92e66f2db1213d2`,
+  `b8f646ba4d369b51b163af53c5e3a3f392dc11c8`,
+  `313a0d76c0fb1a4e148a66f1626a16d6a2b12ac2`, and
+  `60d6ef9e98acc76b6433b01a7c6dc7ad2c0eb439`.
+- The Runtime55, Runtime74, and Runtime11 artifacts normalized by those commits
+  remain open for their product owners; normalization did not close their
+  underlying failures or remove their graph edges. The Frameworks01 candidate
+  was left unchanged because its executable source owner remains active.
+- No ownership edge or lifecycle status was rewritten as part of this refresh.
+  The component remains open until the relevant owners complete verified
+  returns or correct factually wrong ownership.
