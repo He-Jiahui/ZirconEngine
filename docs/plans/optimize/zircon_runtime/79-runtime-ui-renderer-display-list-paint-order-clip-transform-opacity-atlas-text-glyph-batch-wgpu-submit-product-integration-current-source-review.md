@@ -442,6 +442,7 @@ App、Editor、WOC/Dynamic产品只走canonical artifact/presenter；删除legac
 | Text04 glyph instance | 前向实现已删除双层vertex，managed/product证据待完成 | 复核current source，执行exact scale/instance/WGPU pixel gate后return fixed |
 | Text04 bitmap dirty/shadow | mixed-storage/shadow前向修复存在，Cargo/WGPU产品证据待完成 | 按dirty region、upload bytes、persistent slot pixel完成回执 |
 | Text09 stats construction | 当前源码已用`Default`后字段赋值，原non-exhaustive struct expression不再存在 | 不据静态观察宣称fixed；重跑原validation并写canonical return |
+| [Runtime79 UI sRGB coverage 与 native drop order](79/failure-2026-08-25-ui-srgb-coverage-and-native-drop-order.md) | open；颜色夹具与 UI surface native owner 待收口 | 保持 coverage 与 transfer 分离，并以完整受管 `zr_rhi_wgpu --lib` 终态回传 |
 
 ## 12. 实施顺序与声明边界
 
