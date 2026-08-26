@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-31
 summary_slug: kira-sound-owner-inventory-drift
 origin_plan: docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
@@ -17,6 +17,7 @@ tests:
   - python -B -m unittest tools.tests.test_runtime01_kira_sound_owner_boundary -v
   - python -B -m unittest tools.tests.test_runtime_tech_stack_boundary.RuntimeTechStackBoundaryTests.test_current_optional_text_and_backend_feature_declarations_are_clean tools.tests.test_runtime_tech_stack_boundary.RuntimeTechStackBoundaryTests.test_jolt_backend_is_feature_gated_and_plugin_owned -v
   - python -B -m unittest tools.tests.test_runtime_tech_stack_boundary -v
+resolved_at: 2026-08-26
 ---
 
 # Runtime01：Kira Sound owner inventory drift
@@ -58,9 +59,7 @@ Runtime01 用无 owner 的全仓 `NON_DEPENDENCIES` 元组表达“当前未采�
 
 ## 修复结果与回传
 
-- Python inventory now removes `kira` from the four global non-dependencies, scans only the root manifest and current top-level `zircon_*` product trees, parses TOML package identity so dependency aliases cannot escape the owner rule, and requires exactly one Sound runtime declaration pinned to 0.12.2. Focused negative cases reject metadata decoys, metadata-only text, a second alias, and dev/build/workspace-only declarations while accepting an exact target-specific runtime declaration; an injected unreadable product subtree produces `manifest_scan_errors` and a fail-closed risk.
-- `runtime-tech-stack.md`, its anchor inventory, Markdown renderer, M0 review, interface-convergence mirror, and Runtime01 child output record now describe the Sound-owned Kira hard cut instead of the retired CPAL/custom-mixer claim.
-- Runtime Rust guards now remove Kira from the global non-dependency list, parse Cargo TOML package identity across root/workspace/dev/build/target tables, require one Sound runtime owner and one production `0.12.2` declaration, accept canonical/alias/target production forms, reject metadata and non-runtime decoys, and fail closed on product-tree enumeration, entry, file-type, manifest-read, and TOML errors. The mirror guard now pins count 4 plus owner, declaration-count, version, pin, violation, and manifest-scan evidence.
-- The first independent post-implementation review returned `Critical 0 / Important 4 / Minor 1`; all five findings were forward-fixed without compatibility: Python/Rust pin semantics were aligned, directory traversal became fail closed, `.zircon` cache exclusion became effective, missing mirror evidence was added, and this handoff state was refreshed. Current static evidence is focused Kira owner/pin/scan 5/5 GREEN, original Runtime01 reproduction 2/2 GREEN, complete tech-stack 8/8 GREEN, Python py_compile, Rust 1.94.1 rustfmt, and scoped diff-check GREEN.
-
-Open state: `implementation_complete_second_review_rerun_and_managed_rust_validation_pending`; no fixed return or accepted closeout is claimed.
+- 根因：Runtime01 kept Kira in a global non-dependency denylist and stale tech-stack authority after the Sound runtime plugin adopted Kira, while manifest scanning did not encode one package-aware owner, exact pin, and fail-closed traversal.
+- 架构修复：The Runtime01 audit now scans current product Cargo manifests by TOML package identity, requires exactly one Kira declaration at zircon_plugins/sound/runtime/Cargo.toml pinned to 0.12.2, rejects aliases and non-runtime decoys, fails closed on manifest traversal/read errors, and mirrors the Sound-owned contract in documentation and Rust guards.
+- 验证：Current HEAD focused Runtime01 Kira owner contract passed 5/5. The audit reports the unique Sound owner, one 0.12.2 declaration, no owner violations, no missing Kira document anchors, and no manifest scan errors. The complete tech-stack suite ran 5/8; its three failures are separately attributable current-source UI-text matrix-anchor and Runtime06 NativePlugin call-site inventory risks, with no Kira/Sound risk.
+- 回传：Runtime01 Kira dependency governance is fixed and returned to Frameworks03. Frameworks03 may rely on the unique Sound-owned Kira 0.12.2 contract; unrelated UI-text and Runtime06 audit drift remain open under their own owners.
