@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from tools.session_coordinator.database import Database
+from tools.session_coordinator import failures as failures_module
 from tools.session_coordinator.failures import (
     FailureGraphService,
     FailureResolution,
@@ -598,6 +599,45 @@ class FailureGraphTests(unittest.TestCase):
         self.assertEqual(1, audit.node_count)
         self.assertEqual("open", audit.nodes[0].status)
         self.assertIn("schema_validation", {item.code for item in audit.diagnostics})
+
+    def test_parse_diagnostics_persist_the_exact_artifact_path(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        failure = self.fixture.add_handoff(origin, fixing, "missing-identity")
+        failure.write_text(
+            "\n".join(
+                line
+                for line in failure.read_text(encoding="utf-8").splitlines()
+                if not line.startswith(("created_at:", "summary_slug:"))
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        expected_path = failure.relative_to(self.root).as_posix()
+
+        imported = [
+            item
+            for item in self.service.import_repository().diagnostics
+            if item.code == "parse_error"
+        ]
+        persisted = [
+            item for item in self.service.audit().diagnostics if item.code == "parse_error"
+        ]
+
+        self.assertGreaterEqual(len(imported), 2)
+        self.assertEqual(imported, persisted)
+        self.assertTrue(all(item.paths == (expected_path,) for item in imported))
+
+    def test_parse_diagnostic_path_binding_rejects_a_non_prefix_mention(self) -> None:
+        artifact_path = "docs/plans/runtime/02/failure-2026-08-27-example.md"
+        manifest = ((artifact_path, "a" * 64),)
+
+        self.assertEqual(
+            (),
+            failures_module._artifact_paths_for_diagnostic(
+                f"validator note mentions {artifact_path}: malformed", manifest
+            ),
+        )
 
     def test_validator_errors_for_plan_excludes_unrelated_handoff_diagnostics(self) -> None:
         current = self.fixture.add_plan("docs/plans/current/03-current.md")

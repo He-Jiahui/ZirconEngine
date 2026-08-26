@@ -45,6 +45,15 @@ def _is_failure_artifact(path: Path) -> bool:
     )
 
 
+def _artifact_paths_for_diagnostic(
+    message: str, artifact_manifest: tuple[tuple[str, str], ...]
+) -> tuple[str, ...]:
+    for artifact_path, _artifact_hash in artifact_manifest:
+        if message.startswith(f"{artifact_path}:"):
+            return (artifact_path,)
+    return ()
+
+
 def failure_artifact_snapshot(repo_root: str | Path) -> list[dict[str, str]]:
     root = Path(repo_root).resolve()
     plans_root = (root / "docs" / "plans").resolve()
@@ -177,7 +186,12 @@ class FailureGraphService:
             self._parse_immutable_snapshot(validator, expected_artifacts)
         )
         diagnostics: list[GraphDiagnostic] = [
-            GraphDiagnostic("parse_error", error) for error in parse_errors
+            GraphDiagnostic(
+                "parse_error",
+                error,
+                _artifact_paths_for_diagnostic(error, artifact_manifest),
+            )
+            for error in parse_errors
         ]
         diagnostics.extend(
             GraphDiagnostic("schema_validation", error) for error in validation_errors
