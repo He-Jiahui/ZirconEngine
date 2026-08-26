@@ -37,6 +37,11 @@ Render01 的 recording-pass 参数切换遗漏了同一 owner 模块中的类型
 - scoped rustfmt 与 diff check 通过。
 - 当前源码的受管 Editor 产品构建中该 E0425 归零。
 
+## 禁止临时方案
+
+- 不得改变 realtime IBL graph 计划、recording-pass 顺序或 UI feature graph 来绕过缺失导入。
+- 不得使用通配导入、test-only cfg 或在 UI12 层复制 Render01 类型。
+
 ## 修复结果与回传
 
 Open state: `UI12 在无有效文件租约后仅补齐缺失导入；待当前源码 Editor 构建验证后回传 Render01`。
