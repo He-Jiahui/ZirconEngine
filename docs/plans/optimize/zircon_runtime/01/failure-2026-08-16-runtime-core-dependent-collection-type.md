@@ -37,6 +37,11 @@ Runtime lifecycle 改动引入了新的 collection 中间值，却未在首次�
 - scoped rustfmt 与 diff check 通过。
 - 当前源码的受管 Editor 产品构建中该 E0282 归零。
 
+## 禁止临时方案
+
+- 不得改变 deactivate-module veto、shutdown 顺序或 `ModuleUnloadBlocked` 的 dependent 语义。
+- 不得使用无约束集合、test-only cfg 或在 UI12 层复制 Runtime lifecycle 状态来绕过类型推断。
+
 ## 修复结果与回传
 
 Open state: `UI12 在无有效文件租约后仅补齐 collection 类型；待当前源码 Editor 构建验证后回传 Runtime Core 01`。
