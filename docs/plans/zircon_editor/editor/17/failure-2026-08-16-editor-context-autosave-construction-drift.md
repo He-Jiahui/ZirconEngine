@@ -8,6 +8,7 @@ origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 fixing_plan: docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
 origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/17
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/core/context/editor_context.rs
@@ -20,7 +21,14 @@ tests:
 
 # Editor17: context autosave construction drift
 
-## Failure evidence
+## 来源执行者
+
+- 来源计划：`docs/plans/performance/01-mvp-performance-audit-and-optimization.md`
+- 来源执行切片：MVP performance measurement current-source preflight
+- 修复责任计划：`docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md`
+- 交接原因：Editor17 owns recovery-service composition; Performance01 only exposed the constructor drift and does not own the overlapping Rust sources.
+
+## 失败现象与复现证据
 
 Current `EditorContext::new` requires `Arc<EditorLogService>` at parameter five and
 `EditorAutosaveService` after notifications (`editor_context.rs:38-52`). Current
@@ -32,7 +40,7 @@ This is a deterministic source-signature mismatch. It prevents current context c
 performance measurement can begin. The foreign diffs show two incomplete migrations: quota/settings
 startup in `builder.rs`, and shared logging plus autosave ownership in `editor_context.rs`.
 
-## Ownership and required repair
+## 最低共享层根因
 
 Performance01 owns only `docs/plans/performance`; the overlapping Rust changes are foreign and were
 preserved. Editor17 should complete the composition with Editor14:
@@ -46,11 +54,7 @@ preserved. Editor17 should complete the composition with Editor14:
 5. keep project-generation fencing, payload admission and retained-tick activation in the existing
    recovery plan rather than declaring them solved by constructor wiring.
 
-Do not create a second scheduler, job system, log store, message bus or service registry. Do not wire
-the currently uncalled retained autosave poll merely to make it reachable before its P0 recovery scale
-and generation contracts pass.
-
-## Acceptance
+## 架构修复验收
 
 - The focused context/recovery composition tests compile and pass under the managed Windows validator.
 - Product `EditorManager` constructs exactly one complete context; log identity and autosave job
@@ -61,7 +65,12 @@ and generation contracts pass.
   to C:.
 - F0 startup receipt reports settings, quota, owner construction, wiring and publication separately.
 
-## Current external blocker
+## 禁止临时方案
+
+- Do not create a second scheduler, job system, log store, message bus or service registry.
+- Do not wire the currently uncalled retained autosave poll merely to make it reachable before its P0 recovery scale and generation contracts pass.
+
+## 修复结果与回传
 
 The approved-root separator defect in `tools/build-editor.ps1:130` currently prevents the product
 command above from reaching Cargo. That independent failure is recorded in
