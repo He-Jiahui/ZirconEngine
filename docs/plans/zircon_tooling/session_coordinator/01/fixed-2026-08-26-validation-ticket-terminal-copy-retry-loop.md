@@ -65,6 +65,18 @@ that field and the existing regression therefore passes. Production
 
 ## 修复结果与回传
 
+- 根因：`WorkspaceCopyService._record_from_row()` omitted the durable Cargo
+  `materialization_kind`, so the validation ticket worker misclassified a removed
+  failed Cargo copy as a legacy wrapper and rematerialized it indefinitely.
+- 架构修复：The workspace-copy record and async acknowledgement now preserve the
+  durable materialization kind while retaining the typed copy failure and removed
+  filesystem lifecycle status.
+- 验证：Focused tests passed `2/2`; workspace-copy `75/75`, validation-ticket
+  `29/29` and terminal-status `8/8` suites passed; production FIFO ticket
+  `3da70e951586482ebee8ac807a507e85` terminalized without a successor copy.
+- 回传：Implementation commit `3282dfad2a3a0dce246dfa8f300d7d30d70ed9a9`
+  was loaded by healthy schema-67 successor `ad937947ed424268b598c4aaffcdf10b`.
+
 RED reproduced the missing production field as `AttributeError` in the durable
 removed-copy status path. The lower-layer fix adds the optional record field and
 projects it from the durable row and Cargo async acknowledgements. Focused tests
