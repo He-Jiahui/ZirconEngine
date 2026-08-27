@@ -11,7 +11,6 @@ fixing_child_dir: docs/plans/zircon_editor/editor/16
 plan_link_mode: child_record_only
 related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
-  - zircon_app/src/entry/entry_runner/editor/tests/cli_operation.rs
   - zircon_app/src/entry/cli/diagnostic_log_args.rs
   - zircon_app/src/entry/cli/launch_args.rs
 tests:
@@ -89,3 +88,11 @@ metrics 与 first-frame 语义后删除 `EditorCliOperationRequest`、`run_edito
 | --- | --- | --- | --- |
 | 2026-08-15 | legacy operation CLI hard-cut failure registered | `open / source-owner rotation required` | 复核到 `--operation`、`--list-operations`、`--operation-history`、`--headless` 的独立 parser/bootstrap/test/doc 路径；`entry_runner/editor.rs` 为 archived mixed blob，须先完成安全 rotation 或文件级拆分，再删除旧 CLI 并运行 focused Cargo 与 commandlet subprocess fixture。 |
 | 2026-08-15 | source-owner rotation and legacy CLI deletion | `source repair complete / managed validation pending` | transfer-apply `37acd88f9ac846379d8e2322e06ef0d4` 后删除 parser、bootstrap、帮助及 `cli_operation.rs`；新增旧 flag 拒绝测试，并将日志样例和活跃计划文档切到 `--run <commandlet>`。scoped rustfmt/diff/residual-symbol checks 通过；共享 validation window 未分配给本会话，未启动 Cargo。 |
+
+## 2026-08-27 retired-test metadata repair
+
+Commit `7a20f921bb97ed428ae248cbcaf3c2fac5442ddf` removed the legacy-only
+`editor/tests/cli_operation.rs` leaf, matching this record's hard-cut result. The
+retired test is therefore removed from `related_code`; the remaining anchors name the
+current parser and entry owners. No application source or managed commandlet evidence
+is changed, so the failure remains open pending its recorded validation.
