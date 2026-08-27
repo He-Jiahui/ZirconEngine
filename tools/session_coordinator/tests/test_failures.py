@@ -585,6 +585,33 @@ class FailureGraphTests(unittest.TestCase):
 
         self.assertIn("excessive_depth", codes)
 
+    def test_excessive_dependency_depth_reuses_a_shared_suffix(self) -> None:
+        root_a = self.fixture.add_plan("docs/plans/depth/01-root-a.md")
+        root_b = self.fixture.add_plan("docs/plans/depth/02-root-b.md")
+        shared = self.fixture.add_plan("docs/plans/depth/03-shared.md")
+        tail_a = self.fixture.add_plan("docs/plans/depth/04-tail-a.md")
+        tail_b = self.fixture.add_plan("docs/plans/depth/05-tail-b.md")
+        self.fixture.add_handoff(root_a, shared, "root-a-to-shared")
+        self.fixture.add_handoff(root_b, shared, "root-b-to-shared")
+        self.fixture.add_handoff(shared, tail_a, "shared-to-tail-a")
+        self.fixture.add_handoff(tail_a, tail_b, "tail-a-to-tail-b")
+        service = FailureGraphService(self.database, self.root, max_depth=2)
+
+        diagnostics = service.import_repository().diagnostics
+        depth_paths = {
+            item.paths[0]
+            for item in diagnostics
+            if item.code == "excessive_depth"
+        }
+
+        self.assertEqual(
+            {
+                root_a.path.relative_to(self.root).as_posix(),
+                root_b.path.relative_to(self.root).as_posix(),
+            },
+            depth_paths,
+        )
+
     def test_invalid_artifact_status_is_diagnostic_not_graph_import_failure(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
         fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")

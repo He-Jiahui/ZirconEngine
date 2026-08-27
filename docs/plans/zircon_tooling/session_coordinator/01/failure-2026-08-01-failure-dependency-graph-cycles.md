@@ -286,3 +286,38 @@ self-edge diagnostic is claimed fixed by this Coordinator-only repair.
 - No ownership edge or lifecycle status was rewritten as part of this refresh.
   The component remains open until the relevant owners complete verified
   returns or correct factually wrong ownership.
+
+### 2026-08-27 current ledger convergence refresh
+
+- The immutable production ledger imported at `2026-08-27T09:10:53.439486Z`
+  contains `707` failure nodes and preserves component
+  `3e2fd33bcde97cf5d7aae821101d1983cd08ff8b44aba16091da0679a0e56aa9`
+  at `23 plans / 66 edges / 76 exact artifacts`.
+- Current diagnostics are `1 cycle + 11 excessive_depth + 24
+  schema_validation`. The schema count has fallen from the preceding refresh's
+  `186`; cycle identity, edge count, and artifact inventory did not drift.
+- `ControlSnapshotTests.test_failure_diagnostics_project_structured_details`
+  passed `1/1`, confirming the durable SCC details remain projected through the
+  control snapshot. A broader aggregated Python suite exceeded its 120-second
+  outer timeout without a terminal result and is not claimed as validation.
+- This refresh records repository-owner progress only. It does not rewrite an
+  edge, suppress a diagnostic, close the SCC, or convert schema cleanup into
+  product acceptance; the failure remains `open`.
+
+### 2026-08-27 shared-suffix depth repair
+
+- RED: a five-plan DAG with two roots converging on the same two-edge suffix
+  reproduced an `excessive_depth` false negative. With `max_depth=2`, the first
+  root reported depth three while the lexically later root reused the global
+  `visited` sentinel as depth zero and disappeared from diagnostics.
+- GREEN: depth traversal now memoizes each completed node's computed depth while
+  retaining the active recursion stack solely as the cycle cut. Both roots reuse
+  the real suffix depth; SCC discovery, component identity, exact edge artifacts,
+  stable sorting and cycle reporting are unchanged.
+- Verification: the focused shared-suffix/depth/SCC/self-edge group passed 4/4;
+  `python -B -m unittest tools.session_coordinator.tests.test_failures -v`
+  passed 32/32; the structured control-snapshot projection passed 1/1;
+  `py_compile` and scoped `git diff --check` passed.
+- This repair makes DAG depth evidence complete. It does not suppress, relabel or
+  close the durable `23 plans / 66 edges / 76 artifacts` SCC, so this canonical
+  failure remains `open` for owner-by-owner edge convergence.

@@ -126,17 +126,19 @@ def _depth_diagnostics(
 ) -> list[GraphDiagnostic]:
     diagnostics: list[GraphDiagnostic] = []
     visiting: list[str] = []
-    visited: set[str] = set()
+    depths: dict[str, int] = {}
 
     def visit(node: str) -> int:
-        if node in visiting or node in visited:
+        if node in visiting:
             return 0
+        if node in depths:
+            return depths[node]
         visiting.append(node)
         depth = 0
         for target in _sorted(edges.get(node, set())):
             depth = max(depth, 1 + visit(target))
         visiting.pop()
-        visited.add(node)
+        depths[node] = depth
         if depth > max_depth:
             diagnostics.append(
                 GraphDiagnostic(
