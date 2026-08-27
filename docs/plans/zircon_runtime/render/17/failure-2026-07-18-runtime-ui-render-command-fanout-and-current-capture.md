@@ -10,9 +10,9 @@ fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/surface/render
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/render_pass.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Rendering/ElementBatcher.cpp
 tests:
   - repeated guide tick row batch-count scale test
@@ -62,3 +62,11 @@ Open state（2026-08-01 current source）：非验收实现已完成，accepted 
 - 第二轮实现审查已前向修复read/modify borrow表达式与`SolidItem`空Vec+Option双重元数据；`rhi/ui_surface.rs`按结构规范拆出`rhi/ui_surface/compact_styles.rs`与`rhi/ui_surface/tests.rs`，当前父文件583行、style owner 295行、test owner 375行。
 - 当前完整模块树rustfmt与`git diff --check`通过；拆分测试owner的`#[path = "tests/scale_and_cache.rs"]`已由rustfmt模块解析前向校正，WGPU surface setup生产路径也已移除内部不变量`expect`。最新受管编译入口request `4dca61081c8a4e2b88cc857eb66dd89e`仍只确认`session.register` post-response accepted timeout，validator未启动Cargo或产生validation receipt；按协调规则不轮询该请求。
 - remaining acceptance：当前源码Cargo编译/聚焦测试、F4 cold/stable GPU counter对拍、真实PNG与RDC（含backend/adapter/resolution/build hash）仍待生成后回传；在此之前保持`status: open`且不宣称accepted/fixed。
+
+### 2026-08-27 hard-cut ownership anchor repair
+
+Commit `cb62fe090eb917ebd59fc3aea5d3c01d52093782` moved the RHI/WGPU implementation
+into the `zr_rhi_wgpu` crate. The three `related_code` anchors above now name the
+existing post-cut files. This repair changes failure ownership metadata only: it does
+not modify the live renderer implementation or add Cargo, GPU, or capture acceptance
+evidence, so the failure remains open.

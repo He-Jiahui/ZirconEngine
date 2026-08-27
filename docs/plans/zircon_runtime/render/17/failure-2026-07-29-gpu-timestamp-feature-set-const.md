@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/rhi_wgpu/gpu_pass_timer.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
 tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo test -p zircon_runtime --lib offscreen_device_features_request_gpu_timestamps_only_when_fully_supported --locked --jobs 1 --color never -- --nocapture --test-threads=1
@@ -65,3 +65,11 @@ and retained-UI device negotiation reuse that single all-or-nothing feature auth
 now requests no timestamp features while its descriptor-level timing switch is off; an explicit
 profiling descriptor requests the complete feature set only when the adapter supports all required
 bits. Managed current-source compile and focused regression evidence remain pending.
+
+### 2026-08-27 hard-cut ownership anchor repair
+
+Commit `cb62fe090eb917ebd59fc3aea5d3c01d52093782` moved the timer implementation
+into the `zr_rhi_wgpu` crate. The timer `related_code` anchor above now names the
+existing post-cut file. This repair changes failure ownership metadata only: it does
+not modify the live timer implementation or add managed compile/GPU evidence, so the
+failure remains open.

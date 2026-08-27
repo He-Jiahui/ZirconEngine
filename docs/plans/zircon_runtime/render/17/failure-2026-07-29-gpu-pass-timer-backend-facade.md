@@ -11,7 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/gpu_pass_timer/mod.rs
-  - zircon_runtime/src/rhi_wgpu/gpu_pass_timer.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
 tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
@@ -83,3 +83,11 @@ generations are each backfilled into their matching capture mailbox, while the f
 diagnostic still selects the newest generation. Focused Rust formatting, diff checks, and a
 simultaneous timer/statistics regression contract pass statically. This remains source progress only;
 the managed current-source Cargo/WGPU timestamp and RenderDoc evidence above is still required.
+
+### 2026-08-27 hard-cut ownership anchor repair
+
+Commit `cb62fe090eb917ebd59fc3aea5d3c01d52093782` moved the timer implementation
+into the `zr_rhi_wgpu` crate. The timer `related_code` anchor above now names the
+existing post-cut file. This repair changes failure ownership metadata only: it does
+not modify the live timer implementation or add managed compile/GPU evidence, so the
+failure remains open.
