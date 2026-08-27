@@ -82,42 +82,50 @@ def _strongly_connected_components(
     edges: Mapping[str, set[str]],
 ) -> list[tuple[str, ...]]:
     nodes = _sorted(set(edges) | {target for targets in edges.values() for target in targets})
-    next_index = 0
-    indices: dict[str, int] = {}
-    low_links: dict[str, int] = {}
-    stack: list[str] = []
-    on_stack: set[str] = set()
+    visited: set[str] = set()
+    finish_order: list[str] = []
+    for root in nodes:
+        if root in visited:
+            continue
+        visited.add(root)
+        stack: list[tuple[str, list[str], int]] = [
+            (root, _sorted(edges.get(root, set())), 0)
+        ]
+        while stack:
+            node, targets, target_index = stack[-1]
+            if target_index == len(targets):
+                finish_order.append(node)
+                stack.pop()
+                continue
+            target = targets[target_index]
+            stack[-1] = (node, targets, target_index + 1)
+            if target in visited:
+                continue
+            visited.add(target)
+            stack.append((target, _sorted(edges.get(target, set())), 0))
+
+    reverse_edges = {node: set() for node in nodes}
+    for origin, targets in edges.items():
+        for target in targets:
+            reverse_edges[target].add(origin)
+
+    assigned: set[str] = set()
     components: list[tuple[str, ...]] = []
-
-    def connect(node: str) -> None:
-        nonlocal next_index
-        indices[node] = next_index
-        low_links[node] = next_index
-        next_index += 1
-        stack.append(node)
-        on_stack.add(node)
-
-        for target in _sorted(edges.get(node, set())):
-            if target not in indices:
-                connect(target)
-                low_links[node] = min(low_links[node], low_links[target])
-            elif target in on_stack:
-                low_links[node] = min(low_links[node], indices[target])
-
-        if low_links[node] != indices[node]:
-            return
+    for root in reversed(finish_order):
+        if root in assigned:
+            continue
+        assigned.add(root)
+        pending = [root]
         component: list[str] = []
-        while True:
-            member = stack.pop()
-            on_stack.remove(member)
-            component.append(member)
-            if member == node:
-                break
+        while pending:
+            node = pending.pop()
+            component.append(node)
+            for target in _sorted(reverse_edges[node]):
+                if target in assigned:
+                    continue
+                assigned.add(target)
+                pending.append(target)
         components.append(tuple(_sorted(component)))
-
-    for node in nodes:
-        if node not in indices:
-            connect(node)
     return sorted(components, key=lambda component: _sort_key(component[0]))
 
 
@@ -125,33 +133,54 @@ def _depth_diagnostics(
     edges: Mapping[str, set[str]], *, max_depth: int
 ) -> list[GraphDiagnostic]:
     diagnostics: list[GraphDiagnostic] = []
-    visiting: list[str] = []
     depths: dict[str, int] = {}
-
-    def visit(node: str) -> int:
-        if node in visiting:
-            return 0
-        if node in depths:
-            return depths[node]
-        visiting.append(node)
-        depth = 0
-        for target in _sorted(edges.get(node, set())):
-            depth = max(depth, 1 + visit(target))
-        visiting.pop()
-        depths[node] = depth
-        if depth > max_depth:
-            diagnostics.append(
-                GraphDiagnostic(
-                    "excessive_depth",
-                    f"Failure dependency depth {depth} exceeds {max_depth}",
-                    (node,),
-                )
-            )
-        return depth
-
     nodes = set(edges) | {target for targets in edges.values() for target in targets}
-    for node in _sorted(nodes):
-        visit(node)
+    for root in _sorted(nodes):
+        if root in depths:
+            continue
+        active = {root}
+        stack: list[tuple[str, list[str], int, int]] = [
+            (root, _sorted(edges.get(root, set())), 0, 0)
+        ]
+        while stack:
+            node, targets, target_index, depth = stack[-1]
+            if target_index < len(targets):
+                target = targets[target_index]
+                stack[-1] = (node, targets, target_index + 1, depth)
+                if target in active:
+                    stack[-1] = (node, targets, target_index + 1, max(depth, 1))
+                    continue
+                if target in depths:
+                    stack[-1] = (
+                        node,
+                        targets,
+                        target_index + 1,
+                        max(depth, 1 + depths[target]),
+                    )
+                    continue
+                active.add(target)
+                stack.append((target, _sorted(edges.get(target, set())), 0, 0))
+                continue
+
+            stack.pop()
+            active.remove(node)
+            depths[node] = depth
+            if depth > max_depth:
+                diagnostics.append(
+                    GraphDiagnostic(
+                        "excessive_depth",
+                        f"Failure dependency depth {depth} exceeds {max_depth}",
+                        (node,),
+                    )
+                )
+            if stack:
+                parent, parent_targets, parent_index, parent_depth = stack[-1]
+                stack[-1] = (
+                    parent,
+                    parent_targets,
+                    parent_index,
+                    max(parent_depth, 1 + depth),
+                )
     return diagnostics
 
 

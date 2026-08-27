@@ -16,6 +16,9 @@ from tools.session_coordinator.failures import (
     FailureResolution,
     failure_artifact_snapshot,
 )
+from tools.session_coordinator.failure_dependency_graph import (
+    failure_graph_diagnostics,
+)
 from tools.session_coordinator.failure_snapshot_drift import failure_snapshot_drift
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator import migrations as migrations_module
@@ -611,6 +614,34 @@ class FailureGraphTests(unittest.TestCase):
             },
             depth_paths,
         )
+
+    def test_deep_dependency_graph_avoids_python_recursion_limit(self) -> None:
+        plan_count = 1_200
+        edges = {
+            f"docs/plans/depth/{index:04d}.md": {
+                f"docs/plans/depth/{index + 1:04d}.md"
+            }
+            for index in range(plan_count - 1)
+        }
+
+        diagnostics = failure_graph_diagnostics(
+            edges,
+            {},
+            max_depth=plan_count - 3,
+        )
+
+        self.assertEqual(
+            {
+                "docs/plans/depth/0000.md",
+                "docs/plans/depth/0001.md",
+            },
+            {
+                item.paths[0]
+                for item in diagnostics
+                if item.code == "excessive_depth"
+            },
+        )
+        self.assertEqual([], [item for item in diagnostics if item.code == "cycle"])
 
     def test_invalid_artifact_status_is_diagnostic_not_graph_import_failure(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")

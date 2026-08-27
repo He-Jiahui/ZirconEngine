@@ -321,3 +321,22 @@ self-edge diagnostic is claimed fixed by this Coordinator-only repair.
 - This repair makes DAG depth evidence complete. It does not suppress, relabel or
   close the durable `23 plans / 66 edges / 76 artifacts` SCC, so this canonical
   failure remains `open` for owner-by-owner edge convergence.
+
+### 2026-08-27 recursion-limit repair
+
+- RED: a deterministic 1,200-plan acyclic chain failed in
+  `_strongly_connected_components` with Python `RecursionError` after roughly
+  980 nested calls. Failure import therefore could not persist either the SCC
+  inventory or the expected depth diagnostics for a valid sufficiently large
+  repository graph.
+- GREEN: SCC discovery now uses a two-pass explicit stack, and depth calculation
+  uses an explicit post-order frame stack with the same active-cycle cut and
+  completed-depth memo. Component members, stable sorting, component SHA-256,
+  exact edge artifacts and existing cycle-depth semantics are unchanged.
+- Verification: the deep-chain/shared-suffix/depth/SCC/self-edge group passed
+  `5/5`; 3,000 seeded small random graphs produced SCC and depth results exactly
+  equal to the previous recursive implementation; the complete
+  `tools.session_coordinator.tests.test_failures` suite passed `33/33` in
+  65.704 seconds; `py_compile` and scoped `git diff --check` passed.
+- This removes a Coordinator availability limit but does not remove or relabel
+  any live ownership edge. The durable product-owner SCC remains open.
