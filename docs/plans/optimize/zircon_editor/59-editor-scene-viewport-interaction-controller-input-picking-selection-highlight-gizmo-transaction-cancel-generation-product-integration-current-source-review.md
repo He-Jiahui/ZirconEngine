@@ -37,7 +37,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/47-runtime-picking-pointer-ray-hit-hover-drag-drop-event-backend-product-integration-review.md
   - docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
   - docs/plans/zircon_editor/editor/05/failure-2026-08-19-gizmo-world-space-interactive-transaction.md
-  - docs/plans/zircon_editor/editor/05/failure-2026-08-19-highlight-set-runtime-frame-consumption.md
+  - docs/plans/zircon_runtime/runtime/10/failure-2026-08-19-highlight-set-runtime-frame-consumption.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Public/EditorViewportClient.h
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/EditorViewportClient.cpp

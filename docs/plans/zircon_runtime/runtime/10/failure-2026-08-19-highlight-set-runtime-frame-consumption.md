@@ -77,6 +77,17 @@ extract cache 的唯一失效键。
 - 不得将 selection revision 假定为 render-attribute revision，或用 hash 替代单调 generation。
 - 不得通过全局单 viewport cache、默认 ABI handle或仅测试 callback 掩盖 viewport 生命周期。
 
+## 修复结果与回传
+
+Open state: `canonical placement repaired / Runtime10 product bridge pending`。本记录已从
+Editor05 origin child 移入 frontmatter 声明的 Runtime10 fixing child；Editor05 origin plan 与
+Editor59 review 均指向该唯一 canonical artifact。此次只修复 handoff lifecycle/schema，不改变
+Runtime 或 Editor 产品实现，也不把已有的静态 hard-cut 证据升级为产品验收。
+
+回传条件保持不变：Runtime10 必须完成 runtime-owned highlight frame consumption、独立 overlay
+revision 与 viewport binding 生命周期，并取得本记录声明的受管 session/retained-path 验证；随后
+才能返回 Editor05 删除剩余 consumer debt。满足这些条件前，本 failure 保持 `open`。
+
 ## 产出记录与时间
 
 | 时间 | 状态 | 完成项目 | 证据与后续 |
