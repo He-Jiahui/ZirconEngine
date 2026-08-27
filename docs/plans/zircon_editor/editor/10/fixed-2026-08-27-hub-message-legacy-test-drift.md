@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-11
 summary_slug: hub-message-legacy-test-drift
 origin_plan: docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
@@ -17,6 +17,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - cargo test -p zircon_hub --locked
+resolved_at: 2026-08-27
 ---
 
 # Hub 07：HubMessage legacy 测试 API 漂移交接
@@ -57,5 +58,7 @@ Hub 07 的生产消息构造 API 已硬切到 `raw_text`，但 `project_manageme
 
 ## 修复结果与回传
 
-- 状态：`open / 待修复`。
-- 修复后更新本文件并回传 Plan10 M1.1；不得把当前“未执行”记为 Plan10 Hub 行为失败。
+- 根因：Hub integration contract retained the removed HubMessage::legacy constructor after the production message schema hard-cut to explicit HubMessage::raw_text.
+- 架构修复：The committed contract and Hub07 plan now use HubMessage::raw_text as the single explicit literal-message constructor; no legacy alias, compatibility shim, or test-only path was added.
+- 验证：Managed validate-matrix: cargo test -p zircon_hub --locked --test project_management_contract hub_config_repair_normalizes_registries_before_projection; 1 passed, 0 failed, Cargo test OK.
+- 回传：Editor10 may resume its Hub project-management validation because the integration target now compiles and executes against the canonical raw-text message API.

@@ -52,7 +52,7 @@ status: in_progress
 
 > 2026-08-01 实仓复核：`state/hub_message/` 的结构化消息、双语模板完备性测试、历史 raw-text 兼容，以及全部禁用项目模板的 coming-soon 条目均已落地。`project_management_contract.rs` 中退役的 `HubMessage::legacy` 调用也已替换为 `HubMessage::raw_text`；但对应 canonical failure 在受管聚焦测试通过并执行 failure return 前仍保持 open，本文状态因此为 `in_progress`。
 
-- 失败交接（`open / 待修复`）：[`07/failure-2026-07-11-hub-message-legacy-test-drift.md`](07/failure-2026-07-11-hub-message-legacy-test-drift.md)
+- fixed 已修复：[hub-message-legacy-test-drift](../zircon_editor/editor/10/fixed-2026-08-27-hub-message-legacy-test-drift.md)
 
 ## 现状与证据
 
