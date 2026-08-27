@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/06
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes
   - zircon_editor/src/ui/retained_host/ui
 plan_sources:
@@ -66,3 +66,11 @@ Editor M1 当前源码 08:31 binary 的完整门禁中，MUI/component/native-pa
 ## 修复结果与回传
 
 - 状态：`open / 待修复`；先跑 native painter 与 component showcase focused groups，再向上重跑 Editor M1。
+
+## 2026-08-27 test-owner module anchor repair
+
+Commit `7a20f921bb97ed428ae248cbcaf3c2fac5442ddf` removed the monolithic
+`native_material_painter_mui_primitives.rs` leaf. Its existing same-name module tree now
+owns `mod.rs`, primitive groups, shared support, and the circular-progress regression,
+so `related_code` names that directory. No painter or test implementation changed and
+no current managed result is added; the MUI parity failure remains open.
