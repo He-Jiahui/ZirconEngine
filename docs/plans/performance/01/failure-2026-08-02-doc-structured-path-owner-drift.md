@@ -18,7 +18,7 @@ related_code:
   - docs/zircon_editor/ui/preferences.md
   - docs/engine-architecture/core-runtime-service-registry.md
   - docs/plans/zircon_plugins/13/2026-08-10-current-status-receipt-test-sprawl-return.md
-  - zircon_runtime/src/core/resource/io/atomic_file.rs
+  - zircon_runtime/src/core/resource/io/atomic_file/mod.rs
   - zircon_runtime/src/platform/preferences/atomic_file.rs
   - zircon_editor/src/ui/workbench/project/editor_workspace_persistence.rs
   - zircon_runtime/src/graphics/text_transport/mod.rs
@@ -106,3 +106,13 @@ backup cleanup 与 Windows committed-target 的 durability 责任，并删除 Pl
 启动前被 unmanaged-artifact preflight 拒绝。因此 atomic durability 的源码合同已前向收敛，
 运行验收仍由 Runtime04 canonical handoff 保持 open；本全仓 structured-path failure 也继续
 保持 `status: open`，不得用该局部修复声称 docs gate fixed。
+
+## 2026-08-27 atomic-file owner anchor repair
+
+Commit `7a20f921bb97ed428ae248cbcaf3c2fac5442ddf` split the former
+`core/resource/io/atomic_file.rs` leaf into the `atomic_file` module tree. The current
+`atomic_file/mod.rs` still defines `atomic_write` and projects the directory, pathing,
+platform, recovery, and transaction owners, so the structured `related_code` entry now
+names that existing module root. Frameworks01 retains the active implementation owner;
+this repair changes only the archived failure metadata and adds no managed Runtime04
+durability evidence. The repository-wide failure remains open.
