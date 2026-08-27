@@ -266,7 +266,9 @@ class ArtifactGovernanceService:
         return tuple(sorted(candidates, key=lambda item: item.path.casefold()))
 
     def require_clean(self) -> None:
-        candidates = self.scan()
+        with self._cleanup_lock:
+            self._recover_missing_artifact_reservations()
+            candidates = self.scan()
         if candidates:
             raise CoordinatorError(
                 "unmanaged_artifacts_detected",
@@ -277,6 +279,27 @@ class ArtifactGovernanceService:
                     "cleanupReservations": list(self._cleanup_reservation_snapshot()),
                 },
             )
+
+    def _recover_missing_artifact_reservations(self) -> None:
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """SELECT target_dir FROM cleanup_reservations
+                   WHERE reservation_kind='artifact'
+                   ORDER BY reserved_at, target_key"""
+            ).fetchall()
+        for row in rows:
+            path = Path(str(row["target_dir"]))
+            root = self._root_for(path)
+            if root is None:
+                continue
+            try:
+                path.lstat()
+            except FileNotFoundError:
+                self._complete_candidate(
+                    UnmanagedArtifact(root, str(path)), error=None, recovered=True
+                )
+            except OSError:
+                continue
 
     def cleanup(self, *, max_candidates: int = 1) -> UnmanagedArtifactCleanup:
         if max_candidates < 1:

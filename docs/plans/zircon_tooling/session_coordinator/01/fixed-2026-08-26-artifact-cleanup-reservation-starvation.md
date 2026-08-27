@@ -14,6 +14,7 @@ related_code:
   - tools/session_coordinator/tests/test_artifact_governance.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_failed_recovered_reservation_does_not_starve_current_candidate tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_failed_recovered_reservation_rotates_behind_pending_reservation -v
+  - python -B -m unittest tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_recovers_missing_artifact_reservations_online tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_omits_recovered_reservations_from_rejection tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_preserves_existing_artifact_reservation -v
   - python -B -m unittest tools.session_coordinator.tests.test_artifact_governance -v
 resolved_at: 2026-08-26
 ---
@@ -75,3 +76,23 @@ the producer path, delete a live tree, or weaken `require_clean()`.
 - 架构修复：Count only successful recovered deletions, exclude already-attempted paths from the current scan, and rotate failed artifact reservations by refreshing reserved_at while preserving filesystem identity and fail-closed admission.
 - 验证：Focused RED/GREEN passed 2/2; full artifact-governance suite passed 28/28 inside maintenance finalizer 369856fcfa654b38888690a4d5d6dd86; commit e82381c81813c6d1947218fe788056e7994dccfc loaded by rollover 11c68c9382424021aa799c7e0442db42 on healthy schema68 successor 5db6f88e3cf540b6ba7f4c10ec5b6fbb. Official cleanup 69dfae39d31140f79fd5661c0a3344b9 preserved locked tooling15-wave101 and deleted independent mvp-resource-management-comparisons. Four stale mvp-test-fixtures reservations are absent.
 - 回传：Artifact cleanup now preserves locked producers without allowing them to monopolize bounded cleanup progress; startup recovery has cleared the four missing fixture reservations.
+
+### 2026-08-27 live admission continuation
+
+The startup recovery above did not cover a reservation that became stale while the same daemon
+continued serving admissions. A later fixture or product acquire could still observe a missing
+`artifact` reservation until a service restart, and an unrelated unmanaged-artifact rejection
+continued to project that stale row in `cleanupReservations`.
+
+`require_clean()` now serializes with artifact cleanup and performs a missing-only recovery before
+its admission scan. It completes only reservations whose governed target returns an explicit
+`FileNotFoundError`; existing directories, reparse points, outside-root paths, and other inspection
+errors remain fail-closed and are never deleted by admission. The existing durable terminal/event
+path removes the stale row before the subsequent fixture, product-staging, validation-copy, or
+managed Cargo overlap check runs.
+
+The focused RED reproduced four missing `mvp-test-fixtures-{11376,29760,10976,16996}` parent rows:
+two recovery assertions failed while the live-directory preservation case passed. After the repair,
+the focused group passed 3/3 and the complete artifact-governance suite passed 31/31 in 104.092
+seconds. This continuation adds no exemption for the two current Tooling15 directories that still
+physically exist; those producers remain correctly blocked until their managed lifecycle completes.

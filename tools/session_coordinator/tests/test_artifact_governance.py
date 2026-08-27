@@ -678,6 +678,85 @@ class ArtifactGovernanceTests(unittest.TestCase):
 
         self.assertEqual("unmanaged_artifacts_detected", rejected.exception.code)
 
+    def test_require_clean_recovers_missing_artifact_reservations_online(self) -> None:
+        missing = tuple(
+            self.builds_root / f"mvp-test-fixtures-{pid}"
+            for pid in (11376, 29760, 10976, 16996)
+        )
+        with self.database.transaction() as connection:
+            for path in missing:
+                connection.execute(
+                    """INSERT INTO cleanup_reservations(
+                           target_key, target_dir, reserved_at,
+                           reservation_kind, filesystem_identity
+                       ) VALUES (?, ?, '2026-08-15T00:00:00+00:00', 'artifact', 'old')""",
+                    (
+                        str(path.resolve()).replace("/", "\\").casefold(),
+                        str(path.resolve()),
+                    ),
+                )
+
+        self.governance.require_clean()
+
+        with self.database.connect() as connection:
+            remaining = connection.execute(
+                """SELECT COUNT(*) FROM cleanup_reservations
+                   WHERE reservation_kind='artifact'"""
+            ).fetchone()[0]
+        self.assertEqual(0, remaining)
+
+    def test_require_clean_omits_recovered_reservations_from_rejection(self) -> None:
+        missing = self.builds_root / "mvp-test-fixtures-11376"
+        unmanaged = self.targets_root / "manual-target"
+        unmanaged.mkdir()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO cleanup_reservations(
+                       target_key, target_dir, reserved_at,
+                       reservation_kind, filesystem_identity
+                   ) VALUES (?, ?, '2026-08-15T00:00:00+00:00', 'artifact', 'old')""",
+                (
+                    str(missing.resolve()).replace("/", "\\").casefold(),
+                    str(missing.resolve()),
+                ),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.governance.require_clean()
+
+        self.assertEqual("unmanaged_artifacts_detected", rejected.exception.code)
+        self.assertEqual([], rejected.exception.details["cleanupReservations"])
+
+    def test_require_clean_preserves_existing_artifact_reservation(self) -> None:
+        reserved = self.builds_root / "mvp-test-fixtures-live"
+        reserved.mkdir()
+        marker = reserved / "keep.txt"
+        marker.write_text("live", encoding="utf-8")
+        identity = __import__(
+            "tools.session_coordinator.windows_tree_delete",
+            fromlist=["filesystem_identity"],
+        ).filesystem_identity(reserved)
+        key = str(reserved.resolve()).replace("/", "\\").casefold()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO cleanup_reservations(
+                       target_key, target_dir, reserved_at,
+                       reservation_kind, filesystem_identity
+                   ) VALUES (?, ?, '2026-08-15T00:00:00+00:00', 'artifact', ?)""",
+                (key, str(reserved.resolve()), identity),
+            )
+
+        with self.assertRaises(CoordinatorError):
+            self.governance.require_clean()
+
+        self.assertEqual("live", marker.read_text(encoding="utf-8"))
+        with self.database.connect() as connection:
+            remaining = connection.execute(
+                "SELECT COUNT(*) FROM cleanup_reservations WHERE target_key=?",
+                (key,),
+            ).fetchone()[0]
+        self.assertEqual(1, remaining)
+
     def test_does_not_preserve_directory_only_because_a_historical_job_was_deleted(self) -> None:
         self.jobs.acquire(
             "session-a",
