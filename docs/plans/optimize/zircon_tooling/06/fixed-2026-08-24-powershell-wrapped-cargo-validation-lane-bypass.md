@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-24
 summary_slug: powershell-wrapped-cargo-validation-lane-bypass
@@ -16,6 +16,7 @@ tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_validation_tickets.ValidationTicketTests.test_worker_routes_cargo_toolchain_wrappers_through_a_cargo_workspace_copy -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_validation_tickets.ValidationTicketTests.test_worker_does_not_route_a_not_required_cargo_marker_to_cargo -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_validation_tickets -v
+resolved_at: 2026-08-24
 ---
 
 # Tooling06: PowerShell-wrapped Cargo validation bypasses the Cargo lane
@@ -59,7 +60,7 @@ before invoking Cargo consequently bypass Cargo materialization and reservation.
 
 - Direct Cargo commands continue to use Cargo materialization without requiring
   duplicate metadata.
-- A wrapper whose immutable ticket toolchain contains `cargo` uses
+- A wrapper whose immutable ticket toolchain contains `cargo` as
   a usable string Cargo identity uses `materialize_cargo_async`, even when
   `command[0]` is PowerShell.
 - Sentinel metadata such as `cargo: not_required`, an empty value, or boolean
@@ -83,11 +84,7 @@ before invoking Cargo consequently bypass Cargo materialization and reservation.
 
 ## 修复结果与回传
 
-Open state: `RED reproduced / worker implementation GREEN / managed replay pending`.
-Current-source focused tests prove declared Cargo wrappers and ordinary generic
-commands take distinct materialization paths. The complete validation-ticket
-suite passes `29/29`; Python compile, diff-check, and the scoped handoff validator
-also pass. Snapshot `2095` and its queued validation ticket were superseded after
-review found the historical `cargo: not_required` sentinel case. A replacement
-snapshot, managed generic validation, scoped finalizer, daemon reload, and
-production wrapper replay remain required.
+- 根因：Validation classified declared Cargo wrappers incompletely and WorkspaceCopyService then launched their linked immutable copies outside the durable CPU reservation and CargoJobRunner lifecycle; the first lane repair also omitted the ticket selected source manifest required by source-copy admission.
+- 架构修复：Route durable Cargo declarations through Cargo materialization, execute linked validation copies only through an exact FIFO CPU reservation and CargoJobRunner, and bind the ticket source manifest plus immutable copy job and full input-manifest hash into reservation, Cargo job, run, and terminal projections.
+- 验证：Focused validation-copy Cargo tests 5/5 and Python compile passed; daemon successor 218011aebe7e416593b93cb51fc196e4 loaded commit 1b2684b40; production ticket 235eba0a940e4ab28e1cc3d9bfe2a415 passed with copy 2d7467d431564dc8a3615c7529bc4cdf, reservation 275e9c1dc6d94923a96f7e0bec050174, Cargo job b224f0b9d2fd42f88c719bc3f2a1a728 released exit 0, Cargo run fd03a172d06844e5ba039d4ed5f0c1f3 completed error-free, and identical c6385f8a input identity.
+- 回传：PowerShell-wrapped declared Cargo validation now materializes an immutable Cargo copy, waits in FIFO, runs only under the Coordinator Cargo process tree, and durably preserves source-copy and selected-manifest identity through terminal evidence.
