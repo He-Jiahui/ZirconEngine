@@ -12,6 +12,14 @@ env:
   RUST_BACKTRACE: 1
   CARGO_TARGET_DIR: D:\ZirconBuilds\cargo-target
   MVP_EVIDENCE_ROOT: D:\ZirconBuilds\mvp-ci-results-${{ github.run_id }}-${{ github.run_attempt }}
+  MVP_POWERSHELL_VERSION: 7.4.19
+  MVP_POWERSHELL_SHA256: CD62AD6D8174CC6FB85B335A0058444BC934FE27C39FA97FE342134286D28AF9
+  MVP_PESTER_VERSION: 4.10.1
+  MVP_RUST_TOOLCHAIN: 1.94.1
+  MVP_CHECKOUT_ACTION_SHA: fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+  MVP_RUST_TOOLCHAIN_ACTION_SHA: 75be91dd2711b583df57c31d0873b4145c89f1d9
+  MVP_RUST_CACHE_ACTION_SHA: 6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+  MVP_UPLOAD_ARTIFACT_ACTION_SHA: ea165f8d65b6e75b540449e92b4886f43607fa02
 
 jobs:
   mvp-editor-windows:
@@ -20,13 +28,13 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
 
       - name: Verify managed Cargo output root
         shell: pwsh
@@ -40,30 +48,64 @@ jobs:
       - name: Prepare MVP diagnostic evidence directory
         shell: pwsh
         run: |
+          if ([string]::IsNullOrWhiteSpace($env:ImageOS) -or [string]::IsNullOrWhiteSpace($env:ImageVersion)) {
+            throw 'GitHub hosted runner image identity is unavailable.'
+          }
           if ($env:MVP_EVIDENCE_ROOT -notmatch '^D:\\ZirconBuilds\\mvp-ci-results-[0-9]+-[0-9]+$') {
             throw "MVP evidence root must be a run-bound D:\ZirconBuilds path; got '$env:MVP_EVIDENCE_ROOT'."
           }
           New-Item -ItemType Directory -Force -Path $env:MVP_EVIDENCE_ROOT | Out-Null
           @(
+            "runner_image: $env:ImageOS/$env:ImageVersion",
+            "rust_toolchain_policy: $env:MVP_RUST_TOOLCHAIN",
+            "checkout_action_sha: $env:MVP_CHECKOUT_ACTION_SHA",
+            "rust_toolchain_action_sha: $env:MVP_RUST_TOOLCHAIN_ACTION_SHA",
+            "rust_cache_action_sha: $env:MVP_RUST_CACHE_ACTION_SHA",
+            "upload_artifact_action_sha: $env:MVP_UPLOAD_ARTIFACT_ACTION_SHA",
             "rustc: $(& rustc -Vv | Out-String)",
             "cargo: $(& cargo -V | Out-String)"
           ) | Set-Content -Encoding utf8 "$env:MVP_EVIDENCE_ROOT\environment.txt"
 
-      - name: Build editor host binary
+      - name: Prepare pinned MVP control-plane runtime
         shell: pwsh
         run: |
-          & cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked 2>&1 |
-            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\build-editor.log"
-          $cargoExitCode = $LASTEXITCODE
-          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
-
-      - name: Build runtime desktop binary
-        shell: pwsh
-        run: |
-          & cargo build -p zircon_app --bin zircon_runtime --no-default-features --features target-client --locked 2>&1 |
-            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\build-runtime.log"
-          $cargoExitCode = $LASTEXITCODE
-          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+          $ErrorActionPreference = 'Stop'
+          $runtimeRoot = Join-Path 'D:\ZirconBuilds' "mvp-tool-runtime-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $powerShellRoot = Join-Path $runtimeRoot "pwsh-$env:MVP_POWERSHELL_VERSION"
+          $pesterModuleRoot = Join-Path $runtimeRoot 'psmodules'
+          $archivePath = Join-Path $runtimeRoot "PowerShell-$env:MVP_POWERSHELL_VERSION-win-x64.zip"
+          $archiveUri = "https://github.com/PowerShell/PowerShell/releases/download/v$env:MVP_POWERSHELL_VERSION/PowerShell-$env:MVP_POWERSHELL_VERSION-win-x64.zip"
+          New-Item -ItemType Directory -Force -Path $runtimeRoot, $powerShellRoot, $pesterModuleRoot | Out-Null
+          Invoke-WebRequest -Uri $archiveUri -OutFile $archivePath
+          $archiveSha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
+          if (-not [string]::Equals($archiveSha256, $env:MVP_POWERSHELL_SHA256, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Pinned PowerShell archive digest mismatch: expected=$env:MVP_POWERSHELL_SHA256 actual=$archiveSha256."
+          }
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $powerShellRoot
+          $pinnedPwsh = Join-Path $powerShellRoot 'pwsh.exe'
+          if (-not (Test-Path -LiteralPath $pinnedPwsh -PathType Leaf)) {
+            throw "Pinned PowerShell executable is missing after extraction: $pinnedPwsh"
+          }
+          Save-Module -Name Pester -RequiredVersion $env:MVP_PESTER_VERSION -Path $pesterModuleRoot -Repository PSGallery -Force -ErrorAction Stop
+          $env:MVP_PESTER_MODULE_ROOT = $pesterModuleRoot
+          & $pinnedPwsh -NoProfile -NonInteractive -Command @'
+          $ErrorActionPreference = 'Stop'
+          if ($PSVersionTable.PSVersion.ToString() -ne $env:MVP_POWERSHELL_VERSION) {
+            throw "Pinned PowerShell version mismatch: expected=$env:MVP_POWERSHELL_VERSION actual=$($PSVersionTable.PSVersion)."
+          }
+          Import-Module (Join-Path $env:MVP_PESTER_MODULE_ROOT "Pester\$env:MVP_PESTER_VERSION\Pester.psd1") -Force -ErrorAction Stop
+          if ((Get-Module Pester).Version.ToString() -ne $env:MVP_PESTER_VERSION) {
+            throw "Pinned Pester version mismatch: expected=$env:MVP_PESTER_VERSION actual=$((Get-Module Pester).Version)."
+          }
+          '@
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "MVP_PINNED_PWSH=$pinnedPwsh" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+          "MVP_PESTER_MODULE_ROOT=$pesterModuleRoot" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+          @(
+            "control_plane_pwsh: $env:MVP_POWERSHELL_VERSION",
+            "control_plane_pwsh_archive_sha256: $archiveSha256",
+            "control_plane_pester: $env:MVP_PESTER_VERSION"
+          ) | Add-Content -LiteralPath "$env:MVP_EVIDENCE_ROOT\environment.txt" -Encoding utf8
 
       - name: Test project-scoped editor automation CLI contract
         shell: pwsh
@@ -150,22 +192,31 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          Import-Module .\tools\mvp\MvpBuildGateRegistry.psm1 -Force -ErrorAction Stop
           Import-Module .\tools\mvp\MvpProductInputManifest.psm1 -Force -ErrorAction Stop
-          $sourceFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $PWD
+          $runIdentity = "$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $binaryInputRoot = Join-Path 'D:\ZirconBuilds' "mvp-product-inputs-$runIdentity"
+          & .\tools\mvp\Build-MvpProductInputs.ps1 -ArtifactOutputDirectory $binaryInputRoot
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $productInputManifest = Join-Path $binaryInputRoot 'mvp-product-inputs.json'
+          $productInputs = Resolve-MvpProductInputManifest -Path $productInputManifest
+          if ($null -eq $productInputs.build_set) {
+            throw 'Managed ProductInputManifest did not publish a BuildSet receipt.'
+          }
+          $sourceFingerprint = [string]$productInputs.build_set.build_set_id
           $buildEvidenceRoot = Join-Path $env:MVP_EVIDENCE_ROOT 'build'
           $buildLogRoot = Join-Path $buildEvidenceRoot 'logs'
           New-Item -ItemType Directory -Force -Path $buildLogRoot | Out-Null
 
-          $f5CargoGateContracts = [ordered]@{
-            'zircon-app-target-server' = @('check', '-p', 'zircon_app', '--no-default-features', '--features', 'target-server', '--locked')
-            'zircon-app-target-client-platform' = @('check', '-p', 'zircon_app', '--bin', 'zircon_runtime', '--no-default-features', '--features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs', '--locked')
-            'zircon-app-target-editor-host' = @('check', '-p', 'zircon_app', '--bin', 'zircon_editor', '--no-default-features', '--features', 'target-editor-host', '--locked')
-            'zircon-app-target-client-shader-pbr-viewer' = @('check', '-p', 'zircon_app', '--bin', 'zircon_shader_pbr_viewer', '--no-default-features', '--features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs', '--locked')
-            'zircon-runtime-target-client' = @('check', '-p', 'zircon_runtime', '--no-default-features', '--features', 'target-client', '--locked')
-            'zircon-runtime-target-editor-host' = @('check', '-p', 'zircon_runtime', '--no-default-features', '--features', 'target-editor-host', '--locked')
-            'zircon-runtime-target-server' = @('check', '-p', 'zircon_runtime', '--no-default-features', '--features', 'target-server', '--locked')
-            'workspace-build' = @('build', '--workspace', '--locked')
-            'workspace-test' = @('test', '--workspace', '--locked')
+          $gateRegistrySnapshot = Get-MvpBuildGateRegistrySnapshot
+          $profileGateContracts = @(Get-MvpBuildGateContract -SummaryKind 'profile-contract' -RegistrySnapshot $gateRegistrySnapshot)
+          $workspaceGateContracts = @(Get-MvpBuildGateContract -SummaryKind 'workspace' -RegistrySnapshot $gateRegistrySnapshot)
+          $f5CargoGateContracts = [ordered]@{}
+          foreach ($contract in @($profileGateContracts + $workspaceGateContracts)) {
+            if ($f5CargoGateContracts.Contains([string]$contract.gate_id)) {
+              throw "Duplicate F5 build gate '$($contract.gate_id)'."
+            }
+            $f5CargoGateContracts[[string]$contract.gate_id] = $contract
           }
 
           function Invoke-F5CargoGate {
@@ -174,8 +225,9 @@ jobs:
             if (-not $f5CargoGateContracts.Contains($GateId)) {
               throw "Unknown F5 build gate '$GateId'."
             }
-            $cargoArguments = [string[]]$f5CargoGateContracts[$GateId]
-            $executedCommand = 'cargo ' + ($cargoArguments -join ' ')
+            $contract = $f5CargoGateContracts[$GateId]
+            $cargoArguments = [string[]]$contract.cargo_arguments
+            $executedCommand = [string]$contract.command
             $logPath = Join-Path $buildLogRoot "$GateId.log"
             $startedAt = [DateTimeOffset]::UtcNow
             & cargo @cargoArguments 2>&1 |
@@ -201,31 +253,26 @@ jobs:
             }
           }
 
-          $profileGates = @(
-            Invoke-F5CargoGate -GateId 'zircon-app-target-server'
-            Invoke-F5CargoGate -GateId 'zircon-app-target-client-platform'
-            Invoke-F5CargoGate -GateId 'zircon-app-target-editor-host'
-            Invoke-F5CargoGate -GateId 'zircon-app-target-client-shader-pbr-viewer'
-            Invoke-F5CargoGate -GateId 'zircon-runtime-target-client'
-            Invoke-F5CargoGate -GateId 'zircon-runtime-target-editor-host'
-            Invoke-F5CargoGate -GateId 'zircon-runtime-target-server'
-          )
-          $workspaceGates = @(
-            Invoke-F5CargoGate -GateId 'workspace-build'
-            Invoke-F5CargoGate -GateId 'workspace-test'
-          )
+          $profileGates = @($profileGateContracts | ForEach-Object {
+              Invoke-F5CargoGate -GateId $_.gate_id
+            })
+          $workspaceGates = @($workspaceGateContracts | ForEach-Object {
+              Invoke-F5CargoGate -GateId $_.gate_id
+            })
           $profileContractSummary = [ordered]@{
-            schema_version = 1
+            schema_version = 2
             summary_kind = 'profile-contract'
             source_fingerprint = $sourceFingerprint
             status = 'passed'
+            gate_registry = $gateRegistrySnapshot.receipt
             gates = $profileGates
           }
           $workspaceSummary = [ordered]@{
-            schema_version = 1
+            schema_version = 2
             summary_kind = 'workspace'
             source_fingerprint = $sourceFingerprint
             status = 'passed'
+            gate_registry = $gateRegistrySnapshot.receipt
             gates = $workspaceGates
           }
           [IO.File]::WriteAllText(
@@ -243,15 +290,15 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          Import-Module .\tools\mvp\MvpProductInputManifest.psm1 -Force -ErrorAction Stop
           $runIdentity = "$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           $binaryInputRoot = Join-Path 'D:\ZirconBuilds' "mvp-product-inputs-$runIdentity"
-          & .\tools\mvp\Build-MvpProductInputs.ps1 -ArtifactOutputDirectory $binaryInputRoot
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $productInputManifest = Join-Path $binaryInputRoot 'mvp-product-inputs.json'
-          $sourceFingerprint = (Get-Content -LiteralPath $productInputManifest -Raw -Encoding UTF8 | ConvertFrom-Json).source_fingerprint
-          if ($sourceFingerprint -notmatch '^[0-9A-F]{64}$') {
-            throw 'Managed product input manifest did not publish a valid source fingerprint.'
+          $productInputs = Resolve-MvpProductInputManifest -Path $productInputManifest
+          if ($null -eq $productInputs.build_set) {
+            throw 'Managed ProductInputManifest did not publish a BuildSet receipt.'
           }
+          $sourceFingerprint = [string]$productInputs.build_set.build_set_id
 
           $buildEvidenceRoot = Join-Path $env:MVP_EVIDENCE_ROOT 'build'
           $profileContractSummaryPath = Join-Path $buildEvidenceRoot 'profile-contract-summary.json'
@@ -285,9 +332,69 @@ jobs:
           $artifactRoot = Join-Path $env:MVP_EVIDENCE_ROOT 'f5-product'
           Copy-Item -LiteralPath $evidenceRoot -Destination $artifactRoot -Recurse -Force
 
+      - name: Run focused MVP control-plane contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $controlPlaneRunner = Join-Path $env:MVP_EVIDENCE_ROOT 'control-plane-runner.ps1'
+          @'
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+          if ($PSVersionTable.PSVersion.ToString() -ne $env:MVP_POWERSHELL_VERSION) {
+            throw "Control-plane PowerShell version mismatch: expected=$env:MVP_POWERSHELL_VERSION actual=$($PSVersionTable.PSVersion)."
+          }
+          Import-Module (Join-Path $env:MVP_PESTER_MODULE_ROOT "Pester\$env:MVP_PESTER_VERSION\Pester.psd1") -Force -ErrorAction Stop
+          $controlPlaneSuites = @(
+            '.\tools\tests\mvp-acceptance-staging-projection.Tests.ps1',
+            '.\tools\tests\mvp-acceptance-staging-tree-manifest.Tests.ps1',
+            '.\tools\tests\mvp-acceptance-snapshot-admission.Tests.ps1',
+            '.\tools\tests\mvp-staging-tree-manifest-device-path.Tests.ps1',
+            '.\tools\tests\mvp-build-set.Tests.ps1',
+            '.\tools\tests\mvp-build-summary-evidence.Tests.ps1',
+            '.\tools\tests\mvp-artifact-storage-policy.Tests.ps1',
+            '.\tools\tests\mvp-project-copy-policy.Tests.ps1',
+            '.\tools\tests\mvp-product-inputs.Tests.ps1',
+            '.\tools\tests\render-extract-profiling-inputs.Tests.ps1',
+            '.\tools\tests\render-extract-scale-project.Tests.ps1',
+            '.\tools\tests\render-extract-baseline-capture.Tests.ps1',
+            '.\tools\tests\render-extract-machine-evidence.Tests.ps1',
+            '.\tools\tests\render-extract-baseline-report.Tests.ps1',
+            '.\tools\tests\resource-management-baseline-plan.Tests.ps1',
+            '.\tools\tests\resource-management-scale-project.Tests.ps1',
+            '.\tools\tests\resource-management-baseline-report.Tests.ps1',
+            '.\tools\tests\resource-management-comparison.Tests.ps1',
+            '.\tools\tests\render-extract-process-lifecycle.Tests.ps1',
+            '.\tools\tests\mvp-process-environment-policy.Tests.ps1',
+            '.\tools\tests\mvp-process-output-capture.Tests.ps1',
+            '.\tools\tests\mvp-process-lifecycle-journal.Tests.ps1',
+            '.\tools\tests\mvp-process-liveness-probe.Tests.ps1',
+            '.\tools\tests\mvp-staging-cancellation-request.Tests.ps1',
+            '.\tools\tests\mvp-staging-terminal-receipt.Tests.ps1',
+            '.\tools\tests\mvp-automation-scenario-spec.Tests.ps1',
+            '.\tools\tests\mvp-scenario-registry.Tests.ps1',
+            '.\tools\tests\mvp-process-qualification-context.Tests.ps1',
+            '.\tools\tests\mvp-stage-job-authority.Tests.ps1',
+            '.\tools\tests\mvp-run-artifact-budget.Tests.ps1',
+            '.\tools\tests\staged-process-log-summary.Tests.ps1',
+            '.\tools\tests\staged-process-supervisor.Tests.ps1'
+          )
+          $controlPlaneResultPath = Join-Path $env:MVP_EVIDENCE_ROOT 'control-plane-nunit.xml'
+          $controlPlaneResult = Invoke-Pester -Script $controlPlaneSuites -PassThru -OutputFormat NUnitXml -OutputFile $controlPlaneResultPath
+          if ($controlPlaneResult.FailedCount -ne 0 -or $controlPlaneResult.TotalCount -ne 361) {
+            throw "Focused MVP control-plane contracts failed: total=$($controlPlaneResult.TotalCount), passed=$($controlPlaneResult.PassedCount), failed=$($controlPlaneResult.FailedCount)."
+          }
+          $scriptContractResultPath = Join-Path $env:MVP_EVIDENCE_ROOT 'mvp-required-script-contracts-nunit.xml'
+          $scriptContractResult = Invoke-Pester -Script '.\tools\tests\mvp-required-script-contracts.Tests.ps1' -PassThru -OutputFormat NUnitXml -OutputFile $scriptContractResultPath
+          if ($scriptContractResult.FailedCount -ne 0 -or $scriptContractResult.TotalCount -ne 3) {
+            throw "Required MVP script contracts failed: total=$($scriptContractResult.TotalCount), passed=$($scriptContractResult.PassedCount), failed=$($scriptContractResult.FailedCount)."
+          }
+          '@ | Set-Content -LiteralPath $controlPlaneRunner -Encoding utf8NoBOM
+          & $env:MVP_PINNED_PWSH -NoProfile -NonInteractive -File $controlPlaneRunner
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload MVP diagnostic evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: mvp-editor-windows-evidence
           path: ${{ env.MVP_EVIDENCE_ROOT }}
