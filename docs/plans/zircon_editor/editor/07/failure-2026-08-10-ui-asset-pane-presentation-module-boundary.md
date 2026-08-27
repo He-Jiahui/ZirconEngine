@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 failure_scope: local
 related_code:
   - zircon_editor/src/ui/asset_editor/session/mod.rs
-  - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/presentation
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
@@ -68,3 +67,12 @@ Open state: `folder_backed_presentation_hard_cut_code_complete_managed_validatio
 | --- | --- | --- | --- |
 | 2026-08-10 | Pane presentation module boundary | open / forward fix required | 独立只读二次审查为 Critical/Important/Minor `0/1/0`：唯一 Important 为 973 行 `presentation_state.rs` 中 864 行的跨域编排。静态合同 12/12、`rustfmt --check` 与 scoped `git diff --check` 已通过，但这些不能替代 folder-backed hard cut、managed Rust 验证或 failure return。 |
 | 2026-08-10 | Folder hard cut implementation | code complete / managed validation pending | 删除 `session/presentation_state.rs`，`session/mod.rs` 只挂载 `presentation/`；最终 production split 为 `reflection`、`preview`、`source`、`inspector`、`style`、`theme`、`commands` 与 `pane`。pane 只映射 typed domain artifacts；source outline build counter 继续只归属 lifecycle/navigation 的实际索引构建。复审 P1 的 style 旁路已前向修复，`selected_node_selector` 与 `stylesheet_items` 仅由 `style.rs` 生成，pane 只消费 typed artifact。`structure_split` 边界回归、`navigation_state` 的无 mutation pane 值等价测试、248 个 DTO 字段精确映射、`rustfmt --check`、scoped `git diff --check` 与 handoff validator `579/0` 已完成静态验证；Editor07 import/pane/preview/source Python contracts 13/13 通过。独立复审终态 Critical/Important 为 `0/0`。尚未运行 Cargo，failure 保持 open。 |
+
+## 2026-08-27 retired-path metadata repair
+
+Commit `7a20f921bb97ed428ae248cbcaf3c2fac5442ddf` completed the recorded hard cut by
+deleting `session/presentation_state.rs`; the existing `session/presentation` module
+tree is already the canonical structured owner above. The retired leaf is therefore
+removed from `related_code` rather than preserved as a compatibility anchor. Live
+presentation sources were not modified, and managed Rust validation is still pending,
+so the failure remains open.
