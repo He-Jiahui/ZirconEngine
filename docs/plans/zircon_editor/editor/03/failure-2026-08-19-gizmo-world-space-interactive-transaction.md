@@ -101,8 +101,16 @@ Zircon 应吸收其 mode -> tool -> interactive transaction 责任分离，而�
 - 不得通过 `to_scale_rotation_translation` 静默吞掉 shear，或用 epsilon/默认 identity inverse
   掩盖不可逆矩阵。
 
+## 修复结果与回传
+
+Open state: `canonical_handoff_relocated / Editor03 interactive batch authority pending`.
+This schema repair preserves the factual Editor05 -> Editor03 ownership edge and does not claim
+that the world-space batch transaction, TRS residual rejection, managed tests, or profile matrix
+are complete.
+
 ## 产出记录与时间
 
 | 时间 | 状态 | 完成项目 | 证据与后续 |
 |---|---|---|---|
 | 2026-08-19 | `open / Editor03 interactive batch authority required` | 完成 Editor05 handles、preview adapter、workbench transaction capture、runtime world transform query 与 Unreal `FEditorModeTools`/`FEdMode` 输入分发的静态调用图复核；确认 P1-12、P1-13、P1-15 共享同一根因。 | 当前无运行时性能数据：受管 focused Cargo 在依赖解析前缺少 `image` 缓存而退出。Editor03 先交付 interactive batch owner 与数学表示策略，Editor05 再接 world-space HandleTool，并以完整 hierarchy/multi-selection 回归和 profile 验收。 |
+| 2026-08-24 | `open / architecture-and-performance-review-complete` | 在 [Gizmo interactive transaction architecture review](../05/2026-08-24-gizmo-interactive-transaction-architecture-review.md) 固化 Editor03 single-owner session、root filter、world-to-local writeback、TRS residual rejection 和 profile matrix。 | 这是静态结构与参考实现复核，不是性能验收；共享 worktree 的 transaction/viewport owners 正在变更，尚未对其重叠写入。下一步必须从 Editor03 interactive session 落码。 |
