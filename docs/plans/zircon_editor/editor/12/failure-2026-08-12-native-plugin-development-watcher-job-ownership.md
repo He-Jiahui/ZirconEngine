@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_editor/editor/12
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/mod.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host.rs
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
 tests:
   - cargo test -p zircon_editor --lib development_watch --locked --jobs 1 -- --test-threads=1
@@ -73,3 +73,11 @@ is claimed.`
 | 时间 | 状态 | 完成项目 | 证据 |
 |---|---|---|---|
 | 2026-08-12 | `open / Editor14-forward-handoff-recorded` | Complete production-source audit identified the native plugin development watcher as a raw-worker owner after the profile writer repair. | `development_watch.rs:59-135`; this record is the canonical Editor12 fixing artifact. No source mutation or validation is claimed. |
+
+## 2026-08-27 module-root ownership anchor repair
+
+The canonical Rust module root is the existing sibling file
+`module_plugin_actions/live_host.rs`, which mounts the `live_host/` child modules; no
+`live_host/mod.rs` owner exists in repository history. The structured anchor now names
+that current root. Development-watch implementation bytes were not modified and no
+managed Editor validation was added, so the job-ownership failure remains open.
