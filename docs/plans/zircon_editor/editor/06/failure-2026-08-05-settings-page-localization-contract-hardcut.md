@@ -13,7 +13,7 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/extension/store/batch.rs
   - zircon_editor/src/core/plugin/materializer.rs
-  - zircon_runtime_interface/src/plugin/editor_contribution.rs
+  - zircon_runtime_interface/src/editor_contribution.rs
   - zircon_plugins/plugin_sdk/src/editor_contribution.rs
 tests:
   - cargo test -p zircon_editor --lib settings_page --locked --jobs 1 -- --test-threads=1
@@ -64,3 +64,12 @@ Open state: `Built-in setting presentation is locale-neutral, but plugin Setting
 | 日期 | 切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
 | 2026-08-05 | Editor17 M3.3 -> Editor06 settings-page contract handoff | `open / forward_repair_required` | Routed the remaining plugin settings-page localization boundary to its extension contract owner. Built-in settings hard cut remains forward-only; no retained-host fallback, DTO compatibility field, or plugin source mutation was introduced. |
+
+## 2026-08-27 runtime-interface ownership anchor repair
+
+The serialized contribution DTO has a single current owner at
+`zircon_runtime_interface/src/editor_contribution.rs`, introduced by commit
+`322a03acfec7c8527cec593a4165af3ae31437b5`; the nested `src/plugin` path recorded
+above never represented the current tree. The structured anchor now names that existing
+top-level owner. Its live foreign worktree bytes were not modified, and no managed
+Editor gate is added here, so the localization handoff remains open.
