@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-27
 summary_slug: integrated-bootstrap-artifact-lease
@@ -15,6 +15,8 @@ related_code:
   - tools/tests/tooling15-integrated-bootstrap.Tests.ps1
 tests:
   - powershell -NoProfile -Command "Invoke-Pester -Script tools/tests/tooling15-integrated-bootstrap.Tests.ps1 -PassThru"
+  - python -u -B -m unittest tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_fixture_release_requires_removal_and_does_not_exempt_recreation tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_recovers_missing_artifact_reservations_online tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_omits_recovered_reservations_from_rejection tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_preserves_existing_artifact_reservation -v
+resolved_at: 2026-08-27
 ---
 
 # Tooling15 integrated bootstrap artifact lease
@@ -71,11 +73,14 @@ bootstrap 在创建这些目录前没有取得 coordinator artifact fixture leas
   Its post-rollover repeat observed a valid guardian race: after release/recreation, durable events
   recorded `artifact.unmanaged_delete_started` and `artifact.unmanaged_deleted` before audit returned,
   so the recreated path was governed rather than permanently exempt.
-- 回传：source repair and focused validation are complete, but the repair has not yet been sealed by
-  the coordinator finalizer. The predecessor wave159-163 producers exited naturally and their custom
-  roots disappeared without manual deletion. Production waves 164-168 obtained active fixture leases;
-  schema 68 successor `7d256d8279624daf963f8599d4d290b8` is healthy, the four stale reservation
-  rows are absent, and official artifact audit reports `unmanaged: []`.
+- 回传：source repair was sealed by coordinator maintenance commit
+  `64942164497096a82cbb4a721405d9ffe367bccf`. The predecessor wave159-163
+  producers exited naturally and their custom roots disappeared without manual deletion. Production
+  waves 164-168 obtained active fixture leases; schema 68 successor
+  `7d256d8279624daf963f8599d4d290b8` is healthy, the four stale reservation rows are absent,
+  and both official audit plus the final independent scan report `unmanaged: []`. The separately
+  observed full fixture probe race depends on uncommitted mixed `MvpTestFixturePaths.psm1` and
+  `MvpArtifactStoragePolicy.psm1` bytes, so it was not absorbed into this source repair or its commit.
 - Required-lane defense: `tooling15-integrated-bootstrap.Tests.ps1` is registered in both the Windows
   workflow and the pinned integrated runner. The combined local batch is `94/94` GREEN and the exact
   integrated contract count is `377+3`. Wave168 was submitted through the fixture-aware bootstrap;
