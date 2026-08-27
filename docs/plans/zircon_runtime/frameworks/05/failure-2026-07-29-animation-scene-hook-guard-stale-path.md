@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 plan_link_mode: child_record_only
 related_code:
   - tools/tests/test_frameworks_05_layer_direction.py
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs
 tests:
   - python -m unittest tools.tests.test_frameworks_05_layer_direction.Frameworks05LayerDirectionTests.test_animation_manager_contract_does_not_mutate_scene_world -v
@@ -68,3 +68,13 @@ FAILED (errors=1)
 - 当前验证：同一聚焦测试先 RED（`1` failure，20.734 秒），caller 修复后 `1/1` GREEN（17.520 秒）；完整 layer-direction `28/28` GREEN（120.095 秒）；py_compile、caller rustfmt-check 与 scoped diff-check 均 exit `0`。
 - 下级交接：Plugins04 open failure 见 `docs/plans/zircon_plugins/04/failure-2026-07-29-animation-sequence-caller-root-drift.md`；静态实现已绿，canonical Rust 1.94.1 受管编译仍待完成。
 - 回传条件：Plugins04 返回 fixed、Frameworks05 聚焦/完整守卫 fresh GREEN 后，再将本 artifact 经 coordinator `failure return` 移回 Frameworks06；当前不声明修复完成。
+
+## 2026-08-27 compiled-sequence ownership anchor repair
+
+The sequence boundary advanced again after this handoff: commit
+`7a20f921bb97ed428ae248cbcaf3c2fac5442ddf` removed `sequence/apply.rs`, while the
+current guard and plugin caller consume `sequence/compiled.rs`, whose public owner
+defines both `compile_sequence_for_world` and `apply_compiled_sequence_to_world`.
+`related_code` now names that existing owner. The dirty guard and Runtime/Plugin source
+bytes were not modified, and no fresh managed acceptance is added, so the failure
+remains open under its existing return conditions.
