@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-24
 summary_slug: maintenance-finalize-shared-index-race
 origin_plan: docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md
@@ -16,6 +16,7 @@ related_code:
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_git_finalize.GitFinalizeTests.test_maintenance_finalize_uses_private_index_while_shared_index_is_locked -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_git_finalize -v
+resolved_at: 2026-08-25
 ---
 
 # Coordinator01: maintenance finalize mutates the shared Git index
@@ -82,32 +83,7 @@ existing expected-HEAD compare-and-swap.
 
 ## 修复结果与回传
 
-Implementation GREEN, managed finalizer pending:
-
-- `MaintenanceIndexService` owns private staging-index creation, shared staged
-  binary-projection comparison, approved-entry alignment and the short
-  publication lock. Temporary index and private lock cleanup is context-bound.
-- `GitFinalizeService` now persists a shared index snapshot only for the short
-  post-CAS publication/recovery window. Successful publication clears it before
-  baseline reconciliation, so successor recovery does not touch a later foreign
-  `.git/index.lock`.
-- Maintenance add, staged identity scan, credential scan, validation and
-  `write-tree` receive one explicit private `GIT_INDEX_FILE`. Direct Git
-  validation commands receive the same index, while general validation tools do
-  not inherit it into nested repositories; ordinary finalize retains its
-  existing shared-index recovery behavior.
-- RED proof failed at `_recover_index_lock` with a nonzero foreign lock before
-  the implementation. The modularized implementation passes the final complete
-  finalizer suite, 81/81 in 1105.182 seconds, including private-index identity,
-  external staged projection preservation, official stale-lock recovery,
-  post-CAS recovery and module-level stderr redaction. The real managed
-  maintenance consumer remains required before closeout.
-- Production finalize request `65d1676ca032434499b28dd12793795e`
-  reached the new private validation phase but failed because the parent
-  `GIT_INDEX_FILE` leaked into the suite's temporary repositories. An equivalent
-  one-test RED reproduced the invalid cross-repository object lookup. The
-  validation boundary now exposes the private index only to a direct `git`
-  executable and proves a general Python validator can create and commit an
-  independent nested repository. Focused regression passes 3/3 in 73.053
-  seconds, and the updated complete finalizer suite passes 82/82 in 780.512
-  seconds. A replacement managed finalizer consumer remains required.
+- 根因：Maintenance finalization staged through the shared Git index, so independent repository readers could race index.lock and concurrent staged updates could be overwritten during restore.
+- 架构修复：MaintenanceIndexService now builds and validates an accepted-HEAD private GIT_INDEX_FILE, stages only approved entries, publishes through expected-HEAD CAS plus a short shared lock, and leaves the shared index bytes untouched; general validators do not inherit the private index into nested repositories.
+- 验证：Commit 514d2127710757e7e991646557934469e771609b passed 82 Git finalizer tests in 780.512 seconds plus the focused 3-test nested-repository regression in 73.053 seconds, then loaded via controlled rollover. Production Tooling06 exact-three request 31eaf00e9b6241218cb8b55d1880ac16 committed 3af73550dd00fe4805f71e96ce199f4ab633687f; the external 19-path staged projection SHA-256 a56e70cfec926da8592151ec15a7c85acba64cd44fecee403d594673f45e3b02 remained exact, index.lock and git_mutex were empty, and schema67 successor is healthy.
+- 回传：Maintenance finalization now uses an isolated index end to end, and the frozen Tooling06 consumer committed successfully while preserving all foreign staged state.

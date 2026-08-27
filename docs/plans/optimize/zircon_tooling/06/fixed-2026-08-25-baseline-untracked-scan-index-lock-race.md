@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-24
 summary_slug: baseline-untracked-scan-index-lock-race
 origin_plan: docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md
@@ -15,6 +15,7 @@ related_code:
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_baselines.BaselineTests.test_shared_index_readers_disable_git_optional_locks -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_baselines -v
+resolved_at: 2026-08-25
 ---
 
 # Coordinator01: baseline untracked scan races the managed finalizer index
@@ -95,5 +96,7 @@ scan is still active and can recreate the lock after recovery.
 
 ## 修复结果与回传
 
-Open state: `implementation under Coordinator01 validation`; no commit, rollover,
-or successful Tooling06 replay is claimed yet.
+- 根因：BaselineService read-only Git observers inherited optional index locking, allowing ls-files untracked-cache refreshes to create the shared index.lock during maintenance finalization.
+- 架构修复：Run every baseline Git observer with GIT_OPTIONAL_LOCKS=0 while preserving the private GIT_INDEX_FILE for isolated tree construction, keeping read scans concurrent without permitting shared-index writes.
+- 验证：Commit ed543173c passed the focused optional-lock regression and full baseline suite; controlled rollover loaded it. Production Tooling06 exact-three finalizer request 31eaf00e9b6241218cb8b55d1880ac16 then committed 3af73550dd00fe4805f71e96ce199f4ab633687f without manual lock deletion, with external 19-path staged projection SHA-256 a56e70cfec926da8592151ec15a7c85acba64cd44fecee403d594673f45e3b02 unchanged and schema67 successor healthy.
+- 回传：Baseline Git observation is now truly read-only, and the frozen Tooling06 maintenance consumer finalized successfully without racing the shared index.
