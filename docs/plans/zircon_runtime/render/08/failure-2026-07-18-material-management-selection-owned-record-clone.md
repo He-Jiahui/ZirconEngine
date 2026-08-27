@@ -11,6 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/framework/render/material/management/selection.rs
 tests:
+  - .codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter selection_owns_records_after_source_changes -VerboseOutput
   - cargo +1.94.1 test -p zircon_runtime --lib graphics::tests::render_product_advanced::gpu_driven_product::render_product_gpu_scene_multi_draw_64_instances_matches_cpu_fallback --locked --jobs 1 --color never -- --exact --nocapture --test-threads=1
 ---
 
@@ -53,4 +54,6 @@ Open state: `current-source ownership repair present; managed validation pending
 
 - The selection index still borrows its input records, but `RenderMaterialManagementSelection::from_records` explicitly clones `(**record)` into the public owned result before deriving summary, status, and issue indexes.
 - Request ordering, duplicate-id collapse, and missing-id behavior remain in the same selection owner; no borrowed-record compatibility path was introduced.
+- `selection_owns_records_after_source_changes` now mutates the source row after selection and asserts that the selected public record retains its original value, directly guarding the owned-clone boundary.
+- The 2026-08-27 managed focused replay was rejected before Cargo with `unmanaged_artifacts_detected`: cleanup reservation `D:\ZirconBuilds\tooling15-wave140-runtime-20260827-071332` still existed. Official cleanup request `3d5ae58970f54b4793bcf33756955e8a` preserved the identity-bound reservation and returned the path in `failed`/`remaining`; no Render08 Cargo job or test result was created.
 - The required managed material-management and Render03 product gates, including PNG/RDC evidence, remain outstanding. This handoff therefore stays `open` and does not return `fixed`.
