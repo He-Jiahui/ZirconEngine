@@ -93,3 +93,13 @@ Open state: `Coordinator contract fixed / UI12 product acceptance pending`. The
 origin owner must rerun the real managed `build-editor.ps1`, prove Cargo starts,
 publish editor/runtime/assets, return `artifact audit` to `unmanaged:[]`, and finish
 the native WGPU visual acceptance. This record does not claim those product gates.
+
+### 2026-08-27 current-source regression refresh
+
+The current-source product-staging, artifact-governance, and migration suites passed
+`33/33` in 183.469 seconds. This includes the short SQLite transaction regression,
+identity-preserving publish/recovery, exact-owner release, and
+`test_restart_recovers_all_missing_mvp_fixture_parent_reservations`, which clears all
+missing fixture-parent reservations during startup recovery without a prefix
+exemption. No product Cargo or WGPU run was started. The Coordinator contract remains
+green, while the real UI12 build/publish/audit/visual acceptance above remains open.

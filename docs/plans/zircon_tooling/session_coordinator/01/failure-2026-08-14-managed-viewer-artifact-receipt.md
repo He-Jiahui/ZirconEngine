@@ -115,3 +115,12 @@ Shader06 origin owner still owns the managed viewer build, five-cold/five-warm
 capture, screenshot/RenderDoc gates, receipt consumption, and ordinary lifecycle
 return. This record does not claim those product-side gates or close their origin
 failure on Coordinator evidence alone.
+
+### 2026-08-27 current-source regression refresh
+
+`python -B -m unittest tools.session_coordinator.tests.test_artifact_receipts -v`
+passed `13/13` in 18.358 seconds. The suite freshly covered the no-caller-path/hash
+transport boundary, exact terminal receipt issuance, source/input-manifest drift,
+foreign Session access, target escape, missing/nonzero artifact, and post-build
+mutation. No Cargo, viewer build, screenshot, or RenderDoc capture ran; the
+Coordinator contract remains green while Shader06 product acceptance remains open.
