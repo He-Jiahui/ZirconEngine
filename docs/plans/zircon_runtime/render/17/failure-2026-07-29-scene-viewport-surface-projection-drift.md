@@ -11,7 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/scene/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_surface.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_viewport_surface.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface/viewport_surface.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/surface.rs
 tests:
@@ -56,3 +56,12 @@ The viewport-surface hard cut stopped halfway through the scene/render-framework
 ## 修复结果与回传
 
 Open state: `SceneViewportSurface`已通过`graphics::scene`/`graphics` facade投影，并以consuming `into_backend_surface`交给唯一`ViewportRecord` surface owner；bind/unbind结构契约回归已落地。待受管current-source framework gate及原Text01 WGPU产品命令复跑后回传`fixed-*`，当前不声明pass。
+
+### 2026-08-27 hard-cut ownership anchor repair
+
+Commit `7a20f921bb97ed428ae248cbcaf3c2fac5442ddf` removed
+`scene_renderer_surface.rs` and added the current
+`scene_renderer_viewport_surface.rs` owner in the same scene-renderer boundary. The
+`related_code` entry now names that existing post-cut file. The implementation has an
+active foreign owner and was not modified; no managed compile or WGPU evidence is
+added here, so the failure remains open.
