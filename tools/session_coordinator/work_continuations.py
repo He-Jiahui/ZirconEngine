@@ -13,8 +13,8 @@ from .plans import PlanRepository
 _MAX_PLAN_BYTES = 2 * 1024 * 1024
 _MAX_CONTINUATIONS = 20
 _MAX_TITLE_CHARS = 500
-_MILESTONE = re.compile(r"^#{2,6}\s+(M\d+)\b", re.IGNORECASE)
-_SUBSECTION = re.compile(r"^#{3,6}\s+(?P<title>.+?)\s*$")
+_MILESTONE = re.compile(r"^#{2,6}\s+(M\d+(?:\.\d+)*)\b", re.IGNORECASE)
+_SUBSECTION = re.compile(r"^(?P<level>#{3,6})\s+(?P<title>.+?)\s*$")
 _UNCHECKED = re.compile(r"^\s*-\s*\[\s*\]\s*(?P<title>\S.*?)\s*$")
 _IMPLEMENTATION = re.compile(r"implementation|实现|切片", re.IGNORECASE)
 _TESTING = re.compile(r"test|验证|测试", re.IGNORECASE)
@@ -136,16 +136,33 @@ class WorkContinuationService:
             return None
         milestone: str | None = None
         in_implementation = False
+        section_context: list[tuple[int, str]] = []
         for line in text.splitlines():
             if match := _MILESTONE.match(line):
                 milestone = match.group(1).upper()
                 in_implementation = False
+                section_context.clear()
                 continue
             if match := _SUBSECTION.match(line):
+                level = len(match.group("level"))
                 heading = match.group("title")
-                in_implementation = bool(_IMPLEMENTATION.search(heading)) and not bool(
-                    _TESTING.search(heading)
+                while section_context and section_context[-1][0] >= level:
+                    section_context.pop()
+                kind = "section"
+                if _TESTING.search(heading):
+                    kind = "testing"
+                elif _IMPLEMENTATION.search(heading):
+                    kind = "implementation"
+                section_context.append((level, kind))
+                semantic_owner = next(
+                    (
+                        owner
+                        for _owner_level, owner in reversed(section_context)
+                        if owner != "section"
+                    ),
+                    None,
                 )
+                in_implementation = semantic_owner == "implementation"
                 continue
             if milestone is None or not in_implementation:
                 continue

@@ -210,6 +210,78 @@ class ControlSnapshotTests(unittest.TestCase):
         )
         self.assertEqual("external", snapshot["sessions"][0]["waitKind"])
 
+    def test_continuation_preserves_the_exact_submilestone_identity(self) -> None:
+        for milestone in ("M1.2", "M1.2.3"):
+            with self.subTest(milestone=milestone), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                repo = init_repo(root / "repo")
+                plan_path = "docs/plans/tooling/01-workflow.md"
+                plan = repo / plan_path
+                plan.parent.mkdir(parents=True)
+                plan.write_text(
+                    "# Workflow\n\n"
+                    f"## {milestone} - Focused work\n\n"
+                    "### Implementation slices\n\n"
+                    "- [ ] Repair the scoped projection.\n",
+                    encoding="utf-8",
+                )
+                database = Database(root / "state.sqlite3")
+                migrate(database)
+                sessions = SessionService(database, repo)
+                sessions.register(session_id="waiting-owner", plan_path=plan_path)
+                sessions.set_status("waiting-owner", SessionStatus.ACTIVE)
+                sessions.set_status("waiting-owner", SessionStatus.WAITING_VALIDATION)
+
+                continuations = ControlSnapshotService(
+                    database,
+                    WorkflowProjectionService(),
+                    lambda _connection: {"status": "ok"},
+                    repo_root=repo,
+                ).continuation_projection()
+
+            self.assertEqual(
+                milestone,
+                continuations["continuations"][0]["candidate"]["milestone"],
+            )
+
+    def test_continuation_preserves_implementation_context_through_nested_headings(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            plan_path = "docs/plans/tooling/01-workflow.md"
+            plan = repo / plan_path
+            plan.parent.mkdir(parents=True)
+            plan.write_text(
+                "# Workflow\n\n"
+                "## M2 - Main work\n\n"
+                "### Implementation slices\n\n"
+                "#### Testing checkpoint\n\n"
+                "- [ ] Do not project this validation task.\n\n"
+                "#### Storage projection\n\n"
+                "- [ ] Preserve the nested implementation task.\n",
+                encoding="utf-8",
+            )
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="waiting-owner", plan_path=plan_path)
+            sessions.set_status("waiting-owner", SessionStatus.ACTIVE)
+            sessions.set_status("waiting-owner", SessionStatus.WAITING_VALIDATION)
+
+            continuations = ControlSnapshotService(
+                database,
+                WorkflowProjectionService(),
+                lambda _connection: {"status": "ok"},
+                repo_root=repo,
+            ).continuation_projection()
+
+        self.assertEqual(
+            "Preserve the nested implementation task.",
+            continuations["continuations"][0]["candidate"]["title"],
+        )
+
     def test_waiting_sessions_pull_distinct_unowned_code_failures_when_their_plans_are_done(
         self,
     ) -> None:
