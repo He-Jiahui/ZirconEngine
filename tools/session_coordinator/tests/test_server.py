@@ -28,6 +28,7 @@ from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.codex_sync.evidence import CodexEvidenceProjector
 from tools.session_coordinator.codex_sync.models import CodexReconcileResult
 from tools.session_coordinator.database import Database
+from tools.session_coordinator.git_finalize import GitFinalizeService
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.server import (
@@ -43,6 +44,58 @@ from tools.session_coordinator.workspace_copy import WorkspaceCopyRecord
 
 
 class ServerTests(unittest.TestCase):
+    def test_finalize_force_adds_tracked_ignored_session_script(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = init_repo(Path(directory) / "repo")
+            tracked_path = ".codex/sessions/bootstrap.ps1"
+            tracked = repo / tracked_path
+            tracked.parent.mkdir(parents=True, exist_ok=True)
+            tracked.write_text("'v1'\n", encoding="utf-8")
+            subprocess.run(
+                ["git", "add", "-f", "--", tracked_path], cwd=repo, check=True
+            )
+            subprocess.run(
+                ["git", "commit", "-q", "-m", "test: track session bootstrap"],
+                cwd=repo,
+                check=True,
+            )
+            with (repo / ".git" / "info" / "exclude").open(
+                "a", encoding="utf-8"
+            ) as stream:
+                stream.write("/.codex/\n")
+            tracked.write_text("'v2'\n", encoding="utf-8")
+            service = GitFinalizeService.__new__(GitFinalizeService)
+            service.repo_root = repo
+
+            ordinary, force_add = service._partition_add_paths(
+                (tracked_path,), error_code="finalize_ignored_path_forbidden"
+            )
+
+        self.assertEqual((), ordinary)
+        self.assertEqual((tracked_path,), force_add)
+
+    def test_finalize_still_rejects_untracked_ignored_session_script(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = init_repo(Path(directory) / "repo")
+            ignored_path = ".codex/sessions/untracked.ps1"
+            ignored = repo / ignored_path
+            ignored.parent.mkdir(parents=True, exist_ok=True)
+            ignored.write_text("'local'\n", encoding="utf-8")
+            with (repo / ".git" / "info" / "exclude").open(
+                "a", encoding="utf-8"
+            ) as stream:
+                stream.write("/.codex/\n")
+            service = GitFinalizeService.__new__(GitFinalizeService)
+            service.repo_root = repo
+
+            with self.assertRaises(CoordinatorError) as rejected:
+                service._partition_add_paths(
+                    (ignored_path,), error_code="finalize_ignored_path_forbidden"
+                )
+
+        self.assertEqual("finalize_ignored_path_forbidden", rejected.exception.code)
+        self.assertEqual([ignored_path], rejected.exception.details["paths"])
+
     def test_artifact_fixture_commands_route_process_bound_lifecycle(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

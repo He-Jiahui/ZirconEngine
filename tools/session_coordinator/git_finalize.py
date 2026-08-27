@@ -2363,7 +2363,9 @@ class GitFinalizeService:
         ignored_set = self._ignored_paths(paths)
         force_add_paths = tuple(path for path in paths if path in ignored_set)
         forbidden_ignored = tuple(
-            path for path in force_add_paths if not self._is_force_add_eligible(path)
+            path
+            for path in force_add_paths
+            if not self._is_tracked(path) and not self._is_force_add_eligible(path)
         )
         if forbidden_ignored:
             raise CoordinatorError(
