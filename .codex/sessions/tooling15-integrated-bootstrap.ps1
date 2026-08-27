@@ -2,6 +2,13 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Set-Location 'E:\Git\ZirconEngine'
 
+$fixturePathsModule = Join-Path $PSScriptRoot '..\..\tools\mvp\MvpTestFixturePaths.psm1'
+Import-Module $fixturePathsModule -Force -ErrorAction Stop
+
+$runtimeRoot = $null
+$runnerExitCode = $null
+$primaryError = $null
+$cleanupError = $null
 try {
     if ($env:MVP_VALIDATION_WAVE -notmatch '^\d+$') {
         throw 'Tooling15 validation wave must be numeric.'
@@ -10,7 +17,7 @@ try {
     $env:MVP_POWERSHELL_VERSION = '7.4.19'
     $env:MVP_POWERSHELL_SHA256 = 'CD62AD6D8174CC6FB85B335A0058444BC934FE27C39FA97FE342134286D28AF9'
     $env:MVP_PESTER_VERSION = '4.10.1'
-    $runtimeRoot = Join-Path 'D:\ZirconBuilds' ("tooling15-wave${wave}-runtime-{0}" -f [DateTimeOffset]::Now.ToString('yyyyMMdd-HHmmss'))
+    $runtimeRoot = New-MvpTestFixtureRoot -Prefix "tooling15-wave${wave}-runtime"
     $powerShellRoot = Join-Path $runtimeRoot "pwsh-$env:MVP_POWERSHELL_VERSION"
     $env:MVP_PESTER_MODULE_ROOT = Join-Path $runtimeRoot 'psmodules'
     $env:MVP_EVIDENCE_ROOT = Join-Path $runtimeRoot 'evidence'
@@ -31,9 +38,31 @@ try {
         -NonInteractive `
         -ExecutionPolicy Bypass `
         -File '.\.codex\sessions\tooling15-integrated-pinned-runner.ps1'
-    exit $LASTEXITCODE
+    $runnerExitCode = $LASTEXITCODE
 }
 catch {
-    Write-Error $_
+    $primaryError = $_
+}
+finally {
+    if ($null -ne $runtimeRoot) {
+        try {
+            Remove-MvpTestFixtureRoot -Path $runtimeRoot
+        }
+        catch {
+            $cleanupError = $_
+        }
+    }
+}
+
+if ($null -ne $primaryError) {
+    if ($null -ne $cleanupError) {
+        Write-Warning "Tooling15 fixture cleanup also failed: $($cleanupError.Exception.Message)"
+    }
+    Write-Error $primaryError
     exit 1
 }
+if ($null -ne $cleanupError) {
+    Write-Error $cleanupError
+    exit 1
+}
+exit $runnerExitCode
