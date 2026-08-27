@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::BTreeMap;
 
 use super::manifest::validate_zrpack_asset_path;
@@ -8,7 +9,7 @@ use super::{
 
 const ZRPACK_HEADER_SIZE: usize = 24;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ZrPackInputAsset {
     pub path: String,
     pub bytes: Vec<u8>,
@@ -34,26 +35,29 @@ impl ZrPackInputAsset {
 }
 
 impl ZrPackWriter {
-    pub fn write(
-        assets: impl IntoIterator<Item = ZrPackInputAsset>,
-    ) -> Result<ZrPackWriteReport, ZrPackError> {
+    pub fn write<I, A>(assets: I) -> Result<ZrPackWriteReport, ZrPackError>
+    where
+        I: IntoIterator<Item = A>,
+        A: Borrow<ZrPackInputAsset>,
+    {
         let mut assets = assets.into_iter().collect::<Vec<_>>();
         validate_asset_paths(&assets)?;
-        assets.sort_by(|left, right| left.path.cmp(&right.path));
+        sort_assets_by_path(&mut assets);
         reject_duplicate_paths(&assets)?;
 
         let mut bytes = vec![0; ZRPACK_HEADER_SIZE];
         let mut chunk_offsets = BTreeMap::new();
-        let mut chunk_entries = Vec::new();
-        let mut asset_entries = Vec::new();
-        let mut deduplicated_assets = Vec::new();
+        let mut chunk_entries = Vec::with_capacity(assets.len());
+        let mut asset_entries = Vec::with_capacity(assets.len());
+        let mut deduplicated_assets = Vec::with_capacity(assets.len());
 
-        for asset in assets {
+        for asset in &assets {
+            let asset = input_asset(asset);
             let hash = zrpack_content_hash(&asset.bytes);
             if let Some(offset) = chunk_offsets.get(&hash).copied() {
                 deduplicated_assets.push(asset.path.clone());
                 asset_entries.push(ZrPackAssetEntry::new(
-                    asset.path,
+                    asset.path.clone(),
                     hash,
                     asset.bytes.len() as u64,
                 ));
@@ -66,10 +70,14 @@ impl ZrPackWriter {
             bytes.extend_from_slice(&asset.bytes);
             chunk_offsets.insert(hash, offset);
             chunk_entries.push(ZrChunkEntry::new(hash, offset, size));
-            asset_entries.push(ZrPackAssetEntry::new(asset.path, hash, u64::from(size)));
+            asset_entries.push(ZrPackAssetEntry::new(
+                asset.path.clone(),
+                hash,
+                u64::from(size),
+            ));
         }
 
-        chunk_entries.sort_by(|left, right| left.hash.cmp(&right.hash));
+        chunk_entries.sort_unstable_by(|left, right| left.hash.cmp(&right.hash));
         let total_size = chunk_entries
             .iter()
             .map(|chunk| u64::from(chunk.size))
@@ -102,16 +110,42 @@ impl ZrPackWriter {
     }
 }
 
-fn validate_asset_paths(assets: &[ZrPackInputAsset]) -> Result<(), ZrPackError> {
+fn input_asset<A>(asset: &A) -> &ZrPackInputAsset
+where
+    A: Borrow<ZrPackInputAsset>,
+{
+    asset.borrow()
+}
+
+fn sort_assets_by_path<A>(assets: &mut [A])
+where
+    A: Borrow<ZrPackInputAsset>,
+{
+    assets.sort_unstable_by(|left, right| input_asset(left).path.cmp(&input_asset(right).path));
+}
+
+fn validate_asset_paths<A>(assets: &[A]) -> Result<(), ZrPackError>
+where
+    A: Borrow<ZrPackInputAsset>,
+{
     for asset in assets {
+        let asset = input_asset(asset);
         validate_zrpack_asset_path(&asset.path)?;
     }
     Ok(())
 }
 
-fn reject_duplicate_paths(assets: &[ZrPackInputAsset]) -> Result<(), ZrPackError> {
-    if let Some(pair) = assets.windows(2).find(|pair| pair[0].path == pair[1].path) {
-        return Err(ZrPackError::DuplicateAssetPath(pair[1].path.clone()));
+fn reject_duplicate_paths<A>(assets: &[A]) -> Result<(), ZrPackError>
+where
+    A: Borrow<ZrPackInputAsset>,
+{
+    if let Some(pair) = assets
+        .windows(2)
+        .find(|pair| input_asset(&pair[0]).path == input_asset(&pair[1]).path)
+    {
+        return Err(ZrPackError::DuplicateAssetPath(
+            input_asset(&pair[1]).path.clone(),
+        ));
     }
     Ok(())
 }
@@ -126,3 +160,7 @@ fn write_header(header: &mut [u8], manifest_offset: u64, manifest_size: u64) {
 pub(super) fn header_size() -> usize {
     ZRPACK_HEADER_SIZE
 }
+
+#[cfg(test)]
+#[path = "writer/optimization_tests.rs"]
+mod optimization_tests;

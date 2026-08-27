@@ -26,7 +26,7 @@ pub struct ExportAssetPackEntry {
     pub labels: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ExportPackInputs {
     pub trim_report: ZrPackTrimReport,
     pub pack_assets: Vec<ZrPackInputAsset>,

@@ -98,7 +98,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> ExportPackResult<ExitCod
             delta_apply_verified: false,
         }
     } else {
-        match ZrPackWriter::write(pack_inputs.pack_assets.clone()) {
+        match ZrPackWriter::write(pack_inputs.pack_assets.iter()) {
             Ok(write_report) => {
                 let deterministic_double_run = deterministic_double_run(
                     args.determinism_check,
@@ -318,7 +318,7 @@ fn deterministic_double_run(
     if !enabled {
         return Ok(false);
     }
-    let second = ZrPackWriter::write(pack_assets.to_vec())
+    let second = ZrPackWriter::write(pack_assets.iter())
         .map_err(|source| ExportPackError::DeterministicComparisonWrite { source })?;
     if second.bytes != first_bytes {
         diagnostics.push("deterministic pack double-run byte comparison failed".to_string());
