@@ -9,10 +9,10 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/rhi_wgpu/ui_surface.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching/dependency_depths.rs
-  - zircon_runtime/src/rhi/ui_surface.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/dependency_depths.rs
+  - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
 ---
 
 # UI surface pairwise overlap batching
@@ -56,3 +56,9 @@ WGPU presenter没有generation-owned compiled batch/spatial plan；batch depende
 - 二次静态解析发现拆分子模块默认查找路径错误后已前向修复为显式`#[path = "tests/scale_and_cache.rs"]`；精确rustfmt能够解析完整模块树。最新受管编译request `4dca61081c8a4e2b88cc857eb66dd89e`仅为`session.register` accepted timeout，未启动Cargo且不作为动态性能证据。
 
 Open state: `generation-owned compiled full projection/batch/spatial plan、稳定generation stats cache、首次damage compile单次command traversal、稳定image resource-key preparation fast path、连续池化interval index、单缓冲layer分组及1/100/1k/10k确定性规模矩阵已落地；scoped rustfmt/diff-check通过；待current-source managed Windows validation、真实allocator与CPU p50/p95记录、GPU/Softbuffer像素及RenderDoc parity后回传`。
+
+### 2026-08-27 hard-cut ownership anchor repair
+
+- `cb62fe090eb917ebd59fc3aea5d3c01d52093782` 已把 RHI 与 WGPU UI surface 从 `zircon_runtime/src/rhi*` hard-cut 到 `zircon_runtime/crates/zr_rhi*`，Git rename similarity 为 92%–99%；本 handoff 的四个 `related_code` 锚点此前未同步，ownership preview 因 `path_missing` 无法领取真实实现。
+- 当前 canonical 路径均存在。它们的 live worktree bytes 由其他 Session 修改，本次只修正文档锚点，不接管、不提交、不回退实现；修正后后续 ownership preview 会命中真实路径并正确暴露 owner/dirty 冲突。
+- 该修复只恢复 failure 链的 current-source ownership 路由，不补充 managed Cargo、CPU/allocator、像素或 RenderDoc 证据，failure 继续保持 `open`。
