@@ -64,3 +64,19 @@ Open state: `2026-07-18 registry validate-then-commit delta、binary ordered ins
 2026-07-23 受管验证失败已按所有权留在 Coordinator01 后续处理：exact10 materialized copy `4b29be7dcd6748f9a25073b4ee04e8e3` 的 run `0bb42035dbd24951ab41f053ac850cc8` 在 rustc 前 exit 101，stderr 明确为 validation source 根缺失 `Cargo.toml`。copy 终态 `removed`，未产生 Editor09 编译/测试结果；不得将此 failure 转 fixed，也不得让 Editor09 吸收 root manifest 或外部 sibling dependency。
 
 2026-07-23 独立 review 首轮 `0/1/2` 的唯一 Important（existing collection 实际 sort 全量但 counter 仅记 delta）已修复为 post-extend full length，并补 5 + 10 = 15 双 collection 回归；两个文档 Minor 同步关闭。增量复审 `0/0/0`。当前关闭门仍只剩 Coordinator01 closure 后的 source-bound Cargo、F0/F4、failure return 与 managed commit，本 failure 继续 open。
+
+## 2026-08-28 static guard owner repair
+
+The batch contract guard still read the retired
+`zircon_editor/src/core/editor_plugin.rs` catalog owner, which is absent from
+the committed tree. Catalog contribution materialization now belongs to
+`zircon_editor/src/core/plugin/extension_materialization.rs`; that owner keeps
+the single `apply_contributions` call and restores diagnostic traversal order
+with the sequence-key sort. The guard now reads that committed owner while
+retaining the same batch, ordering, and 1/100/10k/100k assertions.
+
+All required assertions were checked directly against the four `HEAD` blobs
+before the guard edit, so this repair does not depend on concurrent Editor
+worktree overlays. This is static guard maintenance only. The source-bound
+managed Cargo and performance evidence, independent review, failure return,
+and terminal integration remain required; this handoff stays `open`.
