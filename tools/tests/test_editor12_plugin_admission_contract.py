@@ -105,7 +105,7 @@ class EditorPluginAdmissionContractTests(unittest.TestCase):
             "pub fn new(core: &CoreHandle) -> Result<Self, CoreError>", editor_manager
         )
         self.assertIn("CoreError::Initialization", editor_manager)
-        self.assertIn("EditorManager::new(core)?", module)
+        self.assertIn("EditorManager::new(&core)?", module)
 
 
 if __name__ == "__main__":

@@ -267,3 +267,9 @@ report。该剩余根因已由 Plugins01 的
 - 目标结构：把immutable structural catalog/compiled extension owner与bounded lifecycle state分离，active extensions按`{catalog_generation, active_set_generation}`共享；成功非结构event不得换structural generation或重建projection/registry。project/native batches在一个candidate transaction内只物化一次；admission借用manifest并改iterative indexed graph。保持last-good、one publish、old-reader quiescence与phase/revoke/rollback。
 - PERF-MVP-594联动：bridge和manager当前形成两层锁内callback；manager还让routine成功event永久扩张history。按bounded page、短锁active-handle snapshot、锁外affinity dispatch、generation-checked commit与entry+bytes+age bounded audit收束；不得以私有线程池或丢lossless terminal规避。
 - 验收矩阵：plugins/contributions/history `0/1/100/1K/10K`、messages `0/1/64/4,096`、callback `0/1/16ms/10s`、batches `1/100`、dependency depth `1/1K/100K`、threads `1/16`、reload/unload/error/stale completion。记录catalog/manager/projection/extension builds、clone bytes、callback/mutation lock wait+hold、queue/audit bytes+age、stack/RSS和F0/F4 p95；当前尚无上述动态证据。
+
+### 2026-08-28 admission guard reference repair
+
+- The committed Editor module factory upgrades its weak core handle into an owned local `CoreHandle`, then passes `&core` to the fallible `EditorManager::new` constructor. The admission guard still asserted the pre-upgrade call spelling and failed despite preserving the same recoverable `CoreError` path.
+- The guard now asserts `EditorManager::new(&core)?`. The referenced call shape was verified directly in the `HEAD` blob before editing, so the repair does not depend on concurrent changes to `ui/host/module.rs`.
+- This is static guard maintenance only. Managed Cargo, the declared scale evidence, independent review, failure return, and terminal integration remain outstanding; this failure stays `open`.
