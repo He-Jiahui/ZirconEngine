@@ -8,6 +8,32 @@ from pathlib import Path
 from .native_dynamic_contract import NATIVE_DYNAMIC_PACKAGE_REPORT_FILE
 
 
+def normalized_file_manifest(value: object) -> list[dict[str, object]] | None:
+    if not isinstance(value, list):
+        return None
+    normalized: list[dict[str, object]] = []
+    for entry in value:
+        if not isinstance(entry, dict):
+            return None
+        path = entry.get("path")
+        byte_count = entry.get("bytes")
+        sha256 = entry.get("sha256")
+        if (
+            not isinstance(path, str)
+            or type(byte_count) is not int
+            or not isinstance(sha256, str)
+        ):
+            return None
+        normalized.append(
+            {
+                "path": path,
+                "bytes": byte_count,
+                "sha256": sha256,
+            }
+        )
+    return normalized
+
+
 def native_dynamic_file_manifest(
     stage_dir: Path,
     diagnostics: list[str] | None = None,

@@ -24,6 +24,7 @@ from .native_dynamic_payload_directory import (
 from .native_dynamic_payload_file_manifest import (
     native_dynamic_content_hash,
     native_dynamic_plugins_file_manifest,
+    normalized_file_manifest,
     resolve_native_dynamic_payload_path,
 )
 from .native_dynamic_payload_operation_audit import (
@@ -189,27 +190,6 @@ def native_dynamic_stage_payload_summary(
         payload_summary["native_notarization"] = notarization_summary
     return payload_summary
 
-
-def normalized_file_manifest(value: object) -> list[dict[str, object]] | None:
-    if not isinstance(value, list):
-        return None
-    normalized: list[dict[str, object]] = []
-    for entry in value:
-        if not isinstance(entry, dict):
-            return None
-        path = entry.get("path")
-        byte_count = entry.get("bytes")
-        sha256 = entry.get("sha256")
-        if not isinstance(path, str) or type(byte_count) is not int or not isinstance(sha256, str):
-            return None
-        normalized.append(
-            {
-                "path": path,
-                "bytes": byte_count,
-                "sha256": sha256,
-            }
-        )
-    return normalized
 
 def normalized_materialized_packages(value: object) -> list[dict[str, object]] | None:
     if not isinstance(value, list):

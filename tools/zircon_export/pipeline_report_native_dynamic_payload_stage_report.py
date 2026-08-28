@@ -4,10 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .native_dynamic_payload import (
-    normalized_file_manifest,
-    normalized_materialized_packages,
-)
+from .native_dynamic_payload import normalized_materialized_packages
+from .native_dynamic_payload_file_manifest import normalized_file_manifest
 from .native_dynamic_payload_operation_audit import (
     native_dynamic_operation_audit_is_consistent,
     normalized_native_dynamic_operation_audit,

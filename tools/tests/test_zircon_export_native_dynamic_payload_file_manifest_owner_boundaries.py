@@ -1,6 +1,13 @@
 import unittest
 from pathlib import Path
 
+from tools.zircon_export.native_dynamic_payload import (
+    normalized_file_manifest as facade_normalized_file_manifest,
+)
+from tools.zircon_export.native_dynamic_payload_file_manifest import (
+    normalized_file_manifest,
+)
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NATIVE_DYNAMIC_PAYLOAD = REPO_ROOT / "tools/zircon_export/native_dynamic_payload.py"
@@ -10,6 +17,17 @@ NATIVE_DYNAMIC_PAYLOAD_FILE_MANIFEST = (
 
 
 class ZirconExportNativeDynamicPayloadFileManifestOwnerBoundaryTests(unittest.TestCase):
+    def test_file_manifest_normalizer_preserves_facade_compatibility(self):
+        self.assertIs(facade_normalized_file_manifest, normalized_file_manifest)
+        row = {"path": "plugins/example.dll", "bytes": 7, "sha256": "a" * 64}
+        self.assertEqual(normalized_file_manifest([row]), [row])
+        self.assertIsNone(normalized_file_manifest({"path": "not-an-array"}))
+        self.assertIsNone(
+            normalized_file_manifest(
+                [{"path": "plugins/example.dll", "bytes": "7", "sha256": "a" * 64}]
+            )
+        )
+
     def test_file_manifest_path_and_hash_helpers_live_in_dedicated_owner(self):
         self.assertTrue(
             NATIVE_DYNAMIC_PAYLOAD_FILE_MANIFEST.exists(),
@@ -21,6 +39,7 @@ class ZirconExportNativeDynamicPayloadFileManifestOwnerBoundaryTests(unittest.Te
         )
 
         for function_name in (
+            "normalized_file_manifest",
             "native_dynamic_file_manifest",
             "native_dynamic_plugins_bundle_file_manifest",
             "native_dynamic_plugins_file_manifest",
@@ -55,6 +74,7 @@ class ZirconExportNativeDynamicPayloadFileManifestOwnerBoundaryTests(unittest.Te
             "tools/zircon_export/native_dynamic_templates.py",
             "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py",
             "tools/zircon_export/pipeline_report_native_dynamic_payload_package_report.py",
+            "tools/zircon_export/pipeline_report_native_dynamic_payload_stage_report.py",
             "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py",
             "tools/zircon_export/plugin_build_package.py",
         ):

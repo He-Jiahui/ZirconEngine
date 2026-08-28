@@ -10,10 +10,10 @@ from .native_dynamic_contract import (
     NATIVE_DYNAMIC_ABI_STRING_FIELDS,
     NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS,
 )
-from .native_dynamic_payload import normalized_file_manifest
 from .native_dynamic_payload_file_manifest import (
     native_dynamic_content_hash,
     native_dynamic_package_payload_file_manifest,
+    normalized_file_manifest,
 )
 from .pipeline_report_native_dynamic_package_report_schema import (
     platform_bundle_native_plugins_package_report_abi_schema_diagnostics,

@@ -5,10 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .native_dynamic_payload import (
-    normalized_file_manifest,
-    normalized_materialized_packages,
-)
+from .native_dynamic_payload import normalized_materialized_packages
+from .native_dynamic_payload_file_manifest import normalized_file_manifest
 from .pipeline_report_native_dynamic_payload_bundle_evidence import (
     platform_bundle_native_plugins_bundle_path_diagnostics,
     platform_bundle_native_plugins_current_bundle_evidence_diagnostics,
