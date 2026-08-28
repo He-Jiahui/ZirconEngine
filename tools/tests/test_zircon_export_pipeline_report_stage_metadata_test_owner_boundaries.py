@@ -17,6 +17,10 @@ STAGE_METADATA_ASSETS_PACK_TEST = (
 STAGE_METADATA_TEST_SUPPORT = (
     REPO_ROOT / "tools/zircon_export/tests/pipeline_report_stage_metadata_test_support.py"
 )
+COMPILE_HOST_STAGE_SCHEMA_TEST = (
+    REPO_ROOT
+    / "tools/zircon_export/tests/test_pipeline_report_compile_host_stage_schema.py"
+)
 
 ASSETS_PACK_TEST_METHODS = (
     "test_report_stage_rejects_cook_assets_unknown_top_level_field",
@@ -68,12 +72,30 @@ class PipelineReportStageMetadataTestOwnerBoundaryTests(unittest.TestCase):
 
         for method_name in (
             "test_report_stage_rejects_compile_host_unknown_top_level_field",
-            "test_report_stage_accepts_compile_host_link_plan",
             "test_report_stage_rejects_compile_host_exit_code_non_integer",
         ):
             with self.subTest(method=method_name):
                 self.assertIn(f"def {method_name}(", root_text)
                 self.assertNotIn(f"def {method_name}(", assets_pack_text)
+
+    def test_compile_host_stage_owner_rejects_legacy_link_plan(self):
+        self.assertTrue(
+            COMPILE_HOST_STAGE_SCHEMA_TEST.exists(),
+            "CompileHost stage schema tests need a dedicated owner",
+        )
+        root_text = STAGE_METADATA_TEST.read_text(encoding="utf-8")
+        compile_host_text = COMPILE_HOST_STAGE_SCHEMA_TEST.read_text(encoding="utf-8")
+        method_name = "test_legacy_link_plan_field_is_rejected"
+
+        self.assertNotIn(f"def {method_name}(", root_text)
+        self.assertIn(f"def {method_name}(", compile_host_text)
+        self.assertIn('report["link_plan"] = {}', compile_host_text)
+        self.assertIn("unknown field link_plan", compile_host_text)
+        self.assertLess(
+            _line_count(COMPILE_HOST_STAGE_SCHEMA_TEST),
+            120,
+            "CompileHost stage schema test owner should remain focused",
+        )
 
     def test_stage_metadata_test_support_has_dedicated_owner(self):
         self.assertTrue(
