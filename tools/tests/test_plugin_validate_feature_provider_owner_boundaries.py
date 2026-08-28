@@ -19,6 +19,10 @@ PLUGIN_VALIDATE_FEATURE_PROVIDER = (
     REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_SCHEMA = REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_manifest_schema.py"
+PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_PARSE = (
+    REPO_ROOT
+    / "tools/zircon_export/plugin_validate_feature_provider_manifest_parse.py"
+)
 PLUGIN_VALIDATE_FEATURE_PROVIDER_PROJECTION_COMPARE = (
     REPO_ROOT
     / "tools/zircon_export/plugin_validate_feature_provider_projection_compare.py"
@@ -223,6 +227,9 @@ class PluginValidateFeatureProviderOwnerBoundaryTests(unittest.TestCase):
             encoding="utf-8"
         )
         manifest_schema_text = PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_SCHEMA.read_text(encoding="utf-8")
+        manifest_parse_text = PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_PARSE.read_text(
+            encoding="utf-8"
+        )
         feature_provider_test_text = PLUGIN_VALIDATE_FEATURE_PROVIDER_TEST.read_text(
             encoding="utf-8"
         )
@@ -246,6 +253,21 @@ class PluginValidateFeatureProviderOwnerBoundaryTests(unittest.TestCase):
             self.assertIn(symbol, manifest_schema_text)
             self.assertNotIn(f"def {symbol}(", feature_provider_text)
         self.assertIn("from .plugin_validate_feature_provider_manifest_schema import", feature_provider_text)
+        self.assertIn(
+            "from .plugin_validate_feature_provider_manifest_parse import",
+            feature_provider_text,
+        )
+        self.assertIn(
+            "def plugin_validate_generated_package_manifest(", manifest_parse_text
+        )
+        self.assertNotIn(
+            "def plugin_validate_generated_package_manifest(", feature_provider_text
+        )
+        self.assertLessEqual(
+            len(manifest_parse_text.splitlines()),
+            45,
+            "generated package TOML parsing should stay in a focused leaf",
+        )
         self.assertIn(
             "from tools.zircon_export.plugin_validate_feature_provider import",
             feature_provider_test_text,

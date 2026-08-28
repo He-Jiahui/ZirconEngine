@@ -5,13 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-try:
-    import tomllib
-except ModuleNotFoundError:  # pragma: no cover - Python <3.11 fallback.
-    import tomli as tomllib  # type: ignore[no-redef]
-
 from .plugin_validate_common import PLUGIN_VALIDATE_FEATURE_SOURCE
 from .plugin_validate_feature_provider_extension import validate_plugin_feature_extension_projection
+from .plugin_validate_feature_provider_manifest_parse import plugin_validate_generated_package_manifest
 from .plugin_validate_feature_provider_manifest_schema import plugin_validate_feature_provider_manifest_metadata_schema, plugin_validate_feature_provider_manifest_projection_consistency
 
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_FIELDS = frozenset(
@@ -74,20 +70,3 @@ def validate_plugin_feature_provider_package_projection(
         package_id=package_id,
         diagnostics=diagnostics,
     )
-
-def plugin_validate_generated_package_manifest(
-    package_manifest_text: str,
-    package_id: str,
-    diagnostics: list[str],
-) -> dict[str, Any] | None:
-    try:
-        manifest = tomllib.loads(package_manifest_text)
-    except tomllib.TOMLDecodeError as error:
-        diagnostics.append(
-            f"plugin {package_id} generated package manifest is invalid TOML: {error}"
-        )
-        return None
-    if not isinstance(manifest, dict):
-        diagnostics.append(f"plugin {package_id} generated package manifest must be a table")
-        return None
-    return manifest
