@@ -21,6 +21,9 @@ PLUGIN_VALIDATE_COMPONENTS = (
     REPO_ROOT / "tools/zircon_export/plugin_validate_components.py"
 )
 PLUGIN_VALIDATE_MODULES = REPO_ROOT / "tools/zircon_export/plugin_validate_modules.py"
+PLUGIN_VALIDATE_MODULE_ROWS = (
+    REPO_ROOT / "tools/zircon_export/plugin_validate_module_rows.py"
+)
 PLUGIN_VALIDATE_MODULE_CRATES = (
     REPO_ROOT / "tools/zircon_export/plugin_validate_module_crates.py"
 )
@@ -76,7 +79,7 @@ class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
         )
         self.assertLessEqual(
             len(Path(__file__).read_text(encoding="utf-8").splitlines()),
-            470,
+            510,
             "focused PluginValidate event/component/module owner boundary file should stay narrow",
         )
 
@@ -278,10 +281,15 @@ class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
             encoding="utf-8"
         )
         modules_text = PLUGIN_VALIDATE_MODULES.read_text(encoding="utf-8")
+        module_rows_text = PLUGIN_VALIDATE_MODULE_ROWS.read_text(encoding="utf-8")
 
         for symbol in (
             "validate_plugin_modules",
             "validate_plugin_feature_extension_modules",
+            "plugin_validate_root_supported_targets",
+        ):
+            self.assertIn(symbol, modules_text)
+        for symbol in (
             "validate_plugin_module_rows",
             "validate_plugin_module_known_fields",
             "validate_plugin_module_row",
@@ -292,7 +300,20 @@ class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
             "duplicates module name",
             "should be covered by package supported_targets",
         ):
-            self.assertIn(symbol, modules_text)
+            self.assertIn(symbol, module_rows_text)
+        self.assertIn(
+            "from .plugin_validate_module_rows import",
+            modules_text,
+            "module orchestration should delegate row semantics to the leaf owner",
+        )
+        feature_provider_schema = (
+            REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_module_schema.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("from .plugin_validate_module_rows import", feature_provider_schema)
+        for symbol in ("validate_plugin_module_rows", "validate_plugin_module_row"):
+            self.assertNotIn(
+                f"def {symbol}(", modules_text, f"{symbol} belongs in the row leaf"
+            )
         self.assertIn(
             "from .plugin_validate_modules import validate_plugin_modules",
             single_target_text,
@@ -330,10 +351,20 @@ class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
                 modules_text,
                 "modules owner must stay independent from entry and sibling owners",
             )
+            self.assertNotIn(
+                forbidden_import,
+                module_rows_text,
+                "module row leaf must stay independent from entry and sibling owners",
+            )
         self.assertLessEqual(
             len(modules_text.splitlines()),
+            160,
+            "modules owner should stay focused on manifest orchestration",
+        )
+        self.assertLessEqual(
+            len(module_rows_text.splitlines()),
             300,
-            "modules owner should stay focused on manifest module rows",
+            "module row leaf should stay focused on module row semantics",
         )
 
     def test_module_workspace_crate_checks_live_in_module_crates_owner(self):
@@ -341,7 +372,7 @@ class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
             PLUGIN_VALIDATE_MODULE_CRATES.exists(),
             "module workspace crate ownership checks belong in plugin_validate_module_crates.py",
         )
-        modules_text = PLUGIN_VALIDATE_MODULES.read_text(encoding="utf-8")
+        module_rows_text = PLUGIN_VALIDATE_MODULE_ROWS.read_text(encoding="utf-8")
         module_crates_text = PLUGIN_VALIDATE_MODULE_CRATES.read_text(encoding="utf-8")
         single_target_text = PLUGIN_VALIDATE_SINGLE_TARGET.read_text(encoding="utf-8")
 
@@ -353,14 +384,14 @@ class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
         ):
             self.assertNotIn(
                 f"def {function_name}(",
-                modules_text,
+                module_rows_text,
                 f"{function_name} belongs in plugin_validate_module_crates.py",
             )
             self.assertIn(f"def {function_name}(", module_crates_text)
 
         self.assertIn(
             "from .plugin_validate_module_crates import",
-            modules_text,
+            module_rows_text,
             "module row owner should dispatch workspace crate checks to the leaf owner",
         )
         self.assertIn(
@@ -390,7 +421,7 @@ class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
             PLUGIN_VALIDATE_MODULE_SYSTEMS.exists(),
             "module system field checks belong in plugin_validate_module_systems.py",
         )
-        modules_text = PLUGIN_VALIDATE_MODULES.read_text(encoding="utf-8")
+        module_rows_text = PLUGIN_VALIDATE_MODULE_ROWS.read_text(encoding="utf-8")
         module_systems_text = PLUGIN_VALIDATE_MODULE_SYSTEMS.read_text(encoding="utf-8")
 
         for function_name in (
@@ -400,14 +431,14 @@ class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
         ):
             self.assertNotIn(
                 f"def {function_name}(",
-                modules_text,
+                module_rows_text,
                 f"{function_name} belongs in plugin_validate_module_systems.py",
             )
             self.assertIn(f"def {function_name}(", module_systems_text)
 
         self.assertIn(
             "from .plugin_validate_module_systems import",
-            modules_text,
+            module_rows_text,
             "module row owner should dispatch system checks to the leaf owner",
         )
         for forbidden_import in (

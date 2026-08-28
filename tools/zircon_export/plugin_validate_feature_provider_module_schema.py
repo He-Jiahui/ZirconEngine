@@ -6,7 +6,7 @@ from typing import Any
 
 from .plugin_validate_common import plugin_validate_allowed_string_values, plugin_validate_string_array
 from .plugin_validate_distribution_module_target_modes import PLUGIN_VALIDATE_TARGET_MODES
-from .plugin_validate_modules import (
+from .plugin_validate_module_rows import (
     validate_plugin_module_capabilities,
     validate_plugin_module_crate_name,
     validate_plugin_module_kind,
