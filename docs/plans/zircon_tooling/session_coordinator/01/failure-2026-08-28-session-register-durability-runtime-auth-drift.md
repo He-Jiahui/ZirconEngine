@@ -12,6 +12,7 @@ failure_scope: local
 related_code:
   - tools/session_coordinator/server.py
 tests:
+  - tools/session_coordinator/tests/test_command_protocol.py
   - tools/session_coordinator/tests/test_session_register_durability.py
 ---
 
@@ -32,11 +33,18 @@ tests:
 
 The production handler correctly requires `Authorization: Bearer <runtime token>`, and current control-plane HTTP tests already send `running.token`. The older `SessionRegisterDurabilityTests._request` helper sent only `Content-Type`, so its registration, replay, accepted-query and restart cases stopped at the HTTP authentication boundary rather than testing command durability.
 
+The same sweep then found the identical stale transport in
+`CommandProtocolTests._request`: its durable admission and in-flight query
+cases returned `401` before the mocked command could enter. A repository-wide
+scan of direct test requests confirmed the other Content-Type-only command
+request is the intentional unauthorized server regression.
+
 ## 架构修复验收
 
 - Bind every durability-suite HTTP request to the exact token issued by its `RunningCoordinator` instance.
 - Keep unauthorized requests rejected; do not weaken or bypass production authentication.
 - Re-run the original focused registration/lease reproduction and the complete durability module.
+- Re-run the command-protocol module so durable admission and accepted-state queries reach their target logic.
 - Preserve command replay, accepted-state visibility, restart terminalization and failed re-registration assertions.
 
 ## 禁止临时方案
@@ -58,5 +66,11 @@ pre-admission preparation, accepted-state visibility, restart terminalization,
 deferred database failure and failed re-registration. The existing server
 runtime-token guard passed `1/1`, proving an unauthenticated `/command` request
 still returns HTTP `401`.
+
+The adjacent command-protocol RED was `12/14`: durable accept/query returned
+HTTP `401`, and the in-flight handler never entered. Its shared request helper
+now uses the same explicit per-instance token contract. The complete module
+passed `14/14` in 77.000 seconds; no production code or anonymous request
+expectation changed.
 
 Open state: `source_validated / local failure record pending managed commit`.

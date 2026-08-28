@@ -24,12 +24,17 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 class CommandProtocolTests(unittest.TestCase):
     @staticmethod
-    def _request(base_url: str, method: str, path: str, payload=None) -> dict[str, object]:
+    def _request(
+        base_url: str, token: str, method: str, path: str, payload=None
+    ) -> dict[str, object]:
         body = json.dumps(payload).encode("utf-8") if payload is not None else None
         request = urllib.request.Request(
             f"{base_url}{path}",
             data=body,
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
             method=method,
         )
         try:
@@ -57,6 +62,7 @@ class CommandProtocolTests(unittest.TestCase):
             with RunningCoordinator.start(config) as running:
                 first = self._request(
                     running.base_url,
+                    running.token,
                     "POST",
                     "/command",
                     {
@@ -67,6 +73,7 @@ class CommandProtocolTests(unittest.TestCase):
                 )
                 query = self._request(
                     running.base_url,
+                    running.token,
                     "GET",
                     f"/command/requests/{request_id}",
                 )
@@ -622,6 +629,7 @@ class CommandProtocolTests(unittest.TestCase):
                     response.update(
                         self._request(
                             running.base_url,
+                            running.token,
                             "POST",
                             "/command",
                             {
@@ -639,6 +647,7 @@ class CommandProtocolTests(unittest.TestCase):
                         self.assertTrue(entered.wait(timeout=1))
                         query = self._request(
                             running.base_url,
+                            running.token,
                             "GET",
                             f"/command/requests/{request_id}",
                         )
