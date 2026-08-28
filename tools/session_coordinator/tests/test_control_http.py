@@ -323,6 +323,8 @@ class ControlHttpTests(unittest.TestCase):
                 with patch.object(
                     application.supervision, "require_mutation_allowed"
                 ) as require_admission:
+                    # The Codex worker may check admission while this global mock is installed.
+                    self.assertTrue(application._codex_sync_writable())
                     result = application.advance_validation_queue(
                         actor="loopback-console", require_admission=True
                     )
@@ -337,13 +339,12 @@ class ControlHttpTests(unittest.TestCase):
                     finally:
                         application._validation_ticket_tick_lock.release()
 
-            self.assertEqual(2, require_admission.call_count)
-            self.assertTrue(
-                all(
-                    item.args == ("validation.queue_continue",)
-                    for item in require_admission.call_args_list
-                )
+            admission_operations = [item.args for item in require_admission.call_args_list]
+            self.assertEqual(
+                2,
+                admission_operations.count(("validation.queue_continue",)),
             )
+            self.assertIn(("codex.sessions.reconcile",), admission_operations)
             self.assertEqual("validation_queue_busy", rejected.exception.code)
             application.validation_ticket_worker.tick.assert_called_once_with()
             self.assertEqual("ticket-next", result["ticket"]["ticketId"])
