@@ -77,16 +77,22 @@ class ZirconBuildShaderPermutationRegistryContractTests(unittest.TestCase):
                     config=config,
                 )
 
-    def test_prewarm_shaders_validates_generated_registry_before_run(self):
+    @patch.object(zircon_build, "managed_cargo_environment")
+    def test_prewarm_shaders_validates_generated_registry_before_run(
+        self, managed_cargo_environment
+    ):
         with tempfile.TemporaryDirectory() as temp_dir:
             config = _FakePrewarmConfig()
             config.engine_root = Path(temp_dir) / "ZirconEngine"
             config.shader_geometry_source_ids = ("custom:gpu-driven=4",)
             events: list[str] = []
+            managed_environment = {"ZR_TEST_MANAGED_ENV": "1"}
+            managed_cargo_environment.return_value = managed_environment
 
-            def fake_run(command, cwd, check):
+            def fake_run(command, cwd, check, env):
                 self.assertFalse(check)
                 self.assertEqual(config.repo_root, cwd)
+                self.assertIs(managed_environment, env)
                 events.append("run")
                 return subprocess.CompletedProcess(command, 0)
 
@@ -113,6 +119,9 @@ class ZirconBuildShaderPermutationRegistryContractTests(unittest.TestCase):
                         ):
                             zircon_build.prewarm_shaders(config)
 
+            managed_cargo_environment.assert_called_once_with(
+                config.targets_root / "shader_prewarm", config.targets_root
+            )
             self.assertEqual(
                 [
                     f"permutation:{config.shader_prewarm_permutation_registry_path}:True",
@@ -123,7 +132,10 @@ class ZirconBuildShaderPermutationRegistryContractTests(unittest.TestCase):
                 events,
             )
 
-    def test_prewarm_shaders_passes_selected_custom_ids_to_acceptance_contract(self):
+    @patch.object(zircon_build, "managed_cargo_environment")
+    def test_prewarm_shaders_passes_selected_custom_ids_to_acceptance_contract(
+        self, managed_cargo_environment
+    ):
         with tempfile.TemporaryDirectory() as temp_dir:
             config = _FakePrewarmConfig()
             config.engine_root = Path(temp_dir) / "ZirconEngine"
@@ -135,10 +147,13 @@ class ZirconBuildShaderPermutationRegistryContractTests(unittest.TestCase):
                 ),
             )
             captured_acceptance_config = []
+            managed_environment = {"ZR_TEST_MANAGED_ENV": "1"}
+            managed_cargo_environment.return_value = managed_environment
 
-            def fake_run(command, cwd, check):
+            def fake_run(command, cwd, check, env):
                 self.assertFalse(check)
                 self.assertEqual(config.repo_root, cwd)
+                self.assertIs(managed_environment, env)
                 return subprocess.CompletedProcess(command, 0)
 
             def fake_acceptance_contract(actual_config):
@@ -162,6 +177,9 @@ class ZirconBuildShaderPermutationRegistryContractTests(unittest.TestCase):
                         ):
                             zircon_build.prewarm_shaders(config)
 
+            managed_cargo_environment.assert_called_once_with(
+                config.targets_root / "shader_prewarm", config.targets_root
+            )
             self.assertEqual([config], captured_acceptance_config)
             self.assertEqual(("custom:gpu-driven=4",), config.shader_geometry_source_ids)
             self.assertEqual(
