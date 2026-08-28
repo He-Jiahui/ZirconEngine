@@ -10,6 +10,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ZIRCON_BUILD = REPO_ROOT / "tools/zircon_build.py"
 ZIRCON_BUILD_HUB = REPO_ROOT / "tools/zircon_build_hub.py"
+ZIRCON_BUILD_HUB_OUTPUTS = REPO_ROOT / "tools/zircon_build_hub_outputs.py"
 
 
 class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
@@ -20,6 +21,7 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
         )
         build_text = ZIRCON_BUILD.read_text(encoding="utf-8")
         hub_text = ZIRCON_BUILD_HUB.read_text(encoding="utf-8")
+        outputs_text = ZIRCON_BUILD_HUB_OUTPUTS.read_text(encoding="utf-8")
 
         self.assertIn("from .zircon_build_hub import build_hub", build_text)
         self.assertIn("from zircon_build_hub import build_hub", build_text)
@@ -28,8 +30,7 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
             "build_hub",
             "tauri_cli_path",
             "run_tauri_build",
-            "stage_hub_tauri_outputs",
-            "stage_hub_tauri_installers",
+            "hub_cargo_environment",
         ):
             self.assertNotIn(
                 f"def {function_name}(",
@@ -38,13 +39,23 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
             )
             self.assertIn(f"def {function_name}(", hub_text)
 
-        for constant_name in ("HUB_TAURI_BUNDLE_TARGET", "HUB_INSTALLERS_DIR_NAME"):
+        for function_name in (
+            "stage_hub_tauri_outputs",
+            "stage_hub_tauri_installers",
+        ):
             self.assertNotIn(
-                f"{constant_name} =",
-                build_text,
-                f"{constant_name} belongs in zircon_build_hub.py",
+                f"def {function_name}(",
+                hub_text,
+                f"{function_name} belongs in zircon_build_hub_outputs.py",
             )
-            self.assertIn(f"{constant_name} =", hub_text)
+            self.assertIn(f"def {function_name}(", outputs_text)
+
+        self.assertIn("from .zircon_build_hub_outputs import", hub_text)
+        self.assertIn("from zircon_build_hub_outputs import", hub_text)
+
+        for constant_name in ("HUB_TAURI_BUNDLE_TARGET", "HUB_INSTALLERS_DIR_NAME"):
+            self.assertNotIn(f"{constant_name} =", hub_text)
+            self.assertIn(f"{constant_name} =", outputs_text)
 
         self.assertIn("def hub_cargo_environment(", hub_text)
         self.assertIn("zircon_build_cargo_environment", hub_text)
@@ -52,16 +63,18 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
 
         self.assertLessEqual(
             len(hub_text.splitlines()),
-            180,
-            "zircon_build_hub.py should stay focused on Hub/Tauri staging",
+            130,
+            "zircon_build_hub.py should stay focused on Hub/Tauri execution",
+        )
+        self.assertLessEqual(
+            len(outputs_text.splitlines()),
+            150,
+            "zircon_build_hub_outputs.py should stay focused on output staging",
         )
 
     def test_hub_owner_preserves_staging_semantics(self):
-        from tools.zircon_build_hub import (
-            build_hub,
-            hub_cargo_environment,
-            stage_hub_tauri_outputs,
-        )
+        from tools.zircon_build_hub import build_hub, hub_cargo_environment
+        from tools.zircon_build_hub_outputs import stage_hub_tauri_outputs
 
         managed_temp_root = r"D:\ZirconBuilds" if os.name == "nt" else None
         with tempfile.TemporaryDirectory(dir=managed_temp_root) as tmp:
