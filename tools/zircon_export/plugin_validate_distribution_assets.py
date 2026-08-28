@@ -5,21 +5,15 @@ from __future__ import annotations
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
+from .plugin_validate_distribution_asset_matches import (
+    plugin_validate_distribution_asset_matches,
+)
 from .plugin_validate_distribution_zui_assets import (
     validate_plugin_distribution_zui_asset,
 )
 
 
 PLUGIN_VALIDATE_RETIRED_UI_ASSET_SUFFIXES = (".v2.ui.toml", ".ui.toml")
-
-
-def _portable_distribution_asset_glob(pattern: str) -> str:
-    pattern_path = Path(pattern)
-    if pattern_path.name == "**":
-        # Python 3.12 yields only the directory for a terminal `**`, while
-        # newer versions also yield its contents. The manifest contract is recursive.
-        return str(pattern_path / "*")
-    return pattern
 
 
 def _is_plugin_relative_asset_glob(pattern: str) -> bool:
@@ -87,27 +81,14 @@ def plugin_validate_distribution_assets(
             continue
         if plugin_root is None or resolved_plugin_root is None:
             continue
-        try:
-            matches = sorted(
-                path
-                for path in plugin_root.glob(_portable_distribution_asset_glob(raw_pattern))
-                if path.is_file()
-            )
-        except (OSError, ValueError, NotImplementedError) as error:
-            diagnostics.append(f"{item_label} could not be matched: {error}")
-            continue
-        if not matches:
-            diagnostics.append(f"{item_label} matched no plugin asset files")
-            continue
-        for source_path in matches:
-            resolved_source = source_path.resolve()
-            try:
-                relative_source = resolved_source.relative_to(resolved_plugin_root)
-            except ValueError:
-                diagnostics.append(
-                    f"{item_label} matched asset outside plugin root: {resolved_source}"
-                )
-                continue
+        matches = plugin_validate_distribution_asset_matches(
+            pattern=raw_pattern,
+            plugin_root=plugin_root,
+            resolved_plugin_root=resolved_plugin_root,
+            item_label=item_label,
+            diagnostics=diagnostics,
+        )
+        for source_path, relative_source in matches:
             if plugin_validate_retired_ui_asset_suffix(relative_source) is not None:
                 diagnostics.append(
                     f"{item_label} matched retired UI asset suffix "

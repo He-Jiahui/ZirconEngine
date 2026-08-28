@@ -26,6 +26,10 @@ PLUGIN_VALIDATE_DISTRIBUTION_SCALARS = (
 PLUGIN_VALIDATE_DISTRIBUTION_ASSETS = (
     REPO_ROOT / "tools/zircon_export/plugin_validate_distribution_assets.py"
 )
+PLUGIN_VALIDATE_DISTRIBUTION_ASSET_MATCHES = (
+    REPO_ROOT
+    / "tools/zircon_export/plugin_validate_distribution_asset_matches.py"
+)
 PLUGIN_VALIDATE_DISTRIBUTION_ENGINE_COMPAT = (
     REPO_ROOT / "tools/zircon_export/plugin_validate_distribution_engine_compat.py"
 )
@@ -296,6 +300,13 @@ class PluginValidateDistributionOwnerBoundaryTests(unittest.TestCase):
             encoding="utf-8"
         )
         assets_text = PLUGIN_VALIDATE_DISTRIBUTION_ASSETS.read_text(encoding="utf-8")
+        self.assertTrue(
+            PLUGIN_VALIDATE_DISTRIBUTION_ASSET_MATCHES.exists(),
+            "distribution asset filesystem matching belongs in a dedicated leaf owner",
+        )
+        asset_matches_text = PLUGIN_VALIDATE_DISTRIBUTION_ASSET_MATCHES.read_text(
+            encoding="utf-8"
+        )
 
         self.assertNotIn(
             "def plugin_validate_distribution_assets(",
@@ -330,12 +341,17 @@ class PluginValidateDistributionOwnerBoundaryTests(unittest.TestCase):
             distribution_text,
             "distribution contract owner should import distribution.assets validation from the leaf owner",
         )
+        self.assertNotIn("plugin_root.glob(", distribution_text)
         self.assertNotIn(
             "plugin_root.glob(",
-            distribution_text,
-            "filesystem glob matching belongs in plugin_validate_distribution_assets.py",
+            assets_text,
+            "filesystem glob matching belongs in its dedicated leaf owner",
         )
-        self.assertIn("plugin_root.glob(", assets_text)
+        self.assertIn("plugin_root.glob(", asset_matches_text)
+        self.assertIn(
+            "from .plugin_validate_distribution_asset_matches import",
+            assets_text,
+        )
         for forbidden_import in (
             "from .plugin_build import",
             "from .plugin_validate import",
@@ -355,6 +371,11 @@ class PluginValidateDistributionOwnerBoundaryTests(unittest.TestCase):
             len(assets_text.splitlines()),
             120,
             "distribution.assets owner should stay small and focused",
+        )
+        self.assertLessEqual(
+            len(asset_matches_text.splitlines()),
+            70,
+            "distribution asset filesystem match owner should stay focused",
         )
 
     def test_distribution_engine_compat_lives_in_engine_compat_owner(self):
