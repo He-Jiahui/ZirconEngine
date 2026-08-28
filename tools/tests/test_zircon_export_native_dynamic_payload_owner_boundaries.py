@@ -17,6 +17,14 @@ NATIVE_DYNAMIC_PAYLOAD_PACKAGE_REPORT = (
     REPO_ROOT
     / "tools/zircon_export/pipeline_report_native_dynamic_payload_package_report.py"
 )
+NATIVE_DYNAMIC_PAYLOAD_PACKAGE_PATH = (
+    REPO_ROOT
+    / "tools/zircon_export/pipeline_report_native_dynamic_payload_package_path.py"
+)
+NATIVE_DYNAMIC_STAGE_PACKAGE_REPORT = (
+    REPO_ROOT
+    / "tools/zircon_export/pipeline_report_native_dynamic_stage_package_report.py"
+)
 
 
 class ZirconExportNativeDynamicPayloadOwnerBoundaryTests(unittest.TestCase):
@@ -55,10 +63,22 @@ class ZirconExportNativeDynamicPayloadOwnerBoundaryTests(unittest.TestCase):
                 package_report_text,
             )
 
-        self.assertIn(
-            "from .pipeline_report_native_dynamic_payload_package_report import",
+        import_statement = (
+            "from .pipeline_report_native_dynamic_payload_package_report import"
+        )
+        for consumer_path in (
+            NATIVE_DYNAMIC_PAYLOAD_PACKAGE_PATH,
+            NATIVE_DYNAMIC_STAGE_PACKAGE_REPORT,
+        ):
+            self.assertIn(
+                import_statement,
+                consumer_path.read_text(encoding="utf-8"),
+                f"{consumer_path.name} should consume the package-report owner",
+            )
+        self.assertNotIn(
+            import_statement,
             handoff_text,
-            "PlatformBundle payload handoff should consume the package-report owner",
+            "PlatformBundle payload orchestration should delegate package-report checks",
         )
         self.assertNotIn(
             "from .pipeline_report_native_dynamic_payload import",
