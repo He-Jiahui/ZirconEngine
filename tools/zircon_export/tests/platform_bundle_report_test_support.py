@@ -5,9 +5,8 @@ import json
 from pathlib import Path
 
 from tools.zircon_export.tests.export_test_support import (
-    _compile_host_link_plan,
-    _compile_host_plan,
     _pack_binary_bytes,
+    _write_compile_host_report,
     _write_validate_report_with_strategies,
 )
 from tools.zircon_export.tests.native_dynamic_export_test_support import (
@@ -49,10 +48,11 @@ def _write_platform_bundle_fixture(
     template_output: Path | None = None,
 ) -> dict[str, Path]:
     profile = "windows-release"
-    host = out / "compile" / "zircon_runtime.exe"
+    staged_root = out / "stages" / "compile_host" / "staged"
+    host = staged_root / "ZirconEngine" / "zircon_hub.exe"
     pack = out / "pack-output" / "assets.zrpack"
     bundle_dir = bundle_dir or out / "bundle" / profile
-    platform_host = host_output or bundle_dir / "zircon_runtime.exe"
+    platform_host = host_output or bundle_dir / host.name
     platform_pack = pack_output or bundle_dir / "assets.zrpack"
     delta_pack = out / "pack-output" / "assets.delta.zrpd"
     previous_pack = out / "pack-output" / "previous.zrpack"
@@ -178,22 +178,7 @@ def _write_platform_bundle_fixture(
             "materialized_packages": native_stage_materialized_packages,
         },
     )
-    _write_report(
-        out,
-        "compile_host",
-        {
-            "stage": "CompileHost",
-            "profile": profile,
-            "fatal": False,
-            "diagnostics": [],
-            "command": list(_compile_host_plan()["command"]),
-            "exit_code": 0,
-            "host_executable": str(host),
-            "link_plan": _compile_host_link_plan(),
-            "stdout_lines": [],
-            "stderr_lines": [],
-        },
-    )
+    _write_compile_host_report(out, host, profile=profile)
     _write_report(
         out,
         "cook_assets",
