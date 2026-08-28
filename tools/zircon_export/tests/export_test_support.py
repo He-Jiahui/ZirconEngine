@@ -695,6 +695,7 @@ def _write_validate_report_with_native_dynamic_exports(
         json_dumps(
             {
                 "stage": "Validate",
+                "schema_version": 2,
                 "profile": "windows-release",
                 "project_manifest": str(out / "zircon-project.toml"),
                 "stage_output": str(report_dir),
