@@ -11,11 +11,41 @@ TEMPLATE_MANIFEST_FILES_SCHEMA = (
     REPO_ROOT
     / "tools/zircon_export/pipeline_report_platform_bundle_template_manifest_files_schema.py"
 )
+TEMPLATE_MANIFEST_LOADER = (
+    REPO_ROOT
+    / "tools/zircon_export/pipeline_report_platform_bundle_template_manifest_loader.py"
+)
 
 
 class ZirconExportPlatformBundleTemplateManifestFilesOwnerBoundaryTests(
     unittest.TestCase
 ):
+    def test_template_manifest_loading_lives_in_dedicated_owner(self):
+        self.assertTrue(
+            TEMPLATE_MANIFEST_LOADER.exists(),
+            "PlatformBundle template manifest loading needs a dedicated owner",
+        )
+        schema_text = TEMPLATE_MANIFEST_SCHEMA.read_text(encoding="utf-8")
+        loader_text = TEMPLATE_MANIFEST_LOADER.read_text(encoding="utf-8")
+
+        self.assertNotIn("import tomllib", schema_text)
+        self.assertNotIn("def template_report_manifest_load(", schema_text)
+        self.assertIn("import tomllib", loader_text)
+        self.assertIn("def template_report_manifest_load(", loader_text)
+        self.assertIn(
+            "from .pipeline_report_platform_bundle_template_manifest_loader import",
+            schema_text,
+        )
+        self.assertNotIn(
+            "from .pipeline_report_platform_bundle_template_manifest_schema import",
+            loader_text,
+        )
+        self.assertLess(
+            len(loader_text.splitlines()),
+            100,
+            "template manifest loader should remain a focused leaf",
+        )
+
     def test_template_manifest_files_schema_lives_in_dedicated_owner(self):
         self.assertTrue(
             TEMPLATE_MANIFEST_FILES_SCHEMA.exists(),

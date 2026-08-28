@@ -3,12 +3,6 @@
 from __future__ import annotations
 
 from typing import Any
-from pathlib import Path
-
-try:
-    import tomllib
-except ModuleNotFoundError:  # pragma: no cover - Python <3.11 fallback.
-    import tomli as tomllib  # type: ignore[no-redef]
 
 from .export_template import (
     EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS,
@@ -16,7 +10,6 @@ from .export_template import (
     EXPORT_TEMPLATE_ALLOWED_HOST_KINDS,
     EXPORT_TEMPLATE_ALLOWED_PLUGIN_STRATEGIES,
     EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES,
-    EXPORT_TEMPLATE_FORMAT_VERSION,
     EXPORT_TEMPLATE_MANIFEST_FIELDS,
     EXPORT_TEMPLATE_PATHS_FIELDS,
 )
@@ -30,6 +23,9 @@ from .export_template_manifest import (
 from .pipeline_report_platform_bundle_template_manifest_identity import (
     TEMPLATE_MANIFEST_BUNDLE_DEFAULTS,
     template_manifest_identity_diagnostic,
+)
+from .pipeline_report_platform_bundle_template_manifest_loader import (
+    template_report_manifest_load,
 )
 from .pipeline_report_platform_bundle_template_manifest_files_schema import (
     template_manifest_files_presence_diagnostic,
@@ -69,45 +65,14 @@ def template_report_manifest_path_diagnostics(
     label: str,
     template: dict[str, Any],
 ) -> list[str]:
-    template_dir = template.get("template_dir")
-    manifest = template.get("manifest")
-    if (
-        not isinstance(template_dir, str)
-        or not template_dir.strip()
-        or not isinstance(manifest, str)
-        or not manifest.strip()
-    ):
+    manifest, template_root, load_diagnostic = template_report_manifest_load(
+        label,
+        template,
+    )
+    if load_diagnostic is not None:
+        return [load_diagnostic]
+    if manifest is None or template_root is None:
         return []
-    try:
-        expected_manifest = (Path(template_dir).expanduser() / "template.toml").resolve()
-        actual_manifest = Path(manifest).expanduser().resolve()
-    except OSError as error:
-        return [f"{label}.manifest could not be resolved: {error}"]
-    if actual_manifest != expected_manifest:
-        return [
-            f"{label}.manifest does not match template_dir/template.toml"
-        ]
-    if not actual_manifest.exists():
-        return [f"{label}.manifest {actual_manifest} does not exist"]
-    if not actual_manifest.is_file():
-        return [f"{label}.manifest {actual_manifest} is not a file"]
-    try:
-        with actual_manifest.open("rb") as manifest_file:
-            manifest = tomllib.load(manifest_file)
-    except OSError as error:
-        return [f"{label}.manifest {actual_manifest} could not be read: {error}"]
-    except tomllib.TOMLDecodeError as error:
-        return [f"{label}.manifest {actual_manifest} is not valid TOML: {error}"]
-    if not isinstance(manifest, dict):
-        return [f"{label}.manifest {actual_manifest} must be a TOML table"]
-    format_version = manifest.get("format_version")
-    if type(format_version) is not int:
-        return [f"{label}.manifest format_version must be an integer"]
-    if format_version != EXPORT_TEMPLATE_FORMAT_VERSION:
-        return [
-            f"{label}.manifest format_version {format_version} is not supported; "
-            f"expected {EXPORT_TEMPLATE_FORMAT_VERSION}"
-        ]
     unknown_field_diagnostic = template_manifest_unknown_field_diagnostic(
         label,
         manifest,
@@ -156,7 +121,7 @@ def template_report_manifest_path_diagnostics(
         label,
         manifest,
         template,
-        expected_manifest.parent,
+        template_root,
     )
     if identity_diagnostic:
         return [identity_diagnostic]
