@@ -23,6 +23,10 @@ PACK_DELTA_SCHEMA = (
 PACK_DELTA_SEMANTICS = (
     REPO_ROOT / "tools/zircon_export/pipeline_report_pack_delta_semantics.py"
 )
+PACK_DELTA_ASSET_SET_SEMANTICS = (
+    REPO_ROOT
+    / "tools/zircon_export/pipeline_report_pack_delta_asset_set_semantics.py"
+)
 PACK_TRIM_SCHEMA = (
     REPO_ROOT / "tools/zircon_export/pipeline_report_pack_trim_schema.py"
 )
@@ -178,8 +182,8 @@ class PackManifestSchemaHelperOwnerBoundaryTests(unittest.TestCase):
             ("pack manifest schema", schema_text),
             ("pack delta schema", delta_text),
             (
-                "pack delta semantics",
-                PACK_DELTA_SEMANTICS.read_text(encoding="utf-8"),
+                "pack delta asset-set semantics",
+                PACK_DELTA_ASSET_SET_SEMANTICS.read_text(encoding="utf-8"),
             ),
             ("pack trim schema", trim_text),
         ):
@@ -188,6 +192,12 @@ class PackManifestSchemaHelperOwnerBoundaryTests(unittest.TestCase):
                 consumer_text,
                 f"{consumer_name} should import path/hash helpers directly",
             )
+
+        self.assertNotIn(
+            import_statement,
+            PACK_DELTA_SEMANTICS.read_text(encoding="utf-8"),
+            "higher-level delta semantics should delegate asset-set path/hash checks",
+        )
 
         path_hash_text = (
             PACK_MANIFEST_PATH_HASH_HELPERS.read_text(encoding="utf-8")
