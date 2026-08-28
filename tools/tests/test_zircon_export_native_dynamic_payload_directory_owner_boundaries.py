@@ -11,6 +11,10 @@ NATIVE_DYNAMIC_PAYLOAD_PLATFORM_BUNDLE = (
     REPO_ROOT
     / "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py"
 )
+NATIVE_DYNAMIC_PAYLOAD_BUNDLE_EVIDENCE = (
+    REPO_ROOT
+    / "tools/zircon_export/pipeline_report_native_dynamic_payload_bundle_evidence.py"
+)
 NATIVE_DYNAMIC_STAGE_PAYLOAD = (
     REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py"
 )
@@ -55,7 +59,7 @@ class ZirconExportNativeDynamicPayloadDirectoryOwnerBoundaryTests(
             "directory payload owner must not import the payload summary owner",
         )
         for consumer_path in (
-            NATIVE_DYNAMIC_PAYLOAD_PLATFORM_BUNDLE,
+            NATIVE_DYNAMIC_PAYLOAD_BUNDLE_EVIDENCE,
             NATIVE_DYNAMIC_STAGE_PAYLOAD,
         ):
             consumer_text = consumer_path.read_text(encoding="utf-8")
@@ -64,6 +68,11 @@ class ZirconExportNativeDynamicPayloadDirectoryOwnerBoundaryTests(
                 consumer_text,
                 f"{consumer_path.name} should consume directory payload helpers directly",
             )
+        self.assertNotIn(
+            "from .native_dynamic_payload_directory import",
+            NATIVE_DYNAMIC_PAYLOAD_PLATFORM_BUNDLE.read_text(encoding="utf-8"),
+            "PlatformBundle payload orchestration should delegate bundle evidence",
+        )
         self.assertLess(
             len(payload_text.splitlines()),
             330,
