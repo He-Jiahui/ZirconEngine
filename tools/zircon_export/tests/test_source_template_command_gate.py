@@ -248,7 +248,7 @@ class SourceTemplateCommandGateTests(unittest.TestCase):
             self.assertEqual(report["command"], [])
             self.assertTrue(
                 any(
-                    "SourceTemplate build plan command must be a non-empty string array"
+                    "SourceTemplate Validate source_template_build command must be a non-empty string array"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
