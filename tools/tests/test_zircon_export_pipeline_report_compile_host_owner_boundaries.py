@@ -8,6 +8,27 @@ PIPELINE_REPORT_COMPILE_HOST = (
     REPO_ROOT / "tools/zircon_export/pipeline_report_compile_host.py"
 )
 
+CURRENT_COMPILE_HOST_FUNCTIONS = (
+    "compile_host_link_plan_diagnostics",
+    "compile_host_command_diagnostics",
+    "command_is_string_list",
+    "command_option_value",
+    "compile_host_host_executable_diagnostics",
+    "validate_library_embed_compile_host_plan",
+    "validate_target_mode",
+    "compile_host_stage_link_plan",
+    "stage_report_payload",
+)
+
+RETIRED_DIRECT_CARGO_COMMAND_FUNCTIONS = (
+    "compile_host_command_alias_match_diagnostics",
+    "compile_host_command_option_match_diagnostics",
+    "compile_host_command_target_dir_match_diagnostics",
+    "command_target_dir_matches_out_root",
+    "compile_host_command_features_match_diagnostics",
+    "compile_host_command_release_flag_diagnostics",
+)
+
 
 class ZirconExportPipelineReportCompileHostOwnerBoundaryTests(unittest.TestCase):
     def test_compile_host_report_diagnostics_live_in_compile_host_owner(self):
@@ -25,26 +46,22 @@ class ZirconExportPipelineReportCompileHostOwnerBoundaryTests(unittest.TestCase)
         )
         self.assertIn("COMPILE_HOST_LINK_PLAN_FIELDS =", compile_host_text)
 
-        for function_name in (
-            "compile_host_link_plan_diagnostics",
-            "compile_host_command_diagnostics",
-            "compile_host_command_alias_match_diagnostics",
-            "compile_host_command_option_match_diagnostics",
-            "compile_host_command_target_dir_match_diagnostics",
-            "command_target_dir_matches_out_root",
-            "compile_host_command_features_match_diagnostics",
-            "compile_host_command_release_flag_diagnostics",
-            "compile_host_host_executable_diagnostics",
-            "validate_library_embed_compile_host_plan",
-            "compile_host_stage_link_plan",
-            "stage_report_payload",
-        ):
+        for function_name in CURRENT_COMPILE_HOST_FUNCTIONS:
             self.assertNotIn(
                 f"def {function_name}(",
                 report_text,
                 f"{function_name} belongs in the CompileHost final Report owner",
             )
             self.assertIn(f"def {function_name}(", compile_host_text)
+
+        for function_name in RETIRED_DIRECT_CARGO_COMMAND_FUNCTIONS:
+            definition = f"def {function_name}("
+            self.assertNotIn(definition, report_text)
+            self.assertNotIn(
+                definition,
+                compile_host_text,
+                f"{function_name} belongs to the retired direct Cargo contract",
+            )
 
         self.assertIn(
             "from .pipeline_report_compile_host import",
