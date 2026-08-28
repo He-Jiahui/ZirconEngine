@@ -25,13 +25,20 @@ from tools.session_coordinator.tests.helpers import init_repo
 class SessionRegisterDurabilityTests(unittest.TestCase):
     @staticmethod
     def _request(
-        base_url: str, method: str, path: str, payload: dict[str, object] | None = None
+        base_url: str,
+        token: str,
+        method: str,
+        path: str,
+        payload: dict[str, object] | None = None,
     ) -> dict[str, object]:
         body = json.dumps(payload).encode("utf-8") if payload is not None else None
         request = urllib.request.Request(
             f"{base_url}{path}",
             data=body,
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
             method=method,
         )
         try:
@@ -68,6 +75,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                     request_id = str(ordinal) * 32
                     registered = self._request(
                         running.base_url,
+                        running.token,
                         "POST",
                         "/command",
                         self._payload(
@@ -80,6 +88,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                     )
                     terminal = self._request(
                         running.base_url,
+                        running.token,
                         "GET",
                         f"/command/requests/{request_id}",
                     )
@@ -427,8 +436,12 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                 with mock.patch.object(
                     application.sessions, "register", side_effect=counted
                 ):
-                    first = self._request(running.base_url, "POST", "/command", payload)
-                    second = self._request(running.base_url, "POST", "/command", payload)
+                    first = self._request(
+                        running.base_url, running.token, "POST", "/command", payload
+                    )
+                    second = self._request(
+                        running.base_url, running.token, "POST", "/command", payload
+                    )
 
         first.pop("_httpStatus")
         second.pop("_httpStatus")
@@ -461,8 +474,12 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                         wraps=application.failures.import_prepared_snapshot,
                     ) as imported,
                 ):
-                    first = self._request(running.base_url, "POST", "/command", payload)
-                    second = self._request(running.base_url, "POST", "/command", payload)
+                    first = self._request(
+                        running.base_url, running.token, "POST", "/command", payload
+                    )
+                    second = self._request(
+                        running.base_url, running.token, "POST", "/command", payload
+                    )
 
         first.pop("_httpStatus")
         second.pop("_httpStatus")
@@ -564,6 +581,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                     response.update(
                         self._request(
                             running.base_url,
+                            running.token,
                             "POST",
                             "/command",
                             self._payload(request_id, "session-a"),
@@ -579,6 +597,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                         self.assertTrue(entered.wait(timeout=2))
                         accepted = self._request(
                             running.base_url,
+                            running.token,
                             "GET",
                             f"/command/requests/{request_id}",
                         )
@@ -587,6 +606,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                         worker.join(timeout=5)
                 terminal = self._request(
                     running.base_url,
+                    running.token,
                     "GET",
                     f"/command/requests/{request_id}",
                 )
@@ -624,6 +644,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
             with RunningCoordinator.start(config) as running:
                 terminal = self._request(
                     running.base_url,
+                    running.token,
                     "GET",
                     f"/command/requests/{request_id}",
                 )
@@ -647,6 +668,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                 failed_id = "d" * 32
                 self._request(
                     running.base_url,
+                    running.token,
                     "POST",
                     "/command",
                     self._payload(
@@ -658,6 +680,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                 )
                 failed = self._request(
                     running.base_url,
+                    running.token,
                     "POST",
                     "/command",
                     self._payload(
@@ -669,6 +692,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
                 )
                 terminal = self._request(
                     running.base_url,
+                    running.token,
                     "GET",
                     f"/command/requests/{failed_id}",
                 )
