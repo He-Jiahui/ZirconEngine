@@ -7,6 +7,7 @@ STAGE_HANDOFF = REPO_ROOT / "tools/zircon_export/stage_handoff.py"
 STAGE_HANDOFF_STRATEGY = (
     REPO_ROOT / "tools/zircon_export/stage_handoff_strategy.py"
 )
+SOURCE_TEMPLATE_ORCHESTRATOR = REPO_ROOT / "tools/zircon_export/source_template.py"
 STRATEGY_CONSUMERS = (
     REPO_ROOT / "tools/zircon_export/compile_host_plan.py",
     REPO_ROOT / "tools/zircon_export/cook_assets.py",
@@ -15,7 +16,7 @@ STRATEGY_CONSUMERS = (
     REPO_ROOT / "tools/zircon_export/pipeline_report.py",
     REPO_ROOT / "tools/zircon_export/pipeline_stages.py",
     REPO_ROOT / "tools/zircon_export/platform_bundle_strategy_handoff.py",
-    REPO_ROOT / "tools/zircon_export/source_template.py",
+    REPO_ROOT / "tools/zircon_export/source_template_plan_command.py",
 )
 
 
@@ -70,6 +71,11 @@ class ZirconExportStageHandoffStrategyOwnerBoundaryTests(unittest.TestCase):
                 text,
                 f"{consumer.name} should consume strategy helpers directly",
             )
+
+    def test_source_template_orchestrator_delegates_strategy_planning(self):
+        text = SOURCE_TEMPLATE_ORCHESTRATOR.read_text(encoding="utf-8")
+        self.assertIn("from .source_template_plan_command import", text)
+        self.assertNotIn("from .stage_handoff_strategy import", text)
 
     def test_stage_handoff_owners_stay_under_large_file_thresholds(self):
         stage_handoff_lines = len(STAGE_HANDOFF.read_text(encoding="utf-8").splitlines())
