@@ -129,7 +129,7 @@ class ControlPlaneRouter:
                     "Bootstrap tickets require the local runtime credential",
                 )
             payload = self._json_body(body)
-            role = WebControlRole(str(payload.get("role") or "observer"))
+            role = self._control_role(payload, default=WebControlRole.OBSERVER)
             actor = str(payload.get("actor") or "local-cli")
             ticket = self.auth.issue_bootstrap_ticket(
                 actor, self.instance_id, role=role
@@ -152,7 +152,7 @@ class ControlPlaneRouter:
                     "Elevation grants require the local runtime credential",
                 )
             payload = self._json_body(body)
-            role = WebControlRole(str(payload.get("role") or "operator"))
+            role = self._control_role(payload, default=WebControlRole.OPERATOR)
             maintenance_authorized = False
             if role is WebControlRole.MAINTAINER:
                 if self.maintenance_authorizer is None:
@@ -476,8 +476,20 @@ class ControlPlaneRouter:
             return {}
         try:
             payload = json.loads(body.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
             raise CoordinatorError("invalid_json", "Request body must be valid JSON") from error
         if not isinstance(payload, dict):
             raise CoordinatorError("invalid_request", "Request body must be a JSON object")
         return payload
+
+    @staticmethod
+    def _control_role(
+        payload: Mapping[str, object], *, default: WebControlRole
+    ) -> WebControlRole:
+        value = payload.get("role") or default.value
+        if not isinstance(value, str):
+            raise CoordinatorError("invalid_request", "Control role is invalid")
+        try:
+            return WebControlRole(value)
+        except ValueError as error:
+            raise CoordinatorError("invalid_request", "Control role is invalid") from error

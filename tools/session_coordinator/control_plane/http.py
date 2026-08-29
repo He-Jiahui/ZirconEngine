@@ -151,10 +151,42 @@ class ControlPlaneHttp:
 
     @staticmethod
     def _read_body(handler) -> bytes:
-        length = int(handler.headers.get("Content-Length", "0"))
-        if length < 0 or length > 1024 * 1024:
+        transfer_encoding = handler.headers.get("Transfer-Encoding")
+        if transfer_encoding is not None:
+            raise CoordinatorError(
+                "unsupported_transfer_encoding",
+                "Control requests must use a Content-Length body",
+            )
+
+        get_all = getattr(handler.headers, "get_all", None)
+        lengths = list(get_all("Content-Length", [])) if get_all else []
+        if not lengths:
+            value = handler.headers.get("Content-Length")
+            lengths = [] if value is None else [value]
+        if len(lengths) > 1:
+            raise CoordinatorError(
+                "invalid_content_length",
+                "Content-Length must be specified exactly once",
+            )
+        value = lengths[0] if lengths else "0"
+        if not isinstance(value, str) or not value.isascii() or not value.isdigit():
+            raise CoordinatorError(
+                "invalid_content_length",
+                "Content-Length must be a non-negative decimal length",
+            )
+        normalized = value.lstrip("0") or "0"
+        if len(normalized) > len(str(1024 * 1024)):
             raise CoordinatorError("request_too_large", "Control request exceeds one MiB")
-        return handler.rfile.read(length) if length else b""
+        length = int(normalized)
+        if length > 1024 * 1024:
+            raise CoordinatorError("request_too_large", "Control request exceeds one MiB")
+        body = handler.rfile.read(length) if length else b""
+        if len(body) != length:
+            raise CoordinatorError(
+                "incomplete_request_body",
+                "Control request body is shorter than Content-Length",
+            )
+        return body
 
     @staticmethod
     def _write_response(handler, response: ControlResponse, correlation_id: str) -> None:
@@ -203,8 +235,12 @@ class ControlPlaneHttp:
             "invalid_json",
             "invalid_request",
             "invalid_cursor",
+            "invalid_content_length",
+            "incomplete_request_body",
+            "history_limit_invalid",
             "request_too_large",
             "action_limit_invalid",
+            "unsupported_transfer_encoding",
         }:
             return HTTPStatus.BAD_REQUEST
         if code == "invalid_range":

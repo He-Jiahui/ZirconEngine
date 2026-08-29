@@ -17,6 +17,15 @@ COMMAND_REQUEST_RETENTION_DAYS = 7
 MAX_TERMINAL_COMMAND_REQUESTS = 10_000
 EPHEMERAL_REQUEST_RETENTION_DAYS = 1
 MAX_EPHEMERAL_COMMAND_REQUESTS = 10_000
+INTERNAL_COMMAND_ERROR_MESSAGE = "Coordinator command failed unexpectedly"
+
+
+def unexpected_command_error(correlation_id: str) -> CoordinatorError:
+    return CoordinatorError(
+        "internal_error",
+        INTERNAL_COMMAND_ERROR_MESSAGE,
+        details={"correlationId": correlation_id},
+    )
 
 
 class CommandRequestJournal:
@@ -124,7 +133,7 @@ class CommandRequestJournal:
         except BaseException as error:
             self._record_failure(
                 request_id,
-                CoordinatorError("internal_error", str(error) or type(error).__name__),
+                unexpected_command_error(request_id),
             )
             raise
 
@@ -185,7 +194,7 @@ class CommandRequestJournal:
                     issue = (
                         error
                         if isinstance(error, CoordinatorError)
-                        else CoordinatorError("internal_error", str(error) or type(error).__name__)
+                        else unexpected_command_error(request_id)
                     )
                     connection.execute(
                         """
@@ -299,7 +308,7 @@ class CommandRequestJournal:
                         issue = (
                             error
                             if isinstance(error, CoordinatorError)
-                            else CoordinatorError("internal_error", str(error) or type(error).__name__)
+                            else unexpected_command_error(request_id)
                         )
                         connection.execute(
                             """
@@ -326,7 +335,7 @@ class CommandRequestJournal:
         except BaseException as error:
             self._record_or_defer_failure(
                 request_id,
-                CoordinatorError("internal_error", str(error) or type(error).__name__),
+                unexpected_command_error(request_id),
             )
             raise
 

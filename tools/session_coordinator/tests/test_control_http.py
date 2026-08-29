@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import http.cookiejar
+from email.message import Message
+from io import BytesIO
 import json
 import tempfile
 import time
@@ -14,13 +16,294 @@ from unittest.mock import Mock, patch
 from tools.session_coordinator.client import CoordinatorClient
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.control_plane.actions.models import ActionContext, ActionKind
+from tools.session_coordinator.control_plane.http import ControlPlaneHttp
+from tools.session_coordinator.control_plane.router import ControlPlaneRouter
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.models import CoordinatorError, WebControlRole
-from tools.session_coordinator.server import RunningCoordinator
+from tools.session_coordinator.server import CoordinatorRequestHandler, RunningCoordinator
 from tools.session_coordinator.tests.helpers import init_repo
 
 
 class ControlHttpTests(unittest.TestCase):
+    def test_json_body_types_extremely_large_numbers(self) -> None:
+        with self.assertRaises(CoordinatorError) as rejected:
+            ControlPlaneRouter._json_body(b'{"value":' + b"9" * 5000 + b"}")
+
+        self.assertEqual("invalid_json", rejected.exception.code)
+        self.assertEqual("Request body must be valid JSON", rejected.exception.message)
+
+    def test_history_limit_errors_map_to_bad_request(self) -> None:
+        with self.assertRaises(CoordinatorError) as rejected:
+            ControlPlaneRouter._history_limit(
+                "/control/v1/failures/history?limit=not-an-integer",
+                default=100,
+            )
+
+        self.assertEqual("history_limit_invalid", rejected.exception.code)
+        self.assertEqual(400, ControlPlaneHttp._status_for(rejected.exception.code))
+
+    def test_history_limit_error_projects_as_400(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/failures/history?limit=invalid",
+                    headers={"Origin": running.base_url},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as rejected:
+                    urllib.request.urlopen(request, timeout=2)
+                body = json.loads(rejected.exception.read())
+                rejected.exception.close()
+
+        self.assertEqual(400, rejected.exception.code)
+        self.assertEqual("history_limit_invalid", body["error"]["code"])
+
+    def test_runtime_role_endpoints_type_malformed_roles(self) -> None:
+        router = ControlPlaneRouter(
+            instance_id="instance-a",
+            auth=SimpleNamespace(),
+            snapshot=SimpleNamespace(),
+            workflows=SimpleNamespace(),
+            database=SimpleNamespace(),
+        )
+        for path, role in (
+            ("/control/v1/bootstrap-tickets", "not-a-role"),
+            ("/control/v1/elevation-grants", ["operator"]),
+        ):
+            with self.subTest(path=path, role=role):
+                with self.assertRaises(CoordinatorError) as rejected:
+                    router.dispatch(
+                        "POST",
+                        path,
+                        {},
+                        json.dumps({"role": role}).encode("utf-8"),
+                        runtime_authorized=True,
+                    )
+
+                self.assertEqual("invalid_request", rejected.exception.code)
+                self.assertEqual("Control role is invalid", rejected.exception.message)
+
+    def test_runtime_role_endpoint_projects_malformed_role_as_400(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/bootstrap-tickets",
+                    data=json.dumps({"role": ["observer"]}).encode("utf-8"),
+                    headers={
+                        "Authorization": f"Bearer {running.token}",
+                        "Content-Type": "application/json",
+                    },
+                    method="POST",
+                )
+                with self.assertRaises(urllib.error.HTTPError) as rejected:
+                    urllib.request.urlopen(request, timeout=2)
+                body = json.loads(rejected.exception.read())
+                rejected.exception.close()
+
+        self.assertEqual(400, rejected.exception.code)
+        self.assertEqual("invalid_request", body["error"]["code"])
+        self.assertEqual("Control role is invalid", body["error"]["message"])
+
+    def test_invalid_content_length_is_typed(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "not-a-number"
+        handler = SimpleNamespace(headers=headers, rfile=BytesIO(b"{}"))
+
+        with self.assertRaises(CoordinatorError) as raised:
+            ControlPlaneHttp._read_body(handler)
+
+        self.assertEqual("invalid_content_length", raised.exception.code)
+
+    def test_conflicting_content_lengths_are_typed(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "2"
+        headers["Content-Length"] = "3"
+        handler = SimpleNamespace(headers=headers, rfile=BytesIO(b"{}"))
+
+        with self.assertRaises(CoordinatorError) as raised:
+            ControlPlaneHttp._read_body(handler)
+
+        self.assertEqual("invalid_content_length", raised.exception.code)
+
+    def test_unsupported_transfer_encoding_is_typed(self) -> None:
+        headers = Message()
+        headers["Transfer-Encoding"] = "chunked"
+        headers["Content-Length"] = "0"
+        handler = SimpleNamespace(headers=headers, rfile=BytesIO(b"0\r\n\r\n"))
+
+        with self.assertRaises(CoordinatorError) as raised:
+            ControlPlaneHttp._read_body(handler)
+
+        self.assertEqual("unsupported_transfer_encoding", raised.exception.code)
+        self.assertEqual(400, ControlPlaneHttp._status_for("unsupported_transfer_encoding"))
+
+    def test_empty_transfer_encoding_is_not_treated_as_unframed(self) -> None:
+        headers = Message()
+        headers["Transfer-Encoding"] = ""
+        handler = SimpleNamespace(headers=headers, rfile=BytesIO(b"{}"))
+
+        with self.assertRaises(CoordinatorError) as raised:
+            ControlPlaneHttp._read_body(handler)
+
+        self.assertEqual("unsupported_transfer_encoding", raised.exception.code)
+
+    def test_bounded_content_length_reads_exact_body(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "2"
+        handler = SimpleNamespace(headers=headers, rfile=BytesIO(b"{}tail"))
+
+        self.assertEqual(b"{}", ControlPlaneHttp._read_body(handler))
+        self.assertEqual(400, ControlPlaneHttp._status_for("invalid_content_length"))
+
+    def test_truncated_content_length_is_typed(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "3"
+        handler = SimpleNamespace(headers=headers, rfile=BytesIO(b"{}"))
+
+        with self.assertRaises(CoordinatorError) as raised:
+            ControlPlaneHttp._read_body(handler)
+
+        self.assertEqual("incomplete_request_body", raised.exception.code)
+        self.assertEqual(400, ControlPlaneHttp._status_for("incomplete_request_body"))
+
+    def test_content_length_limit_remains_one_mib(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = str(1024 * 1024 + 1)
+        handler = SimpleNamespace(headers=headers, rfile=BytesIO())
+
+        with self.assertRaises(CoordinatorError) as raised:
+            ControlPlaneHttp._read_body(handler)
+
+        self.assertEqual("request_too_large", raised.exception.code)
+
+    def test_extremely_long_numeric_content_length_is_typed(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "9" * 5000
+        handler = SimpleNamespace(headers=headers, rfile=BytesIO())
+
+        with self.assertRaises(CoordinatorError) as raised:
+            ControlPlaneHttp._read_body(handler)
+
+        self.assertEqual("request_too_large", raised.exception.code)
+
+    def test_legacy_command_endpoint_uses_same_framing_boundary(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "malformed"
+        handler = CoordinatorRequestHandler.__new__(CoordinatorRequestHandler)
+        handler.path = "/command"
+        handler.headers = headers
+        handler.rfile = BytesIO(b"{}")
+        handler.server = SimpleNamespace(
+            control_http=SimpleNamespace(handles=lambda _path: False),
+            token="test-token",
+        )
+        handler._authorized = lambda: True
+        handler._write_json = Mock()
+        handler._write_error = Mock()
+
+        handler.do_POST()
+
+        handler._write_json.assert_called_once()
+        status, payload = handler._write_json.call_args.args
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_content_length", payload["error"]["code"])
+
+    def test_legacy_command_endpoint_rejects_truncated_body(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "3"
+        handler = CoordinatorRequestHandler.__new__(CoordinatorRequestHandler)
+        handler.path = "/command"
+        handler.headers = headers
+        handler.rfile = BytesIO(b"{}")
+        handler.server = SimpleNamespace(
+            control_http=SimpleNamespace(handles=lambda _path: False),
+            token="test-token",
+        )
+        handler._authorized = lambda: True
+        handler._write_json = Mock()
+        handler._write_error = Mock()
+
+        handler.do_POST()
+
+        handler._write_json.assert_called_once()
+        status, payload = handler._write_json.call_args.args
+        self.assertEqual(400, status)
+        self.assertEqual("incomplete_request_body", payload["error"]["code"])
+
+    def test_legacy_command_endpoint_types_invalid_json(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "1"
+        handler = CoordinatorRequestHandler.__new__(CoordinatorRequestHandler)
+        handler.path = "/command"
+        handler.headers = headers
+        handler.rfile = BytesIO(b"{")
+        handler.server = SimpleNamespace(
+            control_http=SimpleNamespace(handles=lambda _path: False),
+            token="test-token",
+        )
+        handler._authorized = lambda: True
+        handler._write_json = Mock()
+        handler._write_error = Mock()
+
+        handler.do_POST()
+
+        handler._write_json.assert_called_once()
+        status, payload = handler._write_json.call_args.args
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_json", payload["error"]["code"])
+        self.assertEqual("Request body must be valid JSON", payload["error"]["message"])
+
+    def test_legacy_command_endpoint_types_invalid_utf8(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "1"
+        handler = CoordinatorRequestHandler.__new__(CoordinatorRequestHandler)
+        handler.path = "/command"
+        handler.headers = headers
+        handler.rfile = BytesIO(b"\xff")
+        handler.server = SimpleNamespace(
+            control_http=SimpleNamespace(handles=lambda _path: False),
+            token="test-token",
+        )
+        handler._authorized = lambda: True
+        handler._write_json = Mock()
+        handler._write_error = Mock()
+
+        handler.do_POST()
+
+        handler._write_json.assert_called_once()
+        status, payload = handler._write_json.call_args.args
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_json", payload["error"]["code"])
+
+    def test_legacy_command_endpoint_types_extremely_large_numbers(self) -> None:
+        body = b'{"value":' + b"9" * 5000 + b"}"
+        headers = Message()
+        headers["Content-Length"] = str(len(body))
+        handler = CoordinatorRequestHandler.__new__(CoordinatorRequestHandler)
+        handler.path = "/command"
+        handler.headers = headers
+        handler.rfile = BytesIO(body)
+        handler.server = SimpleNamespace(
+            control_http=SimpleNamespace(handles=lambda _path: False),
+            token="test-token",
+        )
+        handler._authorized = lambda: True
+        handler._write_json = Mock()
+        handler._write_error = Mock()
+
+        handler.do_POST()
+
+        handler._write_json.assert_called_once()
+        status, payload = handler._write_json.call_args.args
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_json", payload["error"]["code"])
+        self.assertEqual("Request body must be valid JSON", payload["error"]["message"])
+
     def test_direct_browser_session_query_requires_origin_and_cookie(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

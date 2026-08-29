@@ -84,6 +84,122 @@ class CommandProtocolTests(unittest.TestCase):
         self.assertEqual("completed", query["request"]["status"])
         self.assertEqual("session-a", query["result"]["session"]["session_id"])
 
+    def test_unexpected_failures_are_sanitized_in_durable_journal(self) -> None:
+        private_error = r"database is locked at C:\private\coordinator.sqlite3"
+
+        def fail_without_connection() -> dict[str, object]:
+            raise RuntimeError(private_error)
+
+        def fail_with_connection(_connection) -> tuple[dict[str, object], None]:
+            raise RuntimeError(private_error)
+
+        variants = (
+            (
+                "execute",
+                lambda journal, request_id: journal.execute(
+                    request_id,
+                    "baseline.scan",
+                    {},
+                    fail_without_connection,
+                ),
+            ),
+            (
+                "execute_transactional",
+                lambda journal, request_id: journal.execute_transactional(
+                    request_id,
+                    "cargo.run_reserved",
+                    {},
+                    fail_with_connection,
+                ),
+            ),
+            (
+                "execute_accepted_transactionally",
+                lambda journal, request_id: journal.execute_accepted_transactionally(
+                    request_id,
+                    "session.register",
+                    {},
+                    fail_with_connection,
+                ),
+            ),
+        )
+
+        for index, (name, invoke) in enumerate(variants, start=1):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                database = Database(Path(directory) / "coordinator.sqlite3")
+                migrate(database)
+                journal = CommandRequestJournal(database)
+                request_id = str(index) * 32
+
+                with self.assertRaises(RuntimeError):
+                    invoke(journal, request_id)
+
+                persisted = journal.get(request_id)
+                serialized = json.dumps(persisted, sort_keys=True)
+                self.assertEqual("failed", persisted["request"]["status"])
+                self.assertEqual("internal_error", persisted["error"]["code"])
+                self.assertEqual(
+                    "Coordinator command failed unexpectedly",
+                    persisted["error"]["message"],
+                )
+                self.assertEqual(
+                    {"correlationId": request_id}, persisted["error"]["details"]
+                )
+                self.assertNotIn(private_error, serialized)
+
+                with self.assertRaises(CoordinatorError) as replayed:
+                    invoke(journal, request_id)
+                self.assertEqual("internal_error", replayed.exception.code)
+                self.assertEqual(
+                    "Coordinator command failed unexpectedly",
+                    replayed.exception.message,
+                )
+                self.assertEqual(
+                    {"correlationId": request_id}, replayed.exception.details
+                )
+                self.assertNotIn(private_error, str(replayed.exception))
+
+    def test_handler_sanitizes_unexpected_error_and_logs_correlation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = CoordinatorConfig.for_repo(
+                init_repo(root / "repo"), state_root=root / "state", port=0
+            )
+            request_id = "d" * 32
+            private_error = r"database is locked at C:\private\coordinator.sqlite3"
+            with RunningCoordinator.start(config) as running:
+                with (
+                    mock.patch.object(
+                        running.httpd.application,
+                        "execute_command_request",
+                        side_effect=RuntimeError(private_error),
+                    ),
+                    self.assertLogs("tools.session_coordinator.server", level="ERROR") as logs,
+                ):
+                    response = self._request(
+                        running.base_url,
+                        running.token,
+                        "POST",
+                        "/command",
+                        {
+                            "request_id": request_id,
+                            "command": "baseline.scan",
+                            "arguments": {},
+                        },
+                    )
+
+        serialized = json.dumps(response, sort_keys=True)
+        self.assertEqual(500, response["_httpStatus"])
+        self.assertEqual("internal_error", response["error"]["code"])
+        self.assertEqual(
+            "Coordinator command failed unexpectedly", response["error"]["message"]
+        )
+        self.assertEqual(
+            {"correlationId": request_id}, response["error"]["details"]
+        )
+        self.assertNotIn(private_error, serialized)
+        self.assertIn(private_error, "\n".join(logs.output))
+        self.assertIn(request_id, "\n".join(logs.output))
+
     def test_transactional_admission_commits_start_ack_before_scheduling(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")

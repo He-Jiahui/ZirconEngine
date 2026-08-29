@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import os
 import secrets
 import sqlite3
@@ -51,7 +52,7 @@ from .snapshots import ObjectStore, SnapshotService
 from .watch import WorkspaceWatcher
 from .cargo_jobs import CargoCompatibility, CargoJobService, CargoLaneKind, TargetPathPolicy
 from .cargo_runner import CargoJobRunner
-from .command_requests import CommandRequestJournal
+from .command_requests import CommandRequestJournal, unexpected_command_error
 from .reserved_starts import ReservedCargoStartService
 from .cleanup import CleanupService, RetentionService
 from .artifact_governance import ArtifactGovernanceService
@@ -87,6 +88,9 @@ from .codex_sync.evidence import CodexEvidenceProjector
 from .codex_sync.spool import CodexTriggerSpool
 from .codex_sync.store import CodexSessionStore
 from .codex_sync.worker import CodexSyncWorker
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -2657,9 +2661,15 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
         if self.path != "/command":
             self._write_error(HTTPStatus.NOT_FOUND, "not_found", "Unknown endpoint")
             return
+        correlation_id = uuid.uuid4().hex
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            body = ControlPlaneHttp._read_body(self)
+            try:
+                payload = json.loads(body.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+                raise CoordinatorError(
+                    "invalid_json", "Request body must be valid JSON"
+                ) from error
             command = str(payload["command"])
             arguments = payload.get("arguments") or {}
             if not isinstance(arguments, dict):
@@ -2667,7 +2677,8 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
             raw_request_id = payload.get("request_id")
             if raw_request_id is not None and not isinstance(raw_request_id, str):
                 raise ValueError("request_id must be a string")
-            request_id = raw_request_id or uuid.uuid4().hex
+            request_id = raw_request_id or correlation_id
+            correlation_id = request_id
             result = self.server.application.execute_command_request(
                 command,
                 arguments,
@@ -2680,11 +2691,30 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
             # mutation or a noisy handler traceback.
             return
         except CoordinatorError as error:
-            self._write_json(HTTPStatus.CONFLICT, {"error": error.to_dict()})
+            status = (
+                ControlPlaneHttp._status_for(error.code)
+                if error.code
+                in {
+                    "invalid_content_length",
+                    "incomplete_request_body",
+                    "invalid_json",
+                    "request_too_large",
+                    "unsupported_transfer_encoding",
+                }
+                else HTTPStatus.CONFLICT
+            )
+            self._write_json(status, {"error": error.to_dict()})
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
             self._write_error(HTTPStatus.BAD_REQUEST, "invalid_request", str(error))
-        except Exception as error:  # pragma: no cover - defensive service boundary
-            self._write_error(HTTPStatus.INTERNAL_SERVER_ERROR, "internal_error", str(error))
+        except Exception:  # pragma: no cover - defensive service boundary
+            LOGGER.exception(
+                "Unhandled coordinator command failure (correlation_id=%s)",
+                correlation_id,
+            )
+            self._write_json(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                {"error": unexpected_command_error(correlation_id).to_dict()},
+            )
 
     def do_PUT(self) -> None:
         self._delegate_control_method()
