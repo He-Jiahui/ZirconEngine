@@ -91,6 +91,28 @@ from .codex_sync.worker import CodexSyncWorker
 
 
 LOGGER = logging.getLogger(__name__)
+_COMMAND_REQUEST_FIELDS = frozenset({"command", "arguments", "request_id"})
+
+
+def _command_request_envelope(
+    payload: object,
+) -> tuple[str, dict[str, Any], str | None]:
+    if not isinstance(payload, dict) or set(payload) - _COMMAND_REQUEST_FIELDS:
+        raise CoordinatorError(
+            "invalid_request", "Command request envelope is invalid"
+        )
+    command = payload.get("command")
+    arguments = payload.get("arguments", {})
+    request_id = payload.get("request_id")
+    if (
+        not isinstance(command, str)
+        or not isinstance(arguments, dict)
+        or (request_id is not None and not isinstance(request_id, str))
+    ):
+        raise CoordinatorError(
+            "invalid_request", "Command request envelope is invalid"
+        )
+    return command, arguments, request_id
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -2670,13 +2692,7 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
                 raise CoordinatorError(
                     "invalid_json", "Request body must be valid JSON"
                 ) from error
-            command = str(payload["command"])
-            arguments = payload.get("arguments") or {}
-            if not isinstance(arguments, dict):
-                raise ValueError("arguments must be an object")
-            raw_request_id = payload.get("request_id")
-            if raw_request_id is not None and not isinstance(raw_request_id, str):
-                raise ValueError("request_id must be a string")
+            command, arguments, raw_request_id = _command_request_envelope(payload)
             request_id = raw_request_id or correlation_id
             correlation_id = request_id
             result = self.server.application.execute_command_request(
@@ -2698,6 +2714,7 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
                     "invalid_content_length",
                     "incomplete_request_body",
                     "invalid_json",
+                    "invalid_request",
                     "request_too_large",
                     "unsupported_transfer_encoding",
                 }

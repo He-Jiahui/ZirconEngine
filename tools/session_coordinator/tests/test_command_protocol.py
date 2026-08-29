@@ -84,6 +84,43 @@ class CommandProtocolTests(unittest.TestCase):
         self.assertEqual("completed", query["request"]["status"])
         self.assertEqual("session-a", query["result"]["session"]["session_id"])
 
+    def test_handler_rejects_malformed_command_envelopes(self) -> None:
+        variants = (
+            ("non_object", []),
+            ("non_string_command", {"command": 7, "arguments": {}}),
+            ("non_object_arguments", {"command": "session.list", "arguments": []}),
+            (
+                "non_string_request_id",
+                {"command": "session.list", "arguments": {}, "request_id": []},
+            ),
+            (
+                "unknown_field",
+                {"command": "session.list", "arguments": {}, "unexpected": True},
+            ),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = CoordinatorConfig.for_repo(
+                init_repo(root / "repo"), state_root=root / "state", port=0
+            )
+            with RunningCoordinator.start(config) as running:
+                for name, payload in variants:
+                    with self.subTest(name=name):
+                        response = self._request(
+                            running.base_url,
+                            running.token,
+                            "POST",
+                            "/command",
+                            payload,
+                        )
+
+                        self.assertEqual(400, response["_httpStatus"])
+                        self.assertEqual("invalid_request", response["error"]["code"])
+                        self.assertEqual(
+                            "Command request envelope is invalid",
+                            response["error"]["message"],
+                        )
+
     def test_unexpected_failures_are_sanitized_in_durable_journal(self) -> None:
         private_error = r"database is locked at C:\private\coordinator.sqlite3"
 
