@@ -11,6 +11,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from .durability import flush_directory
+
 
 TRIGGER_SCHEMA_VERSION = 1
 MAX_TRIGGER_BYTES = 4096
@@ -114,6 +116,7 @@ class CodexTriggerSpool:
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, destination)
+            flush_directory(self.pending_root)
         finally:
             temporary.unlink(missing_ok=True)
         self._enforce_cap(destination)
@@ -211,6 +214,7 @@ class CodexTriggerSpool:
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, self.hook_health_path)
+            flush_directory(self.repository_root)
         finally:
             temporary.unlink(missing_ok=True)
 
@@ -260,6 +264,8 @@ class CodexTriggerSpool:
                 raise ValueError("trigger acknowledgement escaped the pending spool")
         for item in items:
             item.path.unlink(missing_ok=True)
+        if items:
+            flush_directory(self.pending_root)
 
     def _payload(self, trigger: CodexTrigger) -> dict[str, object]:
         self._validate_trigger(trigger)
@@ -386,8 +392,10 @@ class CodexTriggerSpool:
             self._record_overflow(max(0, len(paths) - 1))
         except BaseException:
             destination.unlink(missing_ok=True)
+            flush_directory(self.pending_root)
             raise
         destination.unlink(missing_ok=True)
+        flush_directory(self.pending_root)
         raise OverflowError("Codex trigger spool is full")
 
     def _record_overflow(self, pending_count: int) -> None:
@@ -416,6 +424,7 @@ class CodexTriggerSpool:
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, self.overflow_path)
+            flush_directory(self.repository_root)
         finally:
             temporary.unlink(missing_ok=True)
 
@@ -517,6 +526,8 @@ class CodexTriggerSpool:
             self.quarantine_root.mkdir(parents=True, exist_ok=True)
             destination = self.quarantine_root / f"invalid-{uuid.uuid4().hex}.json"
             os.replace(path, destination)
+            flush_directory(self.pending_root)
+            flush_directory(self.quarantine_root)
         except OSError:
             return
 

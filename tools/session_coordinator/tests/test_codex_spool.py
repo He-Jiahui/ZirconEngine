@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import call, patch
 
 from tools.session_coordinator.codex_sync.spool import (
     CodexHookEvent,
@@ -59,6 +60,15 @@ class CodexTriggerSpoolTests(unittest.TestCase):
             set(json.loads(raw)),
         )
 
+    def test_enqueue_flushes_pending_directory_after_atomic_replace(self) -> None:
+        with patch(
+            "tools.session_coordinator.codex_sync.spool.flush_directory"
+        ) as flush:
+            destination = self.spool.enqueue(self._trigger("session-durable"))
+
+        self.assertTrue(destination.exists())
+        flush.assert_called_once_with(self.spool.pending_root)
+
     def test_queue_cap_rejects_new_trigger_and_preserves_pending_work(self) -> None:
         for index in range(3):
             self.spool.enqueue(self._trigger(f"session-{index}"))
@@ -82,6 +92,37 @@ class CodexTriggerSpoolTests(unittest.TestCase):
         reopened = CodexTriggerSpool(self.root / "spool", "a" * 64, max_pending=3)
         self.assertEqual(overflow, reopened.overflow_status())
 
+    def test_overflow_flushes_marker_and_rejected_entry_directories(self) -> None:
+        for index in range(3):
+            self.spool.enqueue(self._trigger(f"session-{index}"))
+
+        with patch(
+            "tools.session_coordinator.codex_sync.spool.flush_directory"
+        ) as flush:
+            with self.assertRaises(OverflowError):
+                self.spool.enqueue(self._trigger("session-rejected"))
+
+        self.assertEqual(
+            [
+                call(self.spool.pending_root),
+                call(self.spool.repository_root),
+                call(self.spool.pending_root),
+            ],
+            flush.call_args_list,
+        )
+
+    def test_hook_health_marker_flushes_repository_directory(self) -> None:
+        with patch(
+            "tools.session_coordinator.codex_sync.spool.flush_directory"
+        ) as flush:
+            self.spool.record_hook_outcome(
+                "success",
+                detected_at="2026-08-29T00:00:00+00:00",
+                pending_persisted=True,
+            )
+
+        flush.assert_called_once_with(self.spool.repository_root)
+
     def test_corrupt_item_is_quarantined_without_blocking_valid_items(self) -> None:
         self.spool.enqueue(self._trigger("valid-session"))
         self.spool.pending_root.mkdir(parents=True, exist_ok=True)
@@ -89,10 +130,17 @@ class CodexTriggerSpoolTests(unittest.TestCase):
             '{"prompt":"must-not-surface"', encoding="utf-8"
         )
 
-        items = self.spool.validated_pending()
+        with patch(
+            "tools.session_coordinator.codex_sync.spool.flush_directory"
+        ) as flush:
+            items = self.spool.validated_pending()
 
         self.assertEqual(("valid-session",), tuple(item.trigger.session_id for item in items))
         self.assertEqual(1, len(tuple(self.spool.quarantine_root.glob("*.json"))))
+        self.assertEqual(
+            [call(self.spool.pending_root), call(self.spool.quarantine_root)],
+            flush.call_args_list,
+        )
 
     def test_corrupt_overflow_marker_is_projected_fail_closed(self) -> None:
         marker = self.spool.repository_root / "overflow.json"
@@ -157,6 +205,18 @@ class CodexTriggerSpoolTests(unittest.TestCase):
         self.spool.acknowledge_committed((item,), run_id="run-one")
 
         self.assertFalse(item.path.exists())
+
+    def test_acknowledge_flushes_pending_directory_after_unlink(self) -> None:
+        self.spool.enqueue(self._trigger("session-ack"))
+        item = self.spool.validated_pending()[0]
+
+        with patch(
+            "tools.session_coordinator.codex_sync.spool.flush_directory"
+        ) as flush:
+            self.spool.acknowledge_committed((item,), run_id="run-one")
+
+        self.assertFalse(item.path.exists())
+        flush.assert_called_once_with(self.spool.pending_root)
 
 
 if __name__ == "__main__":
