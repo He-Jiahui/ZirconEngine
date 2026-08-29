@@ -14,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 68
+LATEST_SCHEMA_VERSION = 69
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2804,6 +2804,17 @@ def _migration_68(connection: Connection) -> None:
     )
 
 
+def _migration_69(connection: Connection) -> None:
+    """Keep health blocker projection independent of terminal copy history."""
+    connection.execute(
+        """
+        CREATE INDEX validation_copies_active_blockers
+            ON validation_copies(job_id, session_id, status)
+            WHERE status IN ('running', 'cleanup_pending')
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2873,6 +2884,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     66: _migration_66,
     67: _migration_67,
     68: _migration_68,
+    69: _migration_69,
 }
 
 
