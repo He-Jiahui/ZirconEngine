@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-29
 summary_slug: health-validation-copy-blocker-index-scan
@@ -14,6 +14,7 @@ related_code:
   - tools/session_coordinator/supervision/service.py
   - tools/session_coordinator/tests/test_database.py
   - tools/session_coordinator/tests/test_migrations.py
+resolved_at: 2026-08-29
 ---
 
 # health-validation-copy-blocker-index-scan: 验证失败回写
@@ -47,4 +48,7 @@ The supervision health projection has no status-selective index for validation_c
 
 ## 修复结果与回传
 
-Open state: `待修复`; the coordinator must keep the validation ticket and route this Plan to repair work.
+- 根因：The supervision health projection scanned every validation_copies row because no status-selective index covered running and cleanup_pending blockers; 2322 terminal rows made the empty blocker query take 4.979 seconds and pushed GET /health to 8.889 seconds.
+- 架构修复：Schema69 adds validation_copies_active_blockers, a partial covering index ordered by job_id and containing session_id/status only for running and cleanup_pending rows. Terminal validation history remains durable while health reads a bounded live set.
+- 验证：RED failed on schema68. GREEN passed 14 migration, supervision-schema, control-recovery, and schema68-upgrade tests. After controlled rollover to instance 9f8e1b1258ab47e8bb94bd08426e90a1, schema69 GET /health completed in 0.122 seconds under the default three-second deadline.
+- 回传：Coordinator health now projects active validation-copy blockers through the schema69 partial covering index without scanning terminal copy history.
