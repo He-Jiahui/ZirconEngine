@@ -79,6 +79,7 @@ class CodexSyncWorker:
 
     def snapshot(self) -> dict[str, object]:
         spool_overflow = self._spool.overflow_status()
+        hook_health = self._spool.hook_health_status()
         with self._state_lock:
             return {
                 "state": "running" if self._running else ("healthy" if self.is_alive() else "stopped"),
@@ -89,6 +90,7 @@ class CodexSyncWorker:
                 "lastRunId": self._last_run_id,
                 "pendingWake": self._wake.is_set(),
                 "spoolOverflow": spool_overflow,
+                "hookHealth": hook_health,
             }
 
     def _run(self) -> None:

@@ -172,6 +172,84 @@ class CodexHookTests(unittest.TestCase):
 
         self.assertEqual([1], observed)
 
+    def test_drop_and_signal_failure_are_durably_sanitized(self) -> None:
+        self._run("Stop", b"not-json")
+
+        dropped = self._spool().hook_health_status()
+        self.assertEqual("valid", dropped["markerStatus"])
+        self.assertEqual("drop", dropped["lastOutcome"])
+        self.assertEqual("hook_input_invalid", dropped["lastDropCode"])
+
+        self._run(
+            "Stop",
+            self._payload(
+                "Stop",
+                turn_id="turn-one",
+                last_assistant_message=self.secret,
+            ),
+            signaler=lambda *_: False,
+        )
+
+        deferred = self._spool().hook_health_status()
+        self.assertEqual("error", deferred["lastOutcome"])
+        self.assertEqual("coordinator_signal_failed", deferred["lastErrorCode"])
+        self.assertTrue(deferred["pendingPersisted"])
+        self.assertEqual(dropped["lastDropAt"], deferred["lastDropAt"])
+        self.assertNotIn(self.secret, repr(deferred))
+        self.assertEqual(
+            deferred,
+            CodexTriggerSpool(
+                self.spool_root, repository_identity(self.repo).key
+            ).hook_health_status(),
+        )
+
+        self._run(
+            "Stop",
+            self._payload("Stop", turn_id="turn-two"),
+            signaler=lambda *_: True,
+        )
+        recovered = self._spool().hook_health_status()
+        self.assertEqual("success", recovered["lastOutcome"])
+        self.assertEqual(deferred["lastErrorAt"], recovered["lastErrorAt"])
+        self.assertEqual(deferred["lastDropAt"], recovered["lastDropAt"])
+
+    def test_success_updates_health_and_marker_failure_never_blocks_stop(self) -> None:
+        self._run(
+            "Stop",
+            self._payload("Stop", turn_id="turn-one"),
+            signaler=lambda *_: True,
+        )
+
+        health = self._spool().hook_health_status()
+        self.assertEqual("success", health["lastOutcome"])
+        self.assertEqual("2026-07-13T00:00:00+00:00", health["lastSuccessAt"])
+
+        with patch.object(
+            CodexTriggerSpool,
+            "record_hook_outcome",
+            side_effect=OSError(self.secret),
+        ):
+            result, output = self._run(
+                "Stop",
+                self._payload("Stop", turn_id="turn-two"),
+                signaler=lambda *_: True,
+            )
+
+        self.assertEqual(0, result)
+        self.assertEqual({"continue": True}, json.loads(output))
+
+    def test_corrupt_hook_health_marker_is_projected_fail_closed(self) -> None:
+        spool = self._spool()
+        spool.hook_health_path.parent.mkdir(parents=True, exist_ok=True)
+        spool.hook_health_path.write_text(
+            json.dumps({"lastError": self.secret}), encoding="utf-8"
+        )
+
+        health = spool.hook_health_status()
+
+        self.assertEqual({"markerStatus": "invalid"}, health)
+        self.assertNotIn(self.secret, repr(health))
+
     def test_online_signal_uses_only_repository_identity_without_authorization(self) -> None:
         observed: dict[str, object] = {}
 

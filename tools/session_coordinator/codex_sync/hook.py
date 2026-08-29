@@ -17,7 +17,7 @@ from .spool import CodexHookEvent, CodexTrigger, CodexTriggerSpool
 
 
 MAX_HOOK_STDIN_BYTES = 64 * 1024
-HOOK_SIGNAL_TIMEOUT_SECONDS = 0.25
+HOOK_SIGNAL_TIMEOUT_SECONDS = 0.1
 _SESSION_SOURCES = frozenset(("startup", "resume", "clear", "compact"))
 _PERMISSION_MODES = frozenset(
     ("default", "acceptEdits", "plan", "dontAsk", "bypassPermissions")
@@ -37,37 +37,106 @@ def run_hook(
     """Reduce one Codex Hook input without ever blocking the Codex lifecycle."""
 
     stop_output = configured_event == "Stop"
+    spool: CodexTriggerSpool | None = None
+    detected_at: str | None = None
     try:
-        event = CodexHookEvent.from_codex_name(configured_event)
-        if event is None:
-            return 0
-        raw = stdin.read(MAX_HOOK_STDIN_BYTES + 1)
-        if len(raw) > MAX_HOOK_STDIN_BYTES:
-            return 0
-        payload = json.loads(raw.decode("utf-8"))
-        if not isinstance(payload, dict) or payload.get("hook_event_name") != configured_event:
-            return 0
         resolved_repo = Path(repo_root).resolve()
-        trigger = _reduce(payload, event, resolved_repo, clock or _utc_now)
-        if trigger is None:
-            return 0
         identity = repository_identity(resolved_repo)
         spool = CodexTriggerSpool(
             Path(spool_base).resolve() if spool_base is not None else _default_spool_base(),
             identity.key,
         )
-        spool.enqueue(trigger)
+        detected_at = (clock or _utc_now)()
+        event = CodexHookEvent.from_codex_name(configured_event)
+        if event is None:
+            _record_hook_health(
+                spool, "drop", detected_at, code="hook_input_invalid", pending=False
+            )
+            return 0
+        raw = stdin.read(MAX_HOOK_STDIN_BYTES + 1)
+        if len(raw) > MAX_HOOK_STDIN_BYTES:
+            _record_hook_health(
+                spool, "drop", detected_at, code="hook_input_invalid", pending=False
+            )
+            return 0
         try:
-            (signaler or signal_coordinator)(resolved_repo, identity.key)
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError):
+            _record_hook_health(
+                spool, "drop", detected_at, code="hook_input_invalid", pending=False
+            )
+            return 0
+        if not isinstance(payload, dict) or payload.get("hook_event_name") != configured_event:
+            _record_hook_health(
+                spool, "drop", detected_at, code="hook_input_invalid", pending=False
+            )
+            return 0
+        trigger = _reduce(payload, event, resolved_repo, lambda: detected_at)
+        if trigger is None:
+            _record_hook_health(
+                spool, "drop", detected_at, code="hook_input_invalid", pending=False
+            )
+            return 0
+        try:
+            spool.enqueue(trigger)
         except Exception:
-            pass
+            _record_hook_health(
+                spool,
+                "error",
+                detected_at,
+                code="spool_enqueue_failed",
+                pending=False,
+            )
+            return 0
+        try:
+            signaled = bool(
+                (signaler or signal_coordinator)(resolved_repo, identity.key)
+            )
+        except Exception:
+            signaled = False
+        if signaled:
+            _record_hook_health(spool, "success", detected_at, pending=True)
+        else:
+            _record_hook_health(
+                spool,
+                "error",
+                detected_at,
+                code="coordinator_signal_failed",
+                pending=True,
+            )
     except Exception:
-        pass
+        if spool is not None:
+            _record_hook_health(
+                spool,
+                "error",
+                detected_at or _utc_now(),
+                code="hook_execution_failed",
+                pending=False,
+            )
     finally:
         if stop_output:
             stdout.write('{"continue":true}\n')
             stdout.flush()
     return 0
+
+
+def _record_hook_health(
+    spool: CodexTriggerSpool,
+    outcome: str,
+    detected_at: str,
+    *,
+    code: str | None = None,
+    pending: bool,
+) -> None:
+    try:
+        spool.record_hook_outcome(
+            outcome,
+            detected_at=detected_at,
+            code=code,
+            pending_persisted=pending,
+        )
+    except Exception:
+        pass
 
 
 def _reduce(

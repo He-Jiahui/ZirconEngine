@@ -17,10 +17,17 @@ MAX_TRIGGER_BYTES = 4096
 MAX_PENDING_TRIGGERS = 1024
 OVERFLOW_SCHEMA_VERSION = 1
 MAX_OVERFLOW_MARKER_BYTES = 2048
+HOOK_HEALTH_SCHEMA_VERSION = 1
+MAX_HOOK_HEALTH_MARKER_BYTES = 2048
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9._:-]{1,160}$")
 _SAFE_METADATA = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._:-]{0,255}$")
 _REPOSITORY_KEY = re.compile(r"^[a-f0-9]{64}$")
+_HOOK_OUTCOMES = frozenset(("success", "error", "drop"))
+_HOOK_ERROR_CODES = frozenset(
+    ("hook_execution_failed", "spool_enqueue_failed", "coordinator_signal_failed")
+)
+_HOOK_DROP_CODES = frozenset(("hook_input_invalid",))
 
 
 class CodexHookEvent(StrEnum):
@@ -85,6 +92,7 @@ class CodexTriggerSpool:
         self.pending_root = self.repository_root / "pending"
         self.quarantine_root = self.repository_root / "quarantine"
         self.overflow_path = self.repository_root / "overflow.json"
+        self.hook_health_path = self.repository_root / "hook-health.json"
         self.max_pending = max_pending
         if not self.repository_root.is_relative_to(self.base_root):
             raise ValueError("repository spool escaped its managed base")
@@ -133,6 +141,96 @@ class CodexTriggerSpool:
             "lastDetectedAt": payload["lastDetectedAt"],
             "maxPending": payload["maxPending"],
             "pendingCount": payload["pendingCount"],
+        }
+
+    def record_hook_outcome(
+        self,
+        outcome: str,
+        *,
+        detected_at: str,
+        code: str | None = None,
+        pending_persisted: bool,
+    ) -> None:
+        """Persist bounded Hook health without payload or session identity."""
+        _validate_marker_timestamp(detected_at)
+        if outcome not in _HOOK_OUTCOMES or not isinstance(pending_persisted, bool):
+            raise ValueError("hook health outcome is invalid")
+        if outcome == "success":
+            if code is not None or not pending_persisted:
+                raise ValueError("successful hook health outcome is invalid")
+        elif outcome == "error":
+            if code not in _HOOK_ERROR_CODES:
+                raise ValueError("hook health error code is invalid")
+        elif code not in _HOOK_DROP_CODES or pending_persisted:
+            raise ValueError("hook health drop code is invalid")
+
+        try:
+            existing = self._read_hook_health_marker()
+        except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError):
+            existing = None
+        payload: dict[str, object] = {
+            "lastAttemptAt": detected_at,
+            "lastOutcome": outcome,
+            "lastSuccessAt": None,
+            "lastErrorAt": None,
+            "lastErrorCode": None,
+            "lastDropAt": None,
+            "lastDropCode": None,
+            "pendingPersisted": pending_persisted,
+            "repositoryKey": self.repository_key,
+            "schemaVersion": HOOK_HEALTH_SCHEMA_VERSION,
+        }
+        if existing is not None:
+            for field in (
+                "lastSuccessAt",
+                "lastErrorAt",
+                "lastErrorCode",
+                "lastDropAt",
+                "lastDropCode",
+            ):
+                payload[field] = existing[field]
+        if outcome == "success":
+            payload["lastSuccessAt"] = detected_at
+        elif outcome == "error":
+            payload["lastErrorAt"] = detected_at
+            payload["lastErrorCode"] = code
+        else:
+            payload["lastDropAt"] = detected_at
+            payload["lastDropCode"] = code
+
+        encoded = json.dumps(
+            payload, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        if len(encoded) > MAX_HOOK_HEALTH_MARKER_BYTES:
+            raise ValueError("hook health marker is oversized")
+        self.repository_root.mkdir(parents=True, exist_ok=True)
+        temporary = self.repository_root / f".hook-health-{uuid.uuid4().hex}.tmp"
+        try:
+            with temporary.open("xb") as handle:
+                handle.write(encoded)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, self.hook_health_path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    def hook_health_status(self) -> dict[str, object]:
+        try:
+            payload = self._read_hook_health_marker()
+        except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError):
+            return {"markerStatus": "invalid"}
+        if payload is None:
+            return {"markerStatus": "absent"}
+        return {
+            "markerStatus": "valid",
+            "lastAttemptAt": payload["lastAttemptAt"],
+            "lastOutcome": payload["lastOutcome"],
+            "lastSuccessAt": payload["lastSuccessAt"],
+            "lastErrorAt": payload["lastErrorAt"],
+            "lastErrorCode": payload["lastErrorCode"],
+            "lastDropAt": payload["lastDropAt"],
+            "lastDropCode": payload["lastDropCode"],
+            "pendingPersisted": payload["pendingPersisted"],
         }
 
     def validated_pending(self) -> tuple[CodexSpoolItem, ...]:
@@ -348,12 +446,68 @@ class CodexTriggerSpool:
         ):
             raise ValueError("overflow marker identity is invalid")
         for field in ("firstDetectedAt", "lastDetectedAt"):
+            _validate_marker_timestamp(payload[field])
+        return payload
+
+    def _read_hook_health_marker(self) -> dict[str, object] | None:
+        try:
+            size = self.hook_health_path.stat().st_size
+        except FileNotFoundError:
+            return None
+        if size > MAX_HOOK_HEALTH_MARKER_BYTES:
+            raise ValueError("hook health marker is oversized")
+        payload = json.loads(self.hook_health_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or set(payload) != {
+            "lastAttemptAt",
+            "lastOutcome",
+            "lastSuccessAt",
+            "lastErrorAt",
+            "lastErrorCode",
+            "lastDropAt",
+            "lastDropCode",
+            "pendingPersisted",
+            "repositoryKey",
+            "schemaVersion",
+        }:
+            raise ValueError("hook health marker schema is not exact")
+        if (
+            type(payload["schemaVersion"]) is not int
+            or payload["schemaVersion"] != HOOK_HEALTH_SCHEMA_VERSION
+            or payload["repositoryKey"] != self.repository_key
+            or payload["lastOutcome"] not in _HOOK_OUTCOMES
+            or not isinstance(payload["pendingPersisted"], bool)
+        ):
+            raise ValueError("hook health marker identity is invalid")
+        _validate_marker_timestamp(payload["lastAttemptAt"])
+        for field in ("lastSuccessAt", "lastErrorAt", "lastDropAt"):
             value = payload[field]
-            if not isinstance(value, str) or len(value) > 64:
-                raise ValueError("overflow marker timestamp is invalid")
-            timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            if timestamp.tzinfo is None:
-                raise ValueError("overflow marker timestamp must include a timezone")
+            if value is not None:
+                _validate_marker_timestamp(value)
+        if (payload["lastErrorAt"] is None) != (payload["lastErrorCode"] is None):
+            raise ValueError("hook health error evidence is inconsistent")
+        if payload["lastErrorCode"] is not None and payload["lastErrorCode"] not in _HOOK_ERROR_CODES:
+            raise ValueError("hook health error code is invalid")
+        if (payload["lastDropAt"] is None) != (payload["lastDropCode"] is None):
+            raise ValueError("hook health drop evidence is inconsistent")
+        if payload["lastDropCode"] is not None and payload["lastDropCode"] not in _HOOK_DROP_CODES:
+            raise ValueError("hook health drop code is invalid")
+        outcome = payload["lastOutcome"]
+        if outcome == "success" and (
+            payload["lastSuccessAt"] != payload["lastAttemptAt"]
+            or not payload["pendingPersisted"]
+        ):
+            raise ValueError("successful hook health evidence is inconsistent")
+        if outcome == "error" and (
+            payload["lastErrorAt"] != payload["lastAttemptAt"]
+            or payload["lastErrorCode"] is None
+        ):
+            raise ValueError("failed hook health evidence is inconsistent")
+        if outcome == "drop" and (
+            payload["lastDropAt"] != payload["lastAttemptAt"]
+            or payload["lastDropCode"] is None
+            or payload["pendingPersisted"]
+        ):
+            raise ValueError("dropped hook health evidence is inconsistent")
         return payload
 
     def _quarantine(self, path: Path) -> None:
@@ -365,3 +519,11 @@ class CodexTriggerSpool:
             os.replace(path, destination)
         except OSError:
             return
+
+
+def _validate_marker_timestamp(value: object) -> None:
+    if not isinstance(value, str) or len(value) > 64:
+        raise ValueError("marker timestamp is invalid")
+    timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if timestamp.tzinfo is None:
+        raise ValueError("marker timestamp must include a timezone")
