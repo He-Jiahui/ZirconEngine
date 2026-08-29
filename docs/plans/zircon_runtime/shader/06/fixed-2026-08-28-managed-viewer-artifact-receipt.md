@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-14
 summary_slug: managed-viewer-artifact-receipt
 origin_plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
@@ -19,6 +19,7 @@ tests:
   - python -m unittest tools.session_coordinator.tests.test_artifact_receipts -v
   - Invoke-Pester -Script .\tools\tests\zircon_profile_shader_pbr_viewer.Tests.ps1 -PassThru
   - Select-String -LiteralPath .\tools\write_zircon_shader_pbr_build_provenance.ps1 -Pattern 'last_write_utc'
+resolved_at: 2026-08-28
 ---
 
 # Coordinator01: managed viewer artifact receipt is absent
@@ -96,31 +97,7 @@ binary was produced by the current managed source copy.
 
 ## 修复结果与回传
 
-Coordinator-owned receipt issuance was implemented by
-`eb52a1aadb68458f0ed7d02faf454ef0ac32a500`. A receipt now seals the artifact
-under the managed target only after a successful terminal build and durably binds
-its path, SHA-256, byte length, producing job/command, validation ticket, and
-immutable copy input manifest. Receipt creation rejects target escape, nonzero or
-missing output, post-build mutation, foreign Session access, and ticket sources
-that are not a hash-identical or tombstoned subset of the materialized copy.
-
-Source hashing occurs before the SQLite write transaction; the copy and ticket
-signatures are revalidated inside the short insertion transaction. The complete
-`tools.session_coordinator.tests.test_artifact_receipts` suite passed `13/13`, and
-the durable fixing-plan evidence is recorded in
-`2026-08-15-managed-viewer-artifact-receipt-forward-evidence.md`.
-
-Open state: `Coordinator contract fixed / Shader06 acceptance pending`. The
-Shader06 origin owner still owns the managed viewer build, five-cold/five-warm
-capture, screenshot/RenderDoc gates, receipt consumption, and ordinary lifecycle
-return. This record does not claim those product-side gates or close their origin
-failure on Coordinator evidence alone.
-
-### 2026-08-27 current-source regression refresh
-
-`python -B -m unittest tools.session_coordinator.tests.test_artifact_receipts -v`
-passed `13/13` in 18.358 seconds. The suite freshly covered the no-caller-path/hash
-transport boundary, exact terminal receipt issuance, source/input-manifest drift,
-foreign Session access, target escape, missing/nonzero artifact, and post-build
-mutation. No Cargo, viewer build, screenshot, or RenderDoc capture ran; the
-Coordinator contract remains green while Shader06 product acceptance remains open.
+- 根因：Managed validation bound source identity but did not seal the produced viewer binary, so mutable local timestamps and caller-computed fingerprints could be mistaken for build provenance.
+- 架构修复：Coordinator commit eb52a1aadb68458f0ed7d02faf454ef0ac32a500 seals the terminal managed artifact under its target root and binds job, command, validation ticket, source manifest, immutable input manifest, SHA-256 and byte length; Shader06 consumes the receipt and rejects missing or mismatched binaries.
+- 验证：Fresh 2026-08-28 gates: tools.session_coordinator.tests.test_artifact_receipts 13/13 in 15.717s; zircon_profile_shader_pbr_viewer.Tests.ps1 30/30 in 26.778s including exact terminal receipt consumption; write_zircon_shader_pbr_build_provenance.ps1 has zero last_write_utc matches. Shader06 consumer changes remain foreign and excluded from this return.
+- 回传：Coordinator managed viewer artifact receipt contract is fixed and the Shader06 consumer has accepted the exact receipt identity; product capture work remains an origin-plan milestone, not a lower-layer receipt blocker.
