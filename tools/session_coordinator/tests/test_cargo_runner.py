@@ -13,6 +13,58 @@ from tools.session_coordinator.models import CoordinatorError
 
 
 class CargoRunnerSourceRootTests(unittest.TestCase):
+    def test_collector_bounds_log_reader_join_and_records_timeout(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stdout_path = root / "stdout.log"
+            stderr_path = root / "stderr.log"
+            stdout_path.write_text("", encoding="utf-8")
+            stderr_path.write_text("", encoding="utf-8")
+            process = mock.Mock()
+            process.pid = 4242
+            process.wait.return_value = 0
+            jobs = mock.Mock()
+            connection = mock.Mock()
+
+            @contextmanager
+            def transaction():
+                yield connection
+
+            reader = mock.Mock()
+            reader.is_alive.return_value = True
+            reader_group = SimpleNamespace(
+                threads=(reader,),
+                streams=(),
+                errors=[],
+                error_lock=threading.Lock(),
+                read_failed=threading.Event(),
+            )
+            runner = CargoJobRunner(
+                SimpleNamespace(transaction=transaction),
+                jobs,
+                repo_root=root,
+                log_root=root / "logs",
+            )
+
+            with mock.patch(
+                "tools.session_coordinator.cargo_runner._STREAM_READER_JOIN_TIMEOUT_SECONDS",
+                0.25,
+            ):
+                runner._finish(
+                    "run-a",
+                    "job-a",
+                    "session-a",
+                    process,
+                    None,
+                    reader_group,
+                    stdout_path,
+                    stderr_path,
+                )
+
+        reader.join.assert_called_once_with(timeout=0.25)
+        update_parameters = connection.execute.call_args.args[1]
+        self.assertEqual("cargo_run_log_reader_timeout", update_parameters[4])
+
     def test_log_write_failure_keeps_draining_the_child_pipe(self) -> None:
         stream = mock.Mock()
         stream.read.side_effect = ["first", "second", ""]

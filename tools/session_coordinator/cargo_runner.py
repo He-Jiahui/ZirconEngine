@@ -26,6 +26,7 @@ from .windows_job_process import (
 
 MAX_LOG_TAIL_BYTES = 64 * 1024
 CARGO_JOB_HEARTBEAT_INTERVAL_SECONDS = 5.0
+_STREAM_READER_JOIN_TIMEOUT_SECONDS = 5.0
 _ALLOWED_ENVIRONMENT_KEYS = frozenset({"RUSTFLAGS", "CARGO_INCREMENTAL", "CARGO_BUILD_JOBS"})
 
 
@@ -54,6 +55,7 @@ class CargoRun:
 @dataclass(slots=True)
 class _PipeReaderGroup:
     threads: tuple[threading.Thread, ...]
+    streams: tuple[TextIO, ...]
     errors: list[tuple[str, BaseException]]
     error_lock: threading.Lock
     read_failed: threading.Event
@@ -528,8 +530,21 @@ class CargoJobRunner:
                         job_tree_error = "cargo_process_job_close_failed"
                     else:
                         process_job = None
-            for reader in reader_group.threads if reader_group is not None else ():
-                reader.join()
+            reader_timeout = False
+            if reader_group is not None:
+                for reader in reader_group.threads:
+                    reader.join(timeout=_STREAM_READER_JOIN_TIMEOUT_SECONDS)
+                    if reader.is_alive():
+                        reader_timeout = True
+                if reader_timeout:
+                    # A descendant may have inherited the pipe after the root
+                    # exited. Close our handles to unblock the reader without
+                    # waiting indefinitely on an unrelated process.
+                    for stream in getattr(reader_group, "streams", ()):
+                        try:
+                            stream.close()
+                        except OSError:
+                            pass
             if process_job is not None:
                 try:
                     close_process_job(process_job)
@@ -551,6 +566,9 @@ class CargoJobRunner:
                 elif "write" in reader_error_kinds:
                     status = "finish_blocked"
                     error_code = "cargo_run_log_write_failed"
+            if reader_timeout:
+                status = "finish_blocked"
+                error_code = "cargo_run_log_reader_timeout"
             try:
                 # A wrapper can return before a Cargo child exits. Keep the runner,
                 # not the originating shell, responsible for the final transition.
@@ -618,6 +636,7 @@ class CargoJobRunner:
         stderr_path: Path,
     ) -> _PipeReaderGroup:
         readers: list[threading.Thread] = []
+        streams: list[TextIO] = []
         ready_events: list[threading.Event] = []
         reader_errors: list[tuple[str, BaseException]] = []
         error_lock = threading.Lock()
@@ -647,6 +666,7 @@ class CargoJobRunner:
             )
             reader.start()
             readers.append(reader)
+            streams.append(stream)
             ready_events.append(ready)
         for ready in ready_events:
             if not ready.wait(timeout=5):
@@ -655,7 +675,7 @@ class CargoJobRunner:
                     "Cargo log reader did not become ready before process resume",
                 )
         return _PipeReaderGroup(
-            tuple(readers), reader_errors, error_lock, read_failed
+            tuple(readers), tuple(streams), reader_errors, error_lock, read_failed
         )
 
     @staticmethod
