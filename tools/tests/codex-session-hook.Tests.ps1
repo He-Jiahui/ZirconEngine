@@ -12,6 +12,36 @@ function Assert-True {
     if (-not $Condition) { throw $Message }
 }
 
+function Get-RepositoryKey {
+    param([string]$Path)
+    $bytes = [Text.Encoding]::UTF8.GetBytes(([IO.Path]::GetFullPath($Path)).ToLowerInvariant())
+    $hasher = [Security.Cryptography.SHA256]::Create()
+    try { return (($hasher.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') }) -join '') } finally { $hasher.Dispose() }
+}
+
+function Write-RuntimeDescriptor {
+    param(
+        [int]$DescriptorVersion,
+        [int]$SchemaVersion,
+        [int[]]$ControlApiVersions,
+        [string]$RepositoryKey
+    )
+    $runtimePath = Join-Path $fixture '.codex\state\session-coordinator\runtime.json'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $runtimePath) -Force | Out-Null
+    $runtime = [pscustomobject][ordered]@{
+        descriptor_version = $DescriptorVersion
+        host = '127.0.0.1'
+        repository_key = $RepositoryKey
+        schema_version = $SchemaVersion
+        control_api_versions = @($ControlApiVersions)
+    }
+    [IO.File]::WriteAllText(
+        $runtimePath,
+        (($runtime | ConvertTo-Json -Depth 5) + "`n"),
+        [Text.UTF8Encoding]::new($false)
+    )
+}
+
 try {
     New-Item -ItemType Directory -Path (Join-Path $fixture '.codex') -Force | Out-Null
     $env:LOCALAPPDATA = Join-Path $fixture 'local-app-data'
@@ -57,6 +87,21 @@ value = "keep"
     Assert-True $query.configured 'Query did not report configured=true.'
     Assert-True $query.featureEnabled 'Query did not report featureEnabled=true.'
 
+    $fixtureKey = Get-RepositoryKey -Path $fixture
+    foreach ($schemaVersion in @(68, 69, 70)) {
+        Write-RuntimeDescriptor -DescriptorVersion 2 -SchemaVersion $schemaVersion -ControlApiVersions @(1) -RepositoryKey $fixtureKey
+        $compatibility = & $installer -Action Query -RepoRoot $fixture | ConvertFrom-Json
+        Assert-True $compatibility.daemonCompatible "Compatible descriptor was rejected for internal schema $schemaVersion."
+    }
+    Write-RuntimeDescriptor -DescriptorVersion 1 -SchemaVersion 69 -ControlApiVersions @(1) -RepositoryKey $fixtureKey
+    Assert-True (-not (& $installer -Action Query -RepoRoot $fixture | ConvertFrom-Json).daemonCompatible) 'Unsupported old descriptor was accepted.'
+    Write-RuntimeDescriptor -DescriptorVersion 3 -SchemaVersion 69 -ControlApiVersions @(1) -RepositoryKey $fixtureKey
+    Assert-True (-not (& $installer -Action Query -RepoRoot $fixture | ConvertFrom-Json).daemonCompatible) 'Unsupported future descriptor was accepted.'
+    Write-RuntimeDescriptor -DescriptorVersion 2 -SchemaVersion 69 -ControlApiVersions @(2) -RepositoryKey $fixtureKey
+    Assert-True (-not (& $installer -Action Query -RepoRoot $fixture | ConvertFrom-Json).daemonCompatible) 'Descriptor without control API v1 was accepted.'
+    Write-RuntimeDescriptor -DescriptorVersion 2 -SchemaVersion 69 -ControlApiVersions @(1) -RepositoryKey ('f' * 64)
+    Assert-True (-not (& $installer -Action Query -RepoRoot $fixture | ConvertFrom-Json).daemonCompatible) 'Foreign repository descriptor was accepted.'
+
     $hookEntry = Join-Path $repoRoot '.codex\hooks\zircon_session_sync.py'
     $stopPayload = [pscustomobject]@{
         session_id = 'acceptance-thread'
@@ -76,14 +121,14 @@ value = "keep"
     $repoHasher = [Security.Cryptography.SHA256]::Create()
     try { $repoKey = (($repoHasher.ComputeHash($repoKeyBytes) | ForEach-Object { $_.ToString('x2') }) -join '') } finally { $repoHasher.Dispose() }
     $realSpool = Join-Path $env:LOCALAPPDATA (Join-Path 'Zircon Session Coordinator\codex-hook' $repoKey)
-    $realTriggerText = (@(Get-ChildItem -LiteralPath (Join-Path $realSpool 'pending') -Filter '*.json' -File | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n")
+    $realPending = Join-Path $realSpool 'pending'
+    $realTriggerText = if (Test-Path -LiteralPath $realPending) {
+        (@(Get-ChildItem -LiteralPath $realPending -Filter '*.json' -File | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n")
+    } else { '' }
     Assert-True (-not $realTriggerText.Contains('acceptance-secret-must-not-persist')) 'Real Hook persisted assistant content.'
-    Remove-Item -LiteralPath $realSpool -Recurse -Force
+    if (Test-Path -LiteralPath $realSpool) { Remove-Item -LiteralPath $realSpool -Recurse -Force }
 
-    $keyBytes = [Text.Encoding]::UTF8.GetBytes(([IO.Path]::GetFullPath($fixture)).ToLowerInvariant())
-    $hasher = [Security.Cryptography.SHA256]::Create()
-    try { $key = (($hasher.ComputeHash($keyBytes) | ForEach-Object { $_.ToString('x2') }) -join '') } finally { $hasher.Dispose() }
-    $spool = Join-Path $env:LOCALAPPDATA (Join-Path 'Zircon Session Coordinator\codex-hook' $key)
+    $spool = Join-Path $env:LOCALAPPDATA (Join-Path 'Zircon Session Coordinator\codex-hook' $fixtureKey)
     New-Item -ItemType Directory -Path (Join-Path $spool 'pending') -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $spool 'pending\trigger.json'), '{}')
 

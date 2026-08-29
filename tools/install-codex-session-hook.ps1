@@ -16,6 +16,9 @@ $resolvedRepo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $codexRoot = Join-Path $resolvedRepo '.codex'
 $hooksPath = Join-Path $codexRoot 'hooks.json'
 $configPath = Join-Path $codexRoot 'config.toml'
+$minimumRuntimeDescriptorVersion = 2
+$maximumRuntimeDescriptorVersion = 2
+$requiredControlApiVersion = 1
 
 function Get-RepositoryKey {
     $bytes = [Text.Encoding]::UTF8.GetBytes($resolvedRepo.ToLowerInvariant())
@@ -167,11 +170,12 @@ function Test-DaemonCompatible {
     $runtimePath = Join-Path $resolvedRepo '.codex\state\session-coordinator\runtime.json'
     try {
         $runtime = Get-Content -LiteralPath $runtimePath -Raw -Encoding UTF8 | ConvertFrom-Json
-        return $runtime.descriptor_version -eq 2 -and
+        $descriptorVersion = [int]$runtime.descriptor_version
+        return $descriptorVersion -ge $minimumRuntimeDescriptorVersion -and
+            $descriptorVersion -le $maximumRuntimeDescriptorVersion -and
             $runtime.host -eq '127.0.0.1' -and
             $runtime.repository_key -eq (Get-RepositoryKey) -and
-            $runtime.schema_version -eq 28 -and
-            @($runtime.control_api_versions) -contains 1
+            @($runtime.control_api_versions) -contains $requiredControlApiVersion
     } catch { return $false }
 }
 

@@ -340,20 +340,23 @@ class GitFinalizeService:
         error_label: str,
         git_environment: dict[str, str] | None = None,
     ) -> None:
-        environment = os.environ.copy()
-        if git_environment is not None:
-            environment.update(
-                {
-                    name: value
-                    for name, value in git_environment.items()
-                    if name != "GIT_INDEX_FILE"
-                }
-            )
-        environment.pop("GIT_INDEX_FILE", None)
+        base_environment = os.environ.copy()
         temporary_root = str(self._temporary_root())
-        for name in ("TEMP", "TMP", "TMPDIR"):
-            environment[name] = temporary_root
         for command in validation_commands:
+            environment = self._validation_environment(
+                (command,), base_environment=base_environment
+            )
+            if git_environment is not None:
+                environment.update(
+                    {
+                        name: value
+                        for name, value in git_environment.items()
+                        if name != "GIT_INDEX_FILE"
+                    }
+                )
+            environment.pop("GIT_INDEX_FILE", None)
+            for name in ("TEMP", "TMP", "TMPDIR"):
+                environment[name] = temporary_root
             command_environment = environment
             if git_environment is not None and self._is_direct_git_command(command):
                 command_environment = {
@@ -365,16 +368,86 @@ class GitFinalizeService:
                 cwd=self.repo_root,
                 check=False,
                 env=command_environment,
+                capture_output=True,
+                text=True,
             )
             if result.returncode != 0:
+                details: dict[str, object] = {
+                    "command": list(command),
+                    "exit_code": result.returncode,
+                }
+                for name in ("stdout", "stderr"):
+                    output = getattr(result, name, None)
+                    if output:
+                        details[name] = self._safe_git_stderr(output)
                 raise CoordinatorError(
                     error_code,
                     f"{error_label} failed with exit code {result.returncode}",
-                    details={
-                        "command": list(command),
-                        "exit_code": result.returncode,
-                    },
+                    details=details,
                 )
+
+    @staticmethod
+    def _validation_environment(
+        validation_commands: tuple[tuple[str, ...], ...],
+        *,
+        base_environment: dict[str, str] | None = None,
+    ) -> dict[str, str]:
+        environment = (base_environment or os.environ).copy()
+        if os.name == "nt":
+            command_names = {
+                command[0].replace("\\", "/").rsplit("/", 1)[-1].casefold()
+                for command in validation_commands
+                if command
+            }
+            uses_windows_powershell = bool(
+                command_names & {"powershell", "powershell.exe"}
+            )
+            uses_powershell_core = bool(command_names & {"pwsh", "pwsh.exe"})
+            if uses_windows_powershell or uses_powershell_core:
+                existing = [
+                    value
+                    for value in environment.get("PSModulePath", "").split(os.pathsep)
+                    if value
+                    and not (
+                        uses_windows_powershell
+                        and value.replace("/", "\\").casefold().endswith(
+                            "\\powershell\\7\\modules"
+                        )
+                    )
+                ]
+                defaults = (
+                    os.path.join(
+                        environment.get("ProgramFiles", r"C:\Program Files"),
+                        "WindowsPowerShell",
+                        "Modules",
+                    ),
+                    os.path.join(
+                        environment.get("SystemRoot", r"C:\Windows"),
+                        "System32",
+                        "WindowsPowerShell",
+                        "v1.0",
+                        "Modules",
+                    ),
+                )
+                if uses_powershell_core:
+                    defaults = (
+                        *defaults,
+                        os.path.join(
+                            environment.get("ProgramFiles", r"C:\Program Files"),
+                            "PowerShell",
+                            "Modules",
+                        ),
+                        os.path.join(
+                            environment.get("ProgramFiles", r"C:\Program Files"),
+                            "PowerShell",
+                            "7",
+                            "Modules",
+                        ),
+                    )
+                environment["PSModulePath"] = os.pathsep.join(
+                    dict.fromkeys((*existing, *defaults))
+                )
+        return environment
 
     @staticmethod
     def _is_direct_git_command(command: tuple[str, ...]) -> bool:

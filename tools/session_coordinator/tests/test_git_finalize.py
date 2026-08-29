@@ -1585,6 +1585,27 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertTrue((self.repo / "src/feature.py").exists())
         self.assertIsNone(self._mutex_owner())
 
+    def test_validation_failure_persists_bounded_process_diagnostics(self) -> None:
+        paths = self._complete_with_changes()
+        command = (
+            sys.executable,
+            "-c",
+            "import sys; sys.stderr.write('validation-diagnostic'); raise SystemExit(7)",
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a",
+                paths=paths,
+                message="feat(runtime): preserve validation diagnostics",
+                validation_commands=(command,),
+            )
+
+        self.assertEqual("finalize_validation_failed", rejected.exception.code)
+        self.assertEqual("validation-diagnostic", rejected.exception.details["stderr"])
+        self.assertEqual(list(command), rejected.exception.details["command"])
+        self.assertIsNone(self._mutex_owner())
+
     def test_validation_command_uses_stable_coordinator_temp_environment(self) -> None:
         paths = self._complete_with_changes()
         command = ("validation-tool", "--check")
@@ -1652,6 +1673,60 @@ class GitFinalizeTests(unittest.TestCase):
             observed_git_environment["GIT_INDEX_FILE"],
         )
         self.assertFalse(Path(observed_git_environment["GIT_INDEX_FILE"]).exists())
+
+    def test_powershell_validation_receives_module_path_without_caller_environment(self) -> None:
+        with mock.patch.dict(os.environ, {"PSModulePath": ""}, clear=False):
+            environment = self.service._validation_environment(
+                (("powershell.exe", "-NoProfile", "-Command", "Get-FileHash"),)
+            )
+
+        self.assertTrue(environment["PSModulePath"])
+        self.assertIn("WindowsPowerShell", environment["PSModulePath"])
+        self.assertNotIn(
+            os.path.join("PowerShell", "7", "Modules").casefold(),
+            environment["PSModulePath"].casefold(),
+        )
+
+    def test_windows_powershell_validation_does_not_load_core_module_root(self) -> None:
+        environment = self.service._validation_environment(
+            (("powershell.exe", "-NoProfile", "-Command", "Get-FileHash"),)
+        )
+        result = subprocess.run(
+            (
+                "powershell.exe",
+                "-NoProfile",
+                "-Command",
+                "Get-FileHash -LiteralPath 'tools/session_coordinator/git_finalize.py' | Out-Null",
+            ),
+            cwd=self.service.repo_root,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_validation_shells_receive_independent_module_paths(self) -> None:
+        base_environment = {
+            **os.environ,
+            "PSModulePath": os.pathsep.join(
+                (
+                    r"C:\Program Files\WindowsPowerShell\Modules",
+                    r"C:\Program Files\PowerShell\7\Modules",
+                )
+            ),
+        }
+        windows_environment = self.service._validation_environment(
+            (("powershell.exe", "-NoProfile", "-Command", "Get-FileHash"),),
+            base_environment=base_environment,
+        )
+        core_environment = self.service._validation_environment(
+            (("pwsh.exe", "-NoProfile", "-Command", "Get-FileHash"),),
+            base_environment=base_environment,
+        )
+
+        self.assertNotIn(r"PowerShell\7\Modules".casefold(), windows_environment["PSModulePath"].casefold())
+        self.assertIn(r"PowerShell\7\Modules".casefold(), core_environment["PSModulePath"].casefold())
 
     def test_maintenance_validation_can_create_a_nested_git_repository(self) -> None:
         paths = self._complete_with_changes()
