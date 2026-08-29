@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-27
 summary_slug: work-continuation-submilestone-identity
@@ -16,6 +16,7 @@ tests:
   - python -B -m unittest tools.session_coordinator.tests.test_control_snapshot.ControlSnapshotTests.test_continuation_preserves_the_exact_submilestone_identity -v
   - python -B -m unittest tools.session_coordinator.tests.test_control_snapshot.ControlSnapshotTests.test_continuation_preserves_implementation_context_through_nested_headings -v
   - python -B -m unittest tools.session_coordinator.tests.test_control_snapshot -v
+resolved_at: 2026-08-27
 ---
 
 # Coordinator01: work continuation loses submilestone identity
@@ -67,14 +68,7 @@ were silently discarded rather than rejected or preserved.
 
 ## 修复结果与回传
 
-Open state: `RED reproduced / source repair and focused GREEN present / managed
-commit and successor reload pending`.
-
-The parser now captures all numeric dotted segments and resolves the nearest semantic
-implementation/testing ancestor through a bounded Markdown heading stack. The focused
-projection gate passes `4/4`, with the milestone regression covering both `M1.2` and
-`M1.2.3`; the complete control-snapshot suite passes `24/24` in 113.187 seconds; serial
-`py_compile` and scoped `git diff --check` also pass. The repository handoff validator
-scanned 709 artifacts and reported 22 pre-existing foreign Frameworks01/Runtime79
-diagnostics, with no diagnostic on this artifact. Formal fixed return waits for the
-exact maintenance commit and successor load evidence.
+- 根因：The continuation milestone regex captured only the first numeric segment and the parser discarded implementation ancestry at neutral nested headings.
+- 架构修复：Preserve the full M<number>(.<number>)* identity and resolve the nearest semantic implementation/testing ancestor with a bounded heading stack.
+- 验证：Focused continuation projections 4/4 including M1, M1.2 and M1.2.3; complete control snapshot suite 24/24 in 113.187 seconds; py_compile and scoped diff check passed; commit 9a7c88349d22fb92c99e91f31d629a1644007ab7 loaded by healthy schema68 successor 54725740965b4e9a98b047f3bd2fd364.
+- 回传：Waiting-session continuation cards now preserve exact submilestone identity and nested implementation context without projecting testing tasks or mutating Session scope.
