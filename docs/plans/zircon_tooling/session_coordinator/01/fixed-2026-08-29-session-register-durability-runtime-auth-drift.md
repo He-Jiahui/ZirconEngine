@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-28
 summary_slug: session-register-durability-runtime-auth-drift
 origin_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -14,6 +14,7 @@ related_code:
 tests:
   - tools/session_coordinator/tests/test_command_protocol.py
   - tools/session_coordinator/tests/test_session_register_durability.py
+resolved_at: 2026-08-29
 ---
 
 # Coordinator01 Session register durability runtime auth drift
@@ -55,22 +56,7 @@ request is the intentional unauthorized server regression.
 
 ## 修复结果与回传
 
-`SessionRegisterDurabilityTests._request` now requires the token issued by the
-same `RunningCoordinator` instance and sends it as a Bearer authorization
-header. Every registration, replay, accepted-query and restart scenario uses
-that explicit instance identity; production HTTP authorization is unchanged.
-
-The original dual-registration/lease reproduction passed `1/1`. The complete
-durability module passed `15/15` in 130.173 seconds, including duplicate replay,
-pre-admission preparation, accepted-state visibility, restart terminalization,
-deferred database failure and failed re-registration. The existing server
-runtime-token guard passed `1/1`, proving an unauthenticated `/command` request
-still returns HTTP `401`.
-
-The adjacent command-protocol RED was `12/14`: durable accept/query returned
-HTTP `401`, and the in-flight handler never entered. Its shared request helper
-now uses the same explicit per-instance token contract. The complete module
-passed `14/14` in 77.000 seconds; no production code or anonymous request
-expectation changed.
-
-Open state: `source_validated / local failure record pending managed commit`.
+- 根因：Durability regression requests used a stale unauthenticated HTTP helper while the production command boundary correctly requires the per-instance runtime token.
+- 架构修复：Bind every registration, replay, accepted-query, restart, and command-protocol request to the exact token issued by its RunningCoordinator instance; preserve the server authentication guard.
+- 验证：Current-source registration reproduction 1/1; command-protocol durable admission/query 2/2; complete prior durability and protocol suites 15/15 and 14/14.
+- 回传：Authenticated the durability test transports with the exact coordinator instance token. The command endpoint remains fail-closed for anonymous callers and all durability scenarios reach their intended logic.
