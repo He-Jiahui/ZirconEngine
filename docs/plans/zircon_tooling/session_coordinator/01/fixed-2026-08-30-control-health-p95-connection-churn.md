@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-29
 summary_slug: control-health-p95-connection-churn
 origin_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -17,6 +17,7 @@ related_code:
 tests:
   - python -m unittest tools.session_coordinator.tests.test_control_load.ControlLoadTests.test_z_health_and_action_preview_p95_targets -v
   - python -m unittest tools.session_coordinator.tests.test_control_load.ControlLoadTests.test_reused_health_connection_observes_fresh_database_state -v
+resolved_at: 2026-08-30
 ---
 
 # Coordinator01: control health P95 regresses through connection churn
@@ -51,9 +52,7 @@ Every `CoordinatorClient.health()` call creates a new HTTP connection because th
 
 ## 修复结果与回传
 
-Source-fixed state: `Coordinator validation and lifecycle return pending`.
-
-- 根因：loopback health 的 HTTP 与 SQLite 连接均按调用反复建立，造成 Windows P95 抖动并切裂 baseline/supervision 读视图。
-- 架构修复：客户端用锁保护的 health keep-alive transport，服务端启用 HTTP/1.1，并在一个 deferred read transaction 内投影 baseline 与 supervision。
-- 验证：focused P95 从孤立 RED `138.2 ms` 降到 `22.3 ms`，完整 load suite `9/9` 再测为 `12.3 ms`；freshness、client `20/20`、server health smoke `3/3`、baseline `2/2`、真实 HTTP/1.1 framing、`py_compile` 与 scoped diff gate 均通过。
-- 回传：待 Coordinator exact-snapshot finalizer 与 canonical `failure return` 完成后关闭。
+- 根因：Loopback health recreated HTTP and SQLite connections per call, causing Windows P95 latency and split health reads.
+- 架构修复：Reuse one locked authenticated health connection, serve HTTP/1.1 with explicit framing, and project baseline and supervision in one fresh read transaction.
+- 验证：test_control_load 9/9; isolated health P95 38.158 ms; fresh reused-connection state test passed; py_compile and scoped diff check passed.
+- 回传：Coordinator health P95 connection churn fixed and returned; product validation remains independent.

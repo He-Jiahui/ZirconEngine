@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import ctypes
 import json
 import os
 import re
 import time
 import uuid
-from ctypes import wintypes
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from .client import CoordinatorClientError
+from .processes import process_creation_time
 
 
 OFFLINE_COMMAND_SCHEMA_VERSION = 1
@@ -313,25 +312,11 @@ class OfflineCommandSpool:
     def _process_creation_identity(pid: int) -> str | None:
         if os.name != "nt":
             return None
-        process = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)
-        if not process:
-            return None
         try:
-            creation = wintypes.FILETIME()
-            ignored_exit = wintypes.FILETIME()
-            ignored_kernel = wintypes.FILETIME()
-            ignored_user = wintypes.FILETIME()
-            if not ctypes.windll.kernel32.GetProcessTimes(
-                process,
-                ctypes.byref(creation),
-                ctypes.byref(ignored_exit),
-                ctypes.byref(ignored_kernel),
-                ctypes.byref(ignored_user),
-            ):
-                return None
-            return f"{creation.dwHighDateTime:08x}{creation.dwLowDateTime:08x}"
-        finally:
-            ctypes.windll.kernel32.CloseHandle(process)
+            identity = process_creation_time(pid)
+        except OSError:
+            return None
+        return f"{int(identity):016x}"
 
     def _lock_owner_is_dead(self, lock_path: Path) -> bool:
         try:

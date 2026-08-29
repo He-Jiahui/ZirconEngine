@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import unittest
 import tempfile
 from contextlib import redirect_stdout
@@ -15,6 +16,7 @@ from tools.session_coordinator.client import (
 from tools.session_coordinator import cli
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.offline_queue import OfflineCommandSpool
+from tools.session_coordinator.processes import process_creation_time
 
 
 class DeferredActionClientTests(unittest.TestCase):
@@ -381,6 +383,20 @@ class DeferredActionClientTests(unittest.TestCase):
             self.assertEqual(1, len(queued))
             self.assertEqual("session.heartbeat", queued[0].command)
             self.assertEqual({"session_id": "session-a"}, queued[0].arguments)
+
+    @unittest.skipUnless(os.name == "nt", "Windows ctypes process identity contract")
+    def test_offline_spool_reuses_shared_windows_process_identity_contract(self) -> None:
+        process_creation_time(os.getpid())
+        with tempfile.TemporaryDirectory() as temporary:
+            spool = OfflineCommandSpool(
+                Path(temporary),
+                repository_key="a" * 64,
+            )
+
+            queued = spool.enqueue("session.heartbeat", {"session_id": "session-a"})
+
+            self.assertEqual("session.heartbeat", queued.command)
+            self.assertEqual(1, spool.snapshot().pending)
 
     def test_offline_implicit_session_registration_is_not_queued_with_a_new_random_identity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
