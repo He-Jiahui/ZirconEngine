@@ -18,6 +18,7 @@ class _Spool:
     def __init__(self) -> None:
         self.items = (object(),)
         self.acknowledged: list[tuple[tuple[object, ...], str]] = []
+        self.overflow = {"markerStatus": "absent"}
 
     def validated_pending(self):
         return self.items
@@ -25,6 +26,9 @@ class _Spool:
     def acknowledge_committed(self, items, *, run_id: str) -> None:
         self.acknowledged.append((items, run_id))
         self.items = ()
+
+    def overflow_status(self):
+        return self.overflow
 
 
 class _Store:
@@ -85,6 +89,20 @@ class CodexSyncWorkerTests(unittest.TestCase):
 
         self.assertEqual([(pending, "run-1")], spool.acknowledged)
         self.assertEqual(1, worker.snapshot()["successfulRuns"])
+
+    def test_snapshot_projects_durable_spool_overflow_status(self) -> None:
+        store = _Store()
+        spool = _Spool()
+        spool.overflow = {
+            "markerStatus": "valid",
+            "firstDetectedAt": "2026-08-29T00:00:00+00:00",
+            "lastDetectedAt": "2026-08-29T00:00:00+00:00",
+            "maxPending": 3,
+            "pendingCount": 3,
+        }
+        worker = self._worker(store, spool)
+
+        self.assertEqual(spool.overflow, worker.snapshot()["spoolOverflow"])
 
     def test_wakes_during_run_coalesce_to_one_follow_up(self) -> None:
         store = _Store()

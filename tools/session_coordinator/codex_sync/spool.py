@@ -6,7 +6,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -15,6 +15,8 @@ from typing import Any
 TRIGGER_SCHEMA_VERSION = 1
 MAX_TRIGGER_BYTES = 4096
 MAX_PENDING_TRIGGERS = 1024
+OVERFLOW_SCHEMA_VERSION = 1
+MAX_OVERFLOW_MARKER_BYTES = 2048
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9._:-]{1,160}$")
 _SAFE_METADATA = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._:-]{0,255}$")
@@ -82,6 +84,7 @@ class CodexTriggerSpool:
         self.repository_root = (self.base_root / repository_key).resolve()
         self.pending_root = self.repository_root / "pending"
         self.quarantine_root = self.repository_root / "quarantine"
+        self.overflow_path = self.repository_root / "overflow.json"
         self.max_pending = max_pending
         if not self.repository_root.is_relative_to(self.base_root):
             raise ValueError("repository spool escaped its managed base")
@@ -105,7 +108,7 @@ class CodexTriggerSpool:
             os.replace(temporary, destination)
         finally:
             temporary.unlink(missing_ok=True)
-        self._enforce_cap()
+        self._enforce_cap(destination)
         return destination
 
     def pending_count(self) -> int:
@@ -115,6 +118,22 @@ class CodexTriggerSpool:
             return sum(1 for path in self.pending_root.glob("*.json") if path.is_file())
         except OSError:
             return 0
+
+    def overflow_status(self) -> dict[str, object]:
+        """Return bounded historical overflow evidence without trigger data."""
+        try:
+            payload = self._read_overflow_marker()
+        except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError):
+            return {"markerStatus": "invalid"}
+        if payload is None:
+            return {"markerStatus": "absent"}
+        return {
+            "markerStatus": "valid",
+            "firstDetectedAt": payload["firstDetectedAt"],
+            "lastDetectedAt": payload["lastDetectedAt"],
+            "maxPending": payload["maxPending"],
+            "pendingCount": payload["pendingCount"],
+        }
 
     def validated_pending(self) -> tuple[CodexSpoolItem, ...]:
         if not self.pending_root.exists():
@@ -261,10 +280,81 @@ class CodexTriggerSpool:
             return ()
         return tuple(sorted(paths, key=lambda path: path.name))
 
-    def _enforce_cap(self) -> None:
+    def _enforce_cap(self, destination: Path) -> None:
         paths = self._ordered_pending()
-        for path in paths[: max(0, len(paths) - self.max_pending)]:
-            path.unlink(missing_ok=True)
+        if len(paths) <= self.max_pending:
+            return
+        try:
+            self._record_overflow(max(0, len(paths) - 1))
+        except BaseException:
+            destination.unlink(missing_ok=True)
+            raise
+        destination.unlink(missing_ok=True)
+        raise OverflowError("Codex trigger spool is full")
+
+    def _record_overflow(self, pending_count: int) -> None:
+        now = datetime.now(tz=UTC).isoformat()
+        try:
+            existing = self._read_overflow_marker()
+        except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError):
+            existing = None
+        first_detected = now if existing is None else str(existing["firstDetectedAt"])
+        payload = {
+            "firstDetectedAt": first_detected,
+            "lastDetectedAt": now,
+            "maxPending": self.max_pending,
+            "pendingCount": pending_count,
+            "repositoryKey": self.repository_key,
+            "schemaVersion": OVERFLOW_SCHEMA_VERSION,
+        }
+        encoded = json.dumps(
+            payload, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        self.repository_root.mkdir(parents=True, exist_ok=True)
+        temporary = self.repository_root / f".overflow-{uuid.uuid4().hex}.tmp"
+        try:
+            with temporary.open("xb") as handle:
+                handle.write(encoded)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, self.overflow_path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    def _read_overflow_marker(self) -> dict[str, object] | None:
+        try:
+            size = self.overflow_path.stat().st_size
+        except FileNotFoundError:
+            return None
+        if size > MAX_OVERFLOW_MARKER_BYTES:
+            raise ValueError("overflow marker is oversized")
+        payload = json.loads(self.overflow_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or set(payload) != {
+            "firstDetectedAt",
+            "lastDetectedAt",
+            "maxPending",
+            "pendingCount",
+            "repositoryKey",
+            "schemaVersion",
+        }:
+            raise ValueError("overflow marker schema is not exact")
+        if (
+            payload["schemaVersion"] != OVERFLOW_SCHEMA_VERSION
+            or payload["repositoryKey"] != self.repository_key
+            or not isinstance(payload["maxPending"], int)
+            or not 0 < payload["maxPending"] <= MAX_PENDING_TRIGGERS
+            or not isinstance(payload["pendingCount"], int)
+            or payload["pendingCount"] < 0
+        ):
+            raise ValueError("overflow marker identity is invalid")
+        for field in ("firstDetectedAt", "lastDetectedAt"):
+            value = payload[field]
+            if not isinstance(value, str) or len(value) > 64:
+                raise ValueError("overflow marker timestamp is invalid")
+            timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if timestamp.tzinfo is None:
+                raise ValueError("overflow marker timestamp must include a timezone")
+        return payload
 
     def _quarantine(self, path: Path) -> None:
         try:
