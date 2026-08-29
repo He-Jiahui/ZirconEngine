@@ -10,7 +10,7 @@ import tempfile
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from sqlite3 import Row
+from sqlite3 import Connection, Row
 
 from .database import Database
 from .event_payloads import baseline_degraded_payload
@@ -87,14 +87,21 @@ class BaselineService:
                 raise
         return self._capture(BaselineHealth.HEALTHY, reason="initial baseline")
 
-    def current(self) -> BaselineEpoch:
-        with self.database.connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM baseline_epochs ORDER BY epoch_id DESC LIMIT 1"
-            ).fetchone()
+    def current(self, connection: Connection | None = None) -> BaselineEpoch:
+        if connection is None:
+            with self.database.connect() as opened:
+                row = self._current_row(opened)
+        else:
+            row = self._current_row(connection)
         if row is None:
             raise CoordinatorError("baseline_missing", "No workspace baseline has been initialized")
         return self._from_row(row)
+
+    @staticmethod
+    def _current_row(connection: Connection) -> Row | None:
+        return connection.execute(
+            "SELECT * FROM baseline_epochs ORDER BY epoch_id DESC LIMIT 1"
+        ).fetchone()
 
     def refresh_for_head_change(self) -> BaselineEpoch:
         current = self.initialize()

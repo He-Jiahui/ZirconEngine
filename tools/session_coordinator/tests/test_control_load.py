@@ -173,6 +173,27 @@ class ControlLoadTests(unittest.TestCase):
         self.assertLess(health_p95, 100, f"health P95 was {health_p95:.1f} ms")
         self.assertLess(action_p95, 1_000, f"action preview P95 was {action_p95:.1f} ms")
 
+    def test_reused_health_connection_observes_fresh_database_state(self) -> None:
+        config = CoordinatorConfig.for_repo(
+            self.repo,
+            state_root=self.root / "health-freshness-state",
+            port=0,
+        )
+        with RunningCoordinator.start(config) as running:
+            application = running.httpd.application
+            application.baselines.initialize()
+            client = CoordinatorClient.from_runtime(config)
+
+            self.assertEqual("healthy", client.health()["baseline"])
+            with application.database.transaction() as connection:
+                connection.execute(
+                    """UPDATE baseline_epochs
+                       SET health='degraded', degraded_reason='load-test'
+                       WHERE epoch_id=(SELECT MAX(epoch_id) FROM baseline_epochs)"""
+                )
+
+            self.assertEqual("degraded", client.health()["baseline"])
+
 
 class ControlLoadShapeTests(unittest.TestCase):
     def test_quick_profile_is_the_default(self) -> None:

@@ -3,13 +3,15 @@ from __future__ import annotations
 import http.client
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
 import uuid
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from .config import CoordinatorConfig
 
@@ -34,6 +36,55 @@ def _environment_timeout_seconds(name: str, default: float) -> float:
     return timeout if timeout > 0 else default
 
 
+class _HealthTransport:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._connection: http.client.HTTPConnection | None = None
+        self._origin: tuple[str, int] | None = None
+
+    def request(
+        self, base_url: str, token: str, timeout_seconds: float
+    ) -> tuple[int, bytes]:
+        parsed = urlsplit(base_url)
+        if parsed.scheme != "http" or parsed.hostname is None or parsed.port is None:
+            raise OSError("Coordinator health endpoint is not a bounded HTTP origin")
+        origin = (parsed.hostname, parsed.port)
+        with self._lock:
+            if self._connection is None or self._origin != origin:
+                self._close_locked()
+                self._connection = http.client.HTTPConnection(
+                    origin[0], origin[1], timeout=timeout_seconds
+                )
+                self._origin = origin
+            try:
+                self._connection.request(
+                    "GET",
+                    "/health",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+                response = self._connection.getresponse()
+                body = response.read()
+            except (OSError, TimeoutError, http.client.HTTPException):
+                self._close_locked()
+                raise
+            if response.will_close:
+                self._close_locked()
+            return response.status, body
+
+    def close(self) -> None:
+        with self._lock:
+            self._close_locked()
+
+    def _close_locked(self) -> None:
+        if self._connection is not None:
+            self._connection.close()
+        self._connection = None
+        self._origin = None
+
+    def __del__(self) -> None:
+        self.close()
+
+
 class CoordinatorClientError(RuntimeError):
     def __init__(self, code: str, message: str, *, details: dict[str, Any] | None = None):
         super().__init__(message)
@@ -55,6 +106,12 @@ class CoordinatorClient:
     control_timeout_seconds: float = 30.0
     command_timeout_seconds: float = 300.0
     reconciliation_timeout_seconds: float = _COMMAND_RECONCILIATION_TIMEOUT_SECONDS
+    _health_transport: _HealthTransport = field(
+        default_factory=_HealthTransport,
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     @classmethod
     def from_runtime(cls, config: CoordinatorConfig) -> "CoordinatorClient":
@@ -98,7 +155,28 @@ class CoordinatorClient:
         )
 
     def health(self) -> dict[str, Any]:
-        health = self._request("GET", "/health")
+        try:
+            status, encoded = self._health_transport.request(
+                self.base_url, self.token, self.timeout_seconds
+            )
+            if status != 200:
+                raise OSError(f"Coordinator health returned HTTP {status}")
+            health = json.loads(encoded.decode("utf-8"))
+            if not isinstance(health, dict):
+                raise CoordinatorClientError(
+                    "invalid_response", "Coordinator returned a non-object response"
+                )
+        except CoordinatorClientError:
+            self._health_transport.close()
+            raise
+        except (json.JSONDecodeError, UnicodeDecodeError) as error:
+            self._health_transport.close()
+            raise CoordinatorClientError(
+                "invalid_response", "Coordinator response was truncated or invalid JSON"
+            ) from error
+        except (OSError, TimeoutError, http.client.HTTPException):
+            self._health_transport.close()
+            health = self._request("GET", "/health")
         self._require_expected_repository(health)
         return health
 

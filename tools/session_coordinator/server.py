@@ -663,12 +663,14 @@ class CoordinatorApplication:
         return self.branch != "main"
 
     def health(self) -> dict[str, Any]:
-        try:
-            baseline_health = self.baselines.current().health.value
-        except CoordinatorError as error:
-            if error.code != "baseline_missing":
-                raise
-            baseline_health = "uninitialized"
+        with self.database.transaction(immediate=False) as connection:
+            try:
+                baseline_health = self.baselines.current(connection).health.value
+            except CoordinatorError as error:
+                if error.code != "baseline_missing":
+                    raise
+                baseline_health = "uninitialized"
+            supervision = self.supervision.snapshot(connection).to_dict()
         return {
             "status": "ok",
             "branch": self.branch,
@@ -684,7 +686,7 @@ class CoordinatorApplication:
             "repository_key": self.repository_identity.key,
             "process_creation_time": self.process_identity.creation_time,
             "executable": self.process_identity.executable,
-            "supervision": self.supervision.snapshot().to_dict(),
+            "supervision": supervision,
             "codex_sync": self.codex_worker.snapshot(),
         }
 
@@ -2598,12 +2600,14 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
 
 class CoordinatorRequestHandler(BaseHTTPRequestHandler):
     server: _CoordinatorHttpServer
+    protocol_version = "HTTP/1.1"
 
     def do_GET(self) -> None:
         if self.path == "/":
             self.send_response(HTTPStatus.SEE_OTHER)
             self.send_header("Location", "/ui/")
             self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", "0")
             self.end_headers()
             return
         if self.server.control_http.handles(self.path):
