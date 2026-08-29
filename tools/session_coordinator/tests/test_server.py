@@ -4,6 +4,7 @@ import base64
 import json
 import hashlib
 import os
+import socket
 import sqlite3
 import subprocess
 import time
@@ -44,6 +45,128 @@ from tools.session_coordinator.workspace_copy import WorkspaceCopyRecord
 
 
 class ServerTests(unittest.TestCase):
+    def test_http_requests_are_bounded_and_shutdown_drains_handlers(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            application = CoordinatorApplication(config)
+            application.supervision.mark_healthy()
+            entered = threading.Event()
+            release = threading.Event()
+
+            class BlockingHandler(server.BaseHTTPRequestHandler):
+                def do_GET(self) -> None:
+                    entered.set()
+                    if not release.wait(5):
+                        self.send_error(500)
+                        return
+                    payload = b"ok"
+                    self.send_response(200)
+                    self.send_header("Content-Length", str(len(payload)))
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    self.wfile.write(payload)
+
+                def log_message(self, *_args) -> None:
+                    return
+
+            httpd = server._CoordinatorHttpServer(
+                ("127.0.0.1", 0),
+                BlockingHandler,
+                application=application,
+                token="test-token",
+                request_worker_limit=2,
+            )
+            serve_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+            serve_thread.start()
+            sockets: list[socket.socket] = []
+            try:
+                request = b"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+                for _ in range(2):
+                    client = socket.create_connection(httpd.server_address, timeout=2)
+                    client.sendall(request)
+                    sockets.append(client)
+                self.assertTrue(entered.wait(2))
+                deadline = time.monotonic() + 2
+                while httpd.active_request_count < 2 and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                self.assertEqual(2, httpd.active_request_count)
+
+                overflow = socket.create_connection(httpd.server_address, timeout=2)
+                try:
+                    overflow.sendall(request)
+                    response = overflow.recv(4096)
+                finally:
+                    overflow.close()
+                self.assertIn(b"503", response.split(b"\r\n", 1)[0])
+                self.assertIn(b"request_overloaded", response)
+
+                httpd.shutdown()
+                drained = threading.Event()
+                closer = threading.Thread(
+                    target=lambda: (httpd.server_close(), drained.set()), daemon=True
+                )
+                closer.start()
+                self.assertFalse(drained.wait(0.2))
+                release.set()
+                self.assertTrue(drained.wait(5))
+                closer.join(timeout=1)
+                self.assertEqual(0, httpd.active_request_count)
+            finally:
+                release.set()
+                for client in sockets:
+                    client.close()
+                httpd.shutdown()
+                httpd.server_close()
+                serve_thread.join(timeout=2)
+
+    def test_http_requests_enforce_per_client_quota(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            application = CoordinatorApplication(config)
+            application.supervision.mark_healthy()
+            entered = threading.Event()
+            release = threading.Event()
+
+            class BlockingHandler(server.BaseHTTPRequestHandler):
+                def do_GET(self) -> None:
+                    entered.set()
+                    release.wait(5)
+
+                def log_message(self, *_args) -> None:
+                    return
+
+            httpd = server._CoordinatorHttpServer(
+                ("127.0.0.1", 0),
+                BlockingHandler,
+                application=application,
+                token="test-token",
+                request_worker_limit=3,
+                client_request_limit=1,
+            )
+            serve_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+            serve_thread.start()
+            first = socket.create_connection(httpd.server_address, timeout=2)
+            second = socket.create_connection(httpd.server_address, timeout=2)
+            try:
+                request = b"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+                first.sendall(request)
+                self.assertTrue(entered.wait(2))
+                second.sendall(request)
+                response = second.recv(4096)
+                self.assertIn(b"503", response.split(b"\r\n", 1)[0])
+                self.assertIn(b"request_overloaded", response)
+            finally:
+                release.set()
+                first.close()
+                second.close()
+                httpd.shutdown()
+                httpd.server_close()
+                serve_thread.join(timeout=2)
+
     def test_finalize_force_adds_tracked_ignored_session_script(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = init_repo(Path(directory) / "repo")

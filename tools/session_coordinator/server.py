@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import base64
+from concurrent.futures import ThreadPoolExecutor
 import json
 import logging
 import os
 import secrets
+import select
+import socket
 import sqlite3
 import subprocess
 import threading
@@ -2590,14 +2593,36 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
     # SO_REUSEADDR enabled on Windows permits unrelated repositories to share
     # 6518 and makes clients land on an arbitrary ledger.
     allow_reuse_address = False
-    daemon_threads = True
+    daemon_threads = False
+    request_queue_size = 64
+    default_request_worker_limit = 32
+    default_client_request_limit = 8
 
     def __init__(
-        self, address, handler, *, application: CoordinatorApplication, token: str
+        self,
+        address,
+        handler,
+        *,
+        application: CoordinatorApplication,
+        token: str,
+        request_worker_limit: int = default_request_worker_limit,
+        client_request_limit: int = default_client_request_limit,
     ):
+        if request_worker_limit < 1 or client_request_limit < 1:
+            raise ValueError("HTTP request limits must be positive")
         super().__init__(address, handler)
         self.application = application
         self.token = token
+        self.request_worker_limit = request_worker_limit
+        self.client_request_limit = client_request_limit
+        self._request_state_lock = threading.Lock()
+        self._accepting_requests = True
+        self._active_requests = 0
+        self._active_client_requests: dict[str, int] = {}
+        self._request_executor = ThreadPoolExecutor(
+            max_workers=request_worker_limit,
+            thread_name_prefix="zircon-session-coordinator-http",
+        )
         router = ControlPlaneRouter(
             instance_id=application.instance_id,
             auth=application.web_auth,
@@ -2622,6 +2647,109 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
                 application.database, application.config.workflow_artifact_root
             ),
         )
+
+    @property
+    def active_request_count(self) -> int:
+        with self._request_state_lock:
+            return self._active_requests
+
+    @staticmethod
+    def _client_key(client_address) -> str:
+        return str(client_address[0]) if client_address else "unknown"
+
+    def process_request(self, request, client_address) -> None:
+        client_key = self._client_key(client_address)
+        with self._request_state_lock:
+            client_count = self._active_client_requests.get(client_key, 0)
+            accepted = (
+                self._accepting_requests
+                and self._active_requests < self.request_worker_limit
+                and client_count < self.client_request_limit
+            )
+            if accepted:
+                self._active_requests += 1
+                self._active_client_requests[client_key] = client_count + 1
+        if not accepted:
+            self._reject_overloaded(request)
+            self.shutdown_request(request)
+            return
+        try:
+            self._request_executor.submit(
+                self._process_request,
+                request,
+                client_address,
+                client_key,
+            )
+        except RuntimeError:
+            self._release_request(client_key)
+            self._reject_overloaded(request)
+            self.shutdown_request(request)
+
+    def _process_request(self, request, client_address, client_key: str) -> None:
+        try:
+            try:
+                self.finish_request(request, client_address)
+            except Exception:
+                self.handle_error(request, client_address)
+            finally:
+                self.shutdown_request(request)
+        finally:
+            self._release_request(client_key)
+
+    def _release_request(self, client_key: str) -> None:
+        with self._request_state_lock:
+            self._active_requests -= 1
+            remaining = self._active_client_requests.get(client_key, 1) - 1
+            if remaining > 0:
+                self._active_client_requests[client_key] = remaining
+            else:
+                self._active_client_requests.pop(client_key, None)
+
+    @staticmethod
+    def _reject_overloaded(request) -> None:
+        # Closing with unread request bytes causes a reset on Windows.  Drain
+        # the request headers for a short bounded window before responding.
+        try:
+            request.setblocking(False)
+            deadline = time.monotonic() + 0.1
+            while time.monotonic() < deadline:
+                readable, _, _ = select.select([request], [], [], 0.01)
+                if not readable:
+                    continue
+                if not request.recv(65536):
+                    break
+        except (BlockingIOError, ConnectionResetError, OSError):
+            pass
+        finally:
+            try:
+                request.setblocking(True)
+            except OSError:
+                pass
+        body = (
+            b'{"error":{"code":"request_overloaded",'
+            b'"message":"Coordinator request capacity is full",'
+            b'"details":{}}}'
+        )
+        response = (
+            b"HTTP/1.1 503 Service Unavailable\r\n"
+            b"Content-Type: application/json\r\n"
+            b"Connection: close\r\n"
+            b"Retry-After: 1\r\n"
+            + f"Content-Length: {len(body)}\r\n".encode("ascii")
+            + b"\r\n"
+            + body
+        )
+        try:
+            request.sendall(response)
+            request.shutdown(socket.SHUT_WR)
+        except OSError:
+            return
+
+    def server_close(self) -> None:
+        with self._request_state_lock:
+            self._accepting_requests = False
+        super().server_close()
+        self._request_executor.shutdown(wait=True)
 
 
 class CoordinatorRequestHandler(BaseHTTPRequestHandler):
