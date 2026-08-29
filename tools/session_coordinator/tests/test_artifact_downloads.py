@@ -15,6 +15,24 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 class ArtifactDownloadTests(unittest.TestCase):
+    def test_extremely_long_range_numbers_are_typed(self) -> None:
+        for header in (
+            f"bytes={'9' * 5000}-",
+            f"bytes=-{'9' * 5000}",
+            f"bytes=0-{'9' * 5000}",
+        ):
+            with self.subTest(header=header[:32]):
+                with self.assertRaises(CoordinatorError) as rejected:
+                    ArtifactDownloadService._range(10, header)
+
+                self.assertEqual("invalid_range", rejected.exception.code)
+
+    def test_non_ascii_range_digits_are_typed(self) -> None:
+        with self.assertRaises(CoordinatorError) as rejected:
+            ArtifactDownloadService._range(10, "bytes=２-３")
+
+        self.assertEqual("invalid_range", rejected.exception.code)
+
     def test_download_does_not_reopen_path_after_metadata_validation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -89,6 +107,7 @@ class ArtifactDownloadTests(unittest.TestCase):
             suffix = service.download("opaque-a", "bytes=-3")
             open_ended = service.download("opaque-a", "bytes=7-")
             invalid = service.download("opaque-a", "bytes=99-100")
+            oversized_numeric = service.download("opaque-a", f"bytes={'9' * 5000}-")
 
         self.assertEqual(206, response.status)
         self.assertEqual(b"2345", response.body)
@@ -98,6 +117,8 @@ class ArtifactDownloadTests(unittest.TestCase):
         self.assertEqual(b"789", open_ended.body)
         self.assertEqual(416, invalid.status)
         self.assertEqual("bytes */10", invalid.headers["Content-Range"])
+        self.assertEqual(416, oversized_numeric.status)
+        self.assertEqual("bytes */10", oversized_numeric.headers["Content-Range"])
 
     def test_empty_artifact_download_is_valid_but_range_is_unsatisfiable(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

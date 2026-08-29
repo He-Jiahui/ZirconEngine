@@ -15,9 +15,10 @@ from .assets import BinaryResponse
 
 
 _OPAQUE_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
-_RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
+_RANGE = re.compile(r"^bytes=([0-9]*)-([0-9]*)$")
 _MAX_RANGE_BYTES = 8 * 1024 * 1024
 _MAX_DIRECT_BYTES = 16 * 1024 * 1024
+_MAX_RANGE_DECIMAL_DIGITS = 19
 
 _GENERIC_READ = 0x80000000
 _FILE_READ_ATTRIBUTES = 0x00000080
@@ -132,16 +133,22 @@ class ArtifactDownloadService:
         if not start_text and not end_text:
             raise CoordinatorError("invalid_range", "Artifact byte range is invalid")
         if not start_text:
-            suffix = int(end_text)
+            suffix = _range_decimal(end_text)
             if suffix <= 0:
                 raise CoordinatorError("invalid_range", "Artifact byte range is invalid")
             start, end = max(0, size - suffix), size - 1
         else:
-            start = int(start_text)
-            end = min(int(end_text), size - 1) if end_text else size - 1
+            start = _range_decimal(start_text)
+            end = min(_range_decimal(end_text), size - 1) if end_text else size - 1
         if start >= size or start > end:
             raise CoordinatorError("invalid_range", "Artifact byte range is unsatisfiable")
         return start, end, True
+
+
+def _range_decimal(value: str) -> int:
+    if len(value) > _MAX_RANGE_DECIMAL_DIGITS:
+        raise CoordinatorError("invalid_range", "Artifact byte range is invalid")
+    return int(value)
 
 
 @contextmanager
