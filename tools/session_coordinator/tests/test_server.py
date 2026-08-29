@@ -2763,6 +2763,7 @@ class ServerTests(unittest.TestCase):
             application.supervision.mark_healthy()
             started = threading.Event()
             release = threading.Event()
+            apply_completed = threading.Event()
             stop = threading.Event()
             observation = application.watcher.prepare_scan()
             original_apply = application.watcher.apply_scan
@@ -2770,7 +2771,10 @@ class ServerTests(unittest.TestCase):
             def slow_apply(received):
                 started.set()
                 release.wait()
-                return original_apply(received)
+                try:
+                    return original_apply(received)
+                finally:
+                    apply_completed.set()
 
             with (
                 mock.patch.object(application.watcher, "prepare_scan", return_value=observation),
@@ -2808,8 +2812,20 @@ class ServerTests(unittest.TestCase):
                 finally:
                     release.set()
                     stop.set()
-                    foreground.join(timeout=1)
+                    foreground.join(timeout=5)
+                    self.assertFalse(
+                        foreground.is_alive(),
+                        "session registration worker did not terminate",
+                    )
+                    self.assertTrue(
+                        apply_completed.wait(timeout=30),
+                        "workspace observation did not finish before fixture cleanup",
+                    )
                     worker.join(timeout=1)
+                    self.assertFalse(
+                        worker.is_alive(),
+                        "maintenance worker did not stop after workspace observation completed",
+                    )
 
             self.assertEqual("registered", outcome["result"]["session"]["status"])
 
