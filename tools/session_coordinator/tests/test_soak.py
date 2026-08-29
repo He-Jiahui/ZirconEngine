@@ -10,6 +10,7 @@ from unittest import mock
 from tools.session_coordinator.soak import (
     ResourceSample,
     _next_sample_deadline,
+    _transition_evidence_complete,
     run_fixture_soak,
     summarize_samples,
 )
@@ -21,6 +22,31 @@ class SoakTests(unittest.TestCase):
         self.assertEqual(60.0, _next_sample_deadline(0.0, 1.0, 60.0))
         self.assertEqual(120.0, _next_sample_deadline(60.0, 61.0, 60.0))
         self.assertEqual(185.0, _next_sample_deadline(60.0, 125.0, 60.0))
+
+    def test_rollover_evidence_requires_two_samples_from_exactly_two_instances(self) -> None:
+        def sample(instance_id: str, elapsed: float) -> ResourceSample:
+            return ResourceSample("sample", elapsed, instance_id, 1, 100, 10)
+
+        predecessor = [sample("one", 0), sample("one", 1)]
+        successor = [sample("two", 2), sample("two", 3)]
+        self.assertFalse(
+            _transition_evidence_complete(predecessor, minimum_sample_count=4)
+        )
+        self.assertFalse(
+            _transition_evidence_complete(
+                predecessor + successor[:1], minimum_sample_count=3
+            )
+        )
+        self.assertFalse(
+            _transition_evidence_complete(
+                predecessor + successor + [sample("one", 4)], minimum_sample_count=4
+            )
+        )
+        self.assertTrue(
+            _transition_evidence_complete(
+                predecessor + successor, minimum_sample_count=4
+            )
+        )
 
     def test_summary_rejects_unbounded_resource_growth(self) -> None:
         samples = [
@@ -67,6 +93,43 @@ class SoakTests(unittest.TestCase):
         self.assertTrue(any("RSS peak growth" in error for error in summary.errors))
         self.assertTrue(any("handle peak growth" in error for error in summary.errors))
 
+    def test_summary_applies_a_distinct_bounded_rollover_gap(self) -> None:
+        samples = [
+            ResourceSample("one-start", 0, "one", 10, 100, 10),
+            ResourceSample("one-end", 1, "one", 11, 100, 10),
+            ResourceSample("two-start", 7, "two", 12, 100, 10),
+            ResourceSample("two-end", 8, "two", 13, 100, 10),
+        ]
+
+        accepted = summarize_samples(
+            samples,
+            started_at="start",
+            completed_at="end",
+            duration_seconds=8,
+            minimum_sample_count=4,
+            maximum_sample_gap_seconds=5,
+            maximum_transition_gap_seconds=10,
+            restart_count=1,
+            browser_disconnect_count=1,
+            maintenance_tick_count=1,
+            errors=[],
+        )
+        rejected = summarize_samples(
+            [samples[0], ResourceSample("one-late", 6, "one", 11, 100, 10)],
+            started_at="start",
+            completed_at="end",
+            duration_seconds=6,
+            maximum_sample_gap_seconds=5,
+            maximum_transition_gap_seconds=10,
+            restart_count=1,
+            browser_disconnect_count=1,
+            maintenance_tick_count=1,
+            errors=[],
+        )
+
+        self.assertEqual("passed", accepted.status, accepted.errors)
+        self.assertTrue(any("sample gap" in error for error in rejected.errors))
+
     def test_summary_requires_duration_samples_restart_and_periodic_exercises(self) -> None:
         samples = [
             ResourceSample("start", 0, "one", 10, 100, 10),
@@ -100,7 +163,7 @@ class SoakTests(unittest.TestCase):
         ):
             self.assertTrue(any(fragment in error for error in summary.errors), fragment)
 
-    def test_short_fixture_soak_restarts_and_preserves_events(self) -> None:
+    def test_short_fixture_soak_rolls_over_and_preserves_events(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             output = root / "soak.json"

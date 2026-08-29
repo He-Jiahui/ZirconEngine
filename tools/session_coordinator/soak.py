@@ -83,6 +83,7 @@ def run_fixture_soak(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     workspace = _create_soak_workspace(work_root)
     expected_duration_seconds = duration_seconds
+    rollover_allowance_seconds = min(30.0, max(10.0, interval_seconds * 4))
     disconnect_cadence = max(60.0, interval_seconds * 15)
     maintenance_cadence = max(3600.0, interval_seconds * 60)
     started_at = utc_text()
@@ -124,6 +125,12 @@ def run_fixture_soak(
             )
             started_at = utc_text()
             started = time.monotonic()
+            minimum_sample_count = _minimum_sample_count(
+                expected_duration_seconds, interval_seconds
+            )
+            evidence_deadline = (
+                started + duration_seconds + rollover_allowance_seconds
+            )
             next_disconnect = started
             next_maintenance = started
             next_sample = started
@@ -132,9 +139,14 @@ def run_fixture_soak(
                 while True:
                     now = time.monotonic()
                     if now >= started + duration_seconds:
+                        if not restarted or _transition_evidence_complete(
+                            samples, minimum_sample_count=minimum_sample_count
+                        ):
+                            break
+                    if now >= evidence_deadline:
                         break
-                    if not restarted and now >= restart_at:
-                        running, client = _controlled_restart(running, client, config)
+                    if not restarted and now >= restart_at and len(samples) >= 2:
+                        running, client = _controlled_rollover(running, client, config)
                         restart_count += 1
                         restarted = True
                     client.command("session.heartbeat", {"session_id": "m6-soak"})
@@ -184,7 +196,7 @@ def run_fixture_soak(
                     next_sample = _next_sample_deadline(
                         next_sample, now_after_sample, interval_seconds
                     )
-                    remaining = started + duration_seconds - now_after_sample
+                    remaining = evidence_deadline - now_after_sample
                     if remaining > 0:
                         time.sleep(
                             min(max(0.0, next_sample - now_after_sample), remaining)
@@ -229,6 +241,7 @@ def run_fixture_soak(
             1, math.ceil(expected_duration_seconds / maintenance_cadence)
         ),
         maximum_sample_gap_seconds=max(5.0, interval_seconds * 3),
+        maximum_transition_gap_seconds=rollover_allowance_seconds,
         restart_count=restart_count,
         browser_disconnect_count=disconnect_count,
         maintenance_tick_count=maintenance_count,
@@ -255,6 +268,7 @@ def run_fixture_soak(
                     1, math.ceil(expected_duration_seconds / maintenance_cadence)
                 ),
                 maximum_sample_gap_seconds=max(5.0, interval_seconds * 3),
+                maximum_transition_gap_seconds=rollover_allowance_seconds,
                 restart_count=restart_count,
                 browser_disconnect_count=disconnect_count,
                 maintenance_tick_count=maintenance_count,
@@ -375,6 +389,24 @@ def _minimum_sample_count(duration_seconds: float, interval_seconds: float) -> i
     return max(floor, expected - restart_allowance - 1)
 
 
+def _transition_evidence_complete(
+    samples: list[ResourceSample], *, minimum_sample_count: int
+) -> bool:
+    if len(samples) < minimum_sample_count:
+        return False
+    transitions: list[str] = []
+    counts: dict[str, int] = {}
+    for sample in samples:
+        counts[sample.instance_id] = counts.get(sample.instance_id, 0) + 1
+        if not transitions or transitions[-1] != sample.instance_id:
+            transitions.append(sample.instance_id)
+    return (
+        len(transitions) == 2
+        and len(counts) == 2
+        and all(count >= 2 for count in counts.values())
+    )
+
+
 def _next_sample_deadline(
     previous_deadline: float,
     current_time: float,
@@ -397,6 +429,7 @@ def summarize_samples(
     minimum_browser_disconnect_count: int = 1,
     minimum_maintenance_tick_count: int = 1,
     maximum_sample_gap_seconds: float | None = None,
+    maximum_transition_gap_seconds: float | None = None,
     restart_count: int,
     browser_disconnect_count: int,
     maintenance_tick_count: int,
@@ -445,21 +478,27 @@ def summarize_samples(
         ):
             errors.append("event cursor regressed between resource samples")
 
+        sample_pairs = list(zip(samples, samples[1:]))
         gaps = [
             current.elapsed_seconds - previous.elapsed_seconds
-            for previous, current in zip(samples, samples[1:])
+            for previous, current in sample_pairs
         ]
         maximum_gap = max(gaps, default=0.0)
         if any(gap < 0 for gap in gaps):
             errors.append("resource sample elapsed time regressed")
-        if (
-            maximum_sample_gap_seconds is not None
-            and maximum_gap > maximum_sample_gap_seconds
-        ):
-            errors.append(
-                f"sample gap {maximum_gap:.3f}s exceeded "
-                f"{maximum_sample_gap_seconds:.3f}s"
-            )
+        if maximum_sample_gap_seconds is not None:
+            for previous, current in sample_pairs:
+                gap = current.elapsed_seconds - previous.elapsed_seconds
+                is_transition = previous.instance_id != current.instance_id
+                limit = (
+                    maximum_transition_gap_seconds
+                    if is_transition and maximum_transition_gap_seconds is not None
+                    else maximum_sample_gap_seconds
+                )
+                if gap > limit:
+                    kind = "rollover sample gap" if is_transition else "sample gap"
+                    errors.append(f"{kind} {gap:.3f}s exceeded {limit:.3f}s")
+                    break
 
         transitions: list[str] = []
         grouped: dict[str, list[ResourceSample]] = {}
@@ -545,7 +584,7 @@ def summarize_samples(
     )
 
 
-def _controlled_restart(
+def _controlled_rollover(
     running: RunningCoordinator,
     client: CoordinatorClient,
     config: CoordinatorConfig,
@@ -553,25 +592,27 @@ def _controlled_restart(
     preview = client.control_request(
         "POST",
         "/control/v1/actions/preview",
-        {"kind": "service.restart", "parameters": {"timeoutSeconds": 30}},
+        {"kind": "service.rollover", "parameters": {"timeoutSeconds": 30}},
     )["action"]
     confirmed = client.control_request(
         "POST",
         f"/control/v1/actions/{preview['actionId']}/confirm",
         {
             "phrase": preview["confirmationPhrase"],
-            "reason": "M6 deterministic soak controlled restart",
+            "reason": "M6 deterministic soak controlled rollover",
         },
     )["action"]
     if confirmed["status"] != "executing":
         raise RuntimeError(
-            f"controlled restart action was not executing: {confirmed['status']}"
+            f"controlled rollover action was not executing: {confirmed['status']}"
         )
     action_id = str(preview["actionId"])
-    _wait_for_restart_handoff(running, config.database_path, action_id, timeout_seconds=30)
+    _wait_for_rollover_handoff(
+        running, config.database_path, action_id, timeout_seconds=30
+    )
     running.stop()
     successor = RunningCoordinator.start(config)
-    _assert_restart_completed(
+    _assert_rollover_completed(
         config.database_path,
         action_id,
         successor.instance_id,
@@ -579,7 +620,7 @@ def _controlled_restart(
     return successor, CoordinatorClient.from_runtime(config)
 
 
-def _wait_for_restart_handoff(
+def _wait_for_rollover_handoff(
     running: RunningCoordinator,
     database_path: Path,
     action_id: str,
@@ -607,7 +648,7 @@ def _wait_for_restart_handoff(
                 f"intent_error={row['intent_error']}, action_error={row['action_error']}"
             )
             if row["intent_status"] == "failed" or row["action_status"] == "failed":
-                raise RuntimeError(f"controlled restart failed before handoff: {last_state}")
+                raise RuntimeError(f"controlled rollover failed before handoff: {last_state}")
             if (
                 row["intent_status"] == "awaiting_restart"
                 and row["action_status"] == "executing"
@@ -615,10 +656,10 @@ def _wait_for_restart_handoff(
             ):
                 return
         time.sleep(0.05)
-    raise TimeoutError(f"controlled restart handoff timed out: {last_state}")
+    raise TimeoutError(f"controlled rollover handoff timed out: {last_state}")
 
 
-def _assert_restart_completed(
+def _assert_rollover_completed(
     database_path: Path,
     action_id: str,
     successor_instance_id: str,
@@ -635,14 +676,14 @@ def _assert_restart_completed(
             (action_id,),
         ).fetchone()
     if row is None:
-        raise RuntimeError("controlled restart action or lifecycle intent disappeared")
+        raise RuntimeError("controlled rollover action or lifecycle intent disappeared")
     if (
         row["intent_status"] != "succeeded"
         or row["action_status"] != "succeeded"
         or row["successor_instance_id"] != successor_instance_id
     ):
         raise RuntimeError(
-            "controlled restart did not reach a terminal succeeded state: "
+            "controlled rollover did not reach a terminal succeeded state: "
             f"intent={row['intent_status']}, action={row['action_status']}, "
             f"successor={row['successor_instance_id']}"
         )
