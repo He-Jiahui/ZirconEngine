@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-29
 summary_slug: control-http-admission-mock-background-interference
 origin_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -14,6 +14,7 @@ related_code:
 tests:
   - python -u -B -m unittest -v tools.session_coordinator.tests.test_control_http.ControlHttpTests.test_manual_queue_advance_uses_the_shared_non_reentrant_worker_gate
   - python -u -B -m unittest -q tools.session_coordinator.tests.test_control_http
+resolved_at: 2026-08-29
 ---
 
 # Coordinator01 control HTTP admission mock background interference
@@ -55,14 +56,7 @@ queue 自身调用数。后台 worker 合法检查 `codex.sessions.reconcile` �
 
 ## 修复结果与回传
 
-The regression now installs a deterministic independent
-`codex.sessions.reconcile` admission check while the shared mock is active, then
-counts only exact `validation.queue_continue` operations. It still requires two
-queue admission checks, one successful worker tick, and a non-reentrant
-`validation_queue_busy` rejection.
-
-Focused GREEN passed `1/1` in 5.576 seconds, the complete control HTTP module passed
-`18/18` in 118.547 seconds, and the original auth/HTTP/security/recovery combination
-passed `31/31` in 141.795 seconds.
-
-Open state: `source_validated / managed commit pending`.
+- 根因：The test treated the process-wide SupervisionService admission mock call count as validation-queue-local even though RunningCoordinator also runs the Codex reconcile worker, so a legitimate codex.sessions.reconcile admission produced a nondeterministic third call.
+- 架构修复：Keep the real background worker active, inject one deterministic unrelated admission while the shared mock is installed, and assert exactly the validation.queue_continue operations so the two queue admission checks and non-reentrant validation_queue_busy contract remain strict.
+- 验证：Source commit f660cfa9f3f84bff0903e4564ff1af4d065aee73; focused regression 1/1 in 4.657s; full tools.session_coordinator.tests.test_control_http 18/18 in 117.791s.
+- 回传：Coordinator01 control HTTP admission regression is fixed and fresh focused/full verification is green; the canonical lifecycle may return to the origin plan.
