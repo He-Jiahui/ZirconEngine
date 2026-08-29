@@ -2755,8 +2755,15 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
 class CoordinatorRequestHandler(BaseHTTPRequestHandler):
     server: _CoordinatorHttpServer
     protocol_version = "HTTP/1.1"
+    request_read_timeout_seconds = 5.0
+
+    def _set_request_read_deadline(self) -> None:
+        connection = getattr(self, "connection", None)
+        if connection is not None:
+            connection.settimeout(self.request_read_timeout_seconds)
 
     def do_GET(self) -> None:
+        self._set_request_read_deadline()
         if self.path == "/":
             self.send_response(HTTPStatus.SEE_OTHER)
             self.send_header("Location", "/ui/")
@@ -2796,6 +2803,7 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
         self._write_error(HTTPStatus.NOT_FOUND, "not_found", "Unknown endpoint")
 
     def do_POST(self) -> None:
+        self._set_request_read_deadline()
         if self.server.control_http.handles(self.path):
             self.server.control_http.handle(self)
             return

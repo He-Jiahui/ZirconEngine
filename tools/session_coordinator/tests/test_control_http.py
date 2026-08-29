@@ -213,6 +213,27 @@ class ControlHttpTests(unittest.TestCase):
         self.assertEqual(400, status)
         self.assertEqual("invalid_content_length", payload["error"]["code"])
 
+    def test_legacy_command_sets_request_read_deadline(self) -> None:
+        headers = Message()
+        headers["Content-Length"] = "0"
+        connection = Mock()
+        handler = CoordinatorRequestHandler.__new__(CoordinatorRequestHandler)
+        handler.path = "/command"
+        handler.headers = headers
+        handler.rfile = BytesIO()
+        handler.connection = connection
+        handler.server = SimpleNamespace(
+            control_http=SimpleNamespace(handles=lambda _path: False),
+            token="test-token",
+        )
+        handler._authorized = lambda: True
+        handler._write_json = Mock()
+        handler._write_error = Mock()
+
+        handler.do_POST()
+
+        connection.settimeout.assert_called_once_with(5.0)
+
     def test_legacy_command_endpoint_rejects_truncated_body(self) -> None:
         headers = Message()
         headers["Content-Length"] = "3"
