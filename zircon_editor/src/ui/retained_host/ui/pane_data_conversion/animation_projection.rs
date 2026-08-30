@@ -70,7 +70,7 @@ fn animation_template_projection(
             timeline_start_frame: i32::try_from(payload.timeline_start_frame).unwrap_or(i32::MAX),
             timeline_end_frame: i32::try_from(payload.timeline_end_frame).unwrap_or(i32::MAX),
             playback_label: payload.playback_label.clone().into(),
-            track_items: shared_string_list(payload.track_items.clone()),
+            track_items: shared_string_list(&payload.track_items),
             parameter_items: ModelRc::default(),
             node_items: ModelRc::default(),
             state_items: ModelRc::default(),
@@ -87,15 +87,19 @@ fn animation_template_projection(
             timeline_end_frame: 0,
             playback_label: String::new().into(),
             track_items: ModelRc::default(),
-            parameter_items: shared_string_list(payload.parameter_items.clone()),
-            node_items: shared_string_list(payload.node_items.clone()),
-            state_items: shared_string_list(payload.state_items.clone()),
-            transition_items: shared_string_list(payload.transition_items.clone()),
+            parameter_items: shared_string_list(&payload.parameter_items),
+            node_items: shared_string_list(&payload.node_items),
+            state_items: shared_string_list(&payload.state_items),
+            transition_items: shared_string_list(&payload.transition_items),
         }),
         _ => None,
     }
 }
 
-fn shared_string_list(items: Vec<String>) -> ModelRc<SharedString> {
-    model_rc(items.into_iter().map(SharedString::from).collect())
+fn shared_string_list(items: &[String]) -> ModelRc<SharedString> {
+    model_rc(items.iter().cloned().map(SharedString::from).collect())
 }
+
+#[cfg(test)]
+#[path = "animation_projection/direct_list_tests.rs"]
+mod direct_list_tests;

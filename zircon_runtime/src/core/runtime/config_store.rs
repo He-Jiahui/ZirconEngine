@@ -57,12 +57,24 @@ impl ConfigStore {
     }
 
     pub fn snapshot_values(&self) -> HashMap<String, Value> {
-        self.lock_values()
-            .iter()
-            .map(|(key, value)| (key.clone(), value.as_ref().clone()))
+        let shared_entries = shared_snapshot_entries(&self.lock_values());
+        shared_entries
+            .into_iter()
+            .map(|(key, value)| (key, value.as_ref().clone()))
             .collect()
     }
 }
+
+fn shared_snapshot_entries(values: &HashMap<String, Arc<Value>>) -> Vec<(String, Arc<Value>)> {
+    values
+        .iter()
+        .map(|(key, value)| (key.clone(), Arc::clone(value)))
+        .collect()
+}
+
+#[cfg(test)]
+#[path = "config_store/shared_snapshot_tests.rs"]
+mod shared_snapshot_tests;
 
 #[cfg(test)]
 mod tests {
