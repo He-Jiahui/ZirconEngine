@@ -636,6 +636,7 @@ class WorkspaceCopyService:
             command,
             external_sources=descriptors,
             discover_external_sources=discover_external_sources,
+            overlay_paths=tuple(self._normalize(path) for path in overlay_paths),
         )
         paths = tuple(
             sorted(
@@ -866,13 +867,6 @@ class WorkspaceCopyService:
                     "validation_copy_external_source_invalid",
                     "Cargo external source descriptor must be an object",
                 )
-            closure = CargoInputClosurePlanner(
-                self.repo_root, metadata_runner=metadata_runner
-            ).plan(
-                command,
-                external_sources=descriptors,
-                discover_external_sources=bool(request.get("discoverExternalSources")),
-            )
             raw_overlays = request.get("overlayPaths")
             if raw_overlays is None:
                 raw_overlays = []
@@ -887,6 +881,14 @@ class WorkspaceCopyService:
                     "Cargo overlay paths must contain strings",
                 )
             overlays = tuple(self._normalize(path) for path in raw_overlays)
+            closure = CargoInputClosurePlanner(
+                self.repo_root, metadata_runner=metadata_runner
+            ).plan(
+                command,
+                external_sources=descriptors,
+                discover_external_sources=bool(request.get("discoverExternalSources")),
+                overlay_paths=overlays,
+            )
             stage = "overlay_ownership"
             self._require_cargo_overlay_attribution(str(row["session_id"]), overlays)
             paths = tuple(

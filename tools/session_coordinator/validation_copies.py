@@ -308,6 +308,7 @@ class CargoInputClosurePlanner:
         *,
         external_sources: tuple[ExternalGitSource, ...] | list[ExternalGitSource] = (),
         discover_external_sources: bool = False,
+        overlay_paths: tuple[str, ...] | list[str] = (),
     ) -> CargoInputClosure:
         command_tuple = tuple(str(part) for part in command if str(part))
         package_name = self._package_name(command_tuple)
@@ -659,11 +660,17 @@ class CargoInputClosurePlanner:
             )
             if tracked.returncode == 0:
                 paths.add(root_file)
+        overlay_sources = {
+            Path(relative).as_posix()
+            for relative in overlay_paths
+            if (self.repo_root / relative).is_file()
+        }
         paths.update(
             self._compile_time_resource_paths(
-                paths,
+                paths | overlay_sources,
                 repository_roots,
                 build_repository_roots,
+                overlay_paths=overlay_sources,
             )
         )
         return CargoInputClosure(
@@ -678,6 +685,8 @@ class CargoInputClosurePlanner:
         tracked_paths: set[str],
         package_roots: set[str],
         selected_package_roots: set[str],
+        *,
+        overlay_paths: set[str] | frozenset[str] = frozenset(),
     ) -> set[str]:
         roots = tuple(
             sorted(
@@ -689,6 +698,7 @@ class CargoInputClosurePlanner:
             (self.repo_root / root).resolve() for root in selected_package_roots
         }
         resource_sources: dict[str, str] = {}
+        overlay_source_resources: set[str] = set()
         for relative in sorted(tracked_paths, key=str.casefold):
             if not relative.endswith(".rs"):
                 continue
@@ -712,9 +722,22 @@ class CargoInputClosurePlanner:
                 )
                 resource_root = resource.relative_to(self.repo_root).as_posix()
                 resource_sources.setdefault(resource_root, str(source))
+                if relative in overlay_paths:
+                    overlay_source_resources.add(resource_root)
         if not resource_sources:
             return set()
         resources = self._tracked_compile_time_resources(set(resource_sources))
+        overlay_resources: set[str] = set()
+        for resource_root in resource_sources:
+            descendant_prefix = resource_root.rstrip("/") + "/"
+            if resource_root in overlay_source_resources:
+                overlay_resources.add(resource_root)
+            overlay_resources.update(
+                path
+                for path in overlay_paths
+                if path == resource_root or path.startswith(descendant_prefix)
+            )
+        resources.update(overlay_resources)
         ordered_resources = sorted(resources)
         for resource_root in resource_sources:
             descendant_prefix = resource_root.rstrip("/") + "/"

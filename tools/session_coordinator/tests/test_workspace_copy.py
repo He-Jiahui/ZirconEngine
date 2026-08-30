@@ -733,6 +733,22 @@ class WorkspaceCopyTests(unittest.TestCase):
         self.assertEqual(0, evidence.exit_code)
         self.assertIn("runtime14 focused test reached", evidence.stdout)
 
+    def test_cargo_materialization_passes_overlays_to_planner(self) -> None:
+        with (
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+                return_value=CargoInputClosure(("README.md",), ()),
+            ) as planned,
+            mock.patch.object(self.service, "materialize"),
+        ):
+            self.service.materialize_cargo(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+                overlay_paths=("owned.txt",),
+            )
+
+        self.assertEqual(("owned.txt",), planned.call_args.kwargs["overlay_paths"])
+
     def test_async_materialize_returns_before_copy_finishes_and_exposes_status(self) -> None:
         started = threading.Event()
         release = threading.Event()
@@ -1002,11 +1018,14 @@ class WorkspaceCopyTests(unittest.TestCase):
         with mock.patch(
             "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
             return_value=CargoInputClosure(("README.md", "owned.txt"), ()),
-        ):
+        ) as planned:
             self.service._materialize_cargo_async_worker(
                 accepted.job_id,
                 metadata_runner=None,
             )
+
+        planned.assert_called_once()
+        self.assertEqual(("owned.txt",), planned.call_args.kwargs["overlay_paths"])
 
         status = self.service.status("session-a", accepted.job_id)
         self.assertEqual("failed", status.status)

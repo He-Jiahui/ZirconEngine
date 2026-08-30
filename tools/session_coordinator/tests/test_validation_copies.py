@@ -642,6 +642,102 @@ class ValidationCopySourceTests(unittest.TestCase):
             Path(str(raised.exception.details["resourcePath"])),
         )
 
+    def test_compile_time_resource_accepts_declared_overlay_file(self) -> None:
+        tracked = {
+            "Cargo.toml": "[workspace]\nmembers=['app']\n",
+            "Cargo.lock": "# lock\n",
+            "app/Cargo.toml": "[package]\nname='app'\nversion='0.1.0'\n",
+            "app/src/lib.rs": "const _: &str = include_str!(\"schema.txt\");\n",
+        }
+        for relative, content in tracked.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *tracked], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add overlay resource fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        resource = self.repo / "app/src/schema.txt"
+        resource.write_text("overlay schema\n", encoding="utf-8")
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(self.repo / "app/Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["app-id"],
+            "resolve": {"nodes": [{"id": "app-id", "deps": []}]},
+        }
+
+        closure = CargoInputClosurePlanner(
+            self.repo,
+            metadata_runner=lambda _command: metadata,
+        ).plan(
+            ("cargo", "test", "-p", "app", "--lib"),
+            overlay_paths=("app/src/lib.rs",),
+        )
+        resource_overlay_closure = CargoInputClosurePlanner(
+            self.repo,
+            metadata_runner=lambda _command: metadata,
+        ).plan(
+            ("cargo", "test", "-p", "app", "--lib"),
+            overlay_paths=("app/src/schema.txt",),
+        )
+
+        self.assertIn("app/src/schema.txt", closure.repository_paths)
+        self.assertIn(
+            "app/src/schema.txt", resource_overlay_closure.repository_paths
+        )
+
+    def test_compile_time_resource_accepts_any_declared_including_source(self) -> None:
+        tracked = {
+            "Cargo.toml": "[workspace]\nmembers=['app']\n",
+            "Cargo.lock": "# lock\n",
+            "app/Cargo.toml": "[package]\nname='app'\nversion='0.1.0'\n",
+            "app/src/lib.rs": "const _: &str = include_str!(\"schema.txt\");\n",
+        }
+        for relative, content in tracked.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *tracked], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add shared overlay resource fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        (self.repo / "app/src/schema.txt").write_text(
+            "overlay schema\n", encoding="utf-8"
+        )
+        (self.repo / "app/src/z_overlay.rs").write_text(
+            "const _: &str = include_str!(\"schema.txt\");\n", encoding="utf-8"
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(self.repo / "app/Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["app-id"],
+            "resolve": {"nodes": [{"id": "app-id", "deps": []}]},
+        }
+
+        closure = CargoInputClosurePlanner(
+            self.repo,
+            metadata_runner=lambda _command: metadata,
+        ).plan(
+            ("cargo", "test", "-p", "app", "--lib"),
+            overlay_paths=("app/src/z_overlay.rs",),
+        )
+
+        self.assertIn("app/src/schema.txt", closure.repository_paths)
+
     def test_compile_time_resource_discovery_uses_bounded_git_arguments(self) -> None:
         resource_count = 2_400
         resource_roots = {
