@@ -1062,7 +1062,11 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
                 f"Fixed destination already exists: {self._relative(destination)}",
             )
         source_text = source.read_text(encoding="utf-8")
-        source_errors = self._source_validation_errors(source)
+        source_errors = self._source_validation_errors(
+            source,
+            origin_plan=origin_plan,
+            fixing_plan=fixing_plan,
+        )
         if source_errors:
             raise CoordinatorError(
                 "invalid_handoff",
@@ -1109,15 +1113,28 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
             raise
         return destination
 
-    def _source_validation_errors(self, source: Path) -> tuple[str, ...]:
-        """Reject returns that would preserve source-only handoff schema errors."""
+    def _source_validation_errors(
+        self,
+        source: Path,
+        *,
+        origin_plan: Path,
+        fixing_plan: Path,
+    ) -> tuple[str, ...]:
+        """Reject returns using a validator snapshot limited to affected plans."""
         relative_source = self._relative(source).replace("\\", "/")
-        prefix = f"{relative_source}:"
-        return tuple(
-            error
-            for error in self._validator_module().validate_repository(self.repo_root)
-            if error.replace("\\", "/").startswith(prefix)
-        )
+        with tempfile.TemporaryDirectory(prefix="zircon-failure-return-") as temporary:
+            snapshot_root = Path(temporary)
+            for path in {source, origin_plan, fixing_plan}:
+                relative = path.relative_to(self.repo_root)
+                destination = snapshot_root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(path.read_bytes())
+            prefix = f"{relative_source}:"
+            return tuple(
+                error
+                for error in self._validator_module().validate_repository(snapshot_root)
+                if error.replace("\\", "/").startswith(prefix)
+            )
 
     def _return_child_record_only(
         self,

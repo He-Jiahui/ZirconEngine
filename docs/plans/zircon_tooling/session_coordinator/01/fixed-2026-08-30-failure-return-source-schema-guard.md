@@ -61,3 +61,11 @@ fixed artifact.
 - 架构修复：return_fixed now fails closed on validator errors attributed to the source and preserves the open artifact on rejection
 - 验证：RED reproduced a malformed source being moved; GREEN source-schema rejection, ordinary return, child-record-only return, py_compile, and diff checks passed
 - 回传：Coordinator failure return now publishes fixed artifacts only from canonical source handoffs.
+
+### Isolated source-validation follow-up
+
+The source-schema preflight now validates an immutable temporary snapshot containing only the
+source artifact and its origin/fixing plan files. This removes the redundant full-repository
+scan before mutation while retaining the canonical full import after an accepted return.
+Focused regressions proved the validator receives the isolated root, malformed sources still
+fail closed, and canonical return behavior remains unchanged.

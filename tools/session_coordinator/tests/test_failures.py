@@ -845,6 +845,37 @@ class FailureGraphTests(unittest.TestCase):
             (origin.child / "fixed-2026-07-17-malformed-source.md").exists()
         )
 
+    def test_source_schema_validation_uses_an_isolated_plan_snapshot(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        failure = self.fixture.add_handoff(origin, fixing, "isolated-source-check")
+        validator = self.service._validator_module()
+        observed_roots: list[Path] = []
+        original_validate = validator.validate_repository
+
+        def capture_validation(root: Path) -> list[str]:
+            isolated_root = Path(root)
+            observed_roots.append(isolated_root)
+            self.assertNotEqual(self.root.resolve(), isolated_root.resolve())
+            self.assertTrue(
+                (isolated_root / failure.relative_to(self.root)).is_file()
+            )
+            return original_validate(isolated_root)
+
+        with mock.patch.object(
+            validator, "validate_repository", side_effect=capture_validation
+        ):
+            self.assertEqual(
+                (),
+                self.service._source_validation_errors(
+                    failure,
+                    origin_plan=origin.path,
+                    fixing_plan=fixing.path,
+                ),
+            )
+
+        self.assertEqual(1, len(observed_roots))
+
     def test_return_rewrites_only_source_link_tokens_inside_table_rows(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/07-editor.md")
         fixing = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
