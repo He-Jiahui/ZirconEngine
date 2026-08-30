@@ -20,26 +20,27 @@ resolved_at: 2026-08-30
 
 # Coordinator command failures disclose internal exception strings
 
-## Source executor
+## 来源执行者
 
-- Origin plan: `docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
-- Guidance: `TOOL-COORD-P2-002` in `docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md`
-- Fix owner: Coordinator01
+- 来源计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 来源执行切片：`TOOL-COORD-P2-002` in `docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md`
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 交接原因：Coordinator01 owns the command journal and HTTP defensive error contract.
 
-## Failure and reproduction
+## 失败现象与复现证据
 
 Unexpected exceptions in the command journal were converted to `internal_error` while
 retaining `str(error)` as the durable message. The HTTP defensive boundary did the same,
 returning raw exception text to callers and emitting no correlation identifier. A simulated
 SQLite path or SQL detail could therefore become visible through the request journal and API.
 
-## Lowest shared cause
+## 最低共享层根因
 
 The command transport had no stable unexpected-error contract. Journal persistence, replay,
 and HTTP fallback each formatted unhandled exceptions independently, so the most detailed
 local exception string became the externally observable error.
 
-## Architecture acceptance
+## 架构修复验收
 
 - Map unexpected command exceptions to stable `internal_error` text and a request-bound
   `correlationId` in durable journal records and replay.
@@ -48,7 +49,7 @@ local exception string became the externally observable error.
 - Preserve declared `CoordinatorError` codes/messages and all accepted/deferred/replay
   durability semantics.
 
-## Forbidden shortcuts
+## 禁止临时方案
 
 - Do not expose filesystem paths, SQL, process command lines, or exception strings in the
   command response or durable request journal.

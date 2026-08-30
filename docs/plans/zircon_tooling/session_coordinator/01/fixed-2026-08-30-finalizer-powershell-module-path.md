@@ -20,7 +20,14 @@ resolved_at: 2026-08-30
 
 # Coordinator01: finalizer PowerShell validation loses module discovery
 
-## Failure and reproduction
+## 来源执行者
+
+- 来源计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 来源执行切片：2026-08-30 maintenance finalizer PowerShell validation
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 交接原因：Coordinator01 owns the maintenance finalizer child-environment contract.
+
+## 失败现象与复现证据
 
 The Codex Hook installer acceptance passes when launched from the interactive shell,
 but the same validation command fails inside the Coordinator maintenance finalizer.
@@ -28,13 +35,13 @@ The finalizer process inherits a service environment without `PSModulePath`, so
 PowerShell cannot resolve the built-in `Get-FileHash` cmdlet used by the acceptance
 test. The finalizer reports only `Validation command failed with exit code 1`.
 
-## Lowest shared cause
+## 最低共享层根因
 
 Finalizer validation normalizes temporary paths but assumes every child shell has the
 interactive PowerShell module search path. A service-launched Coordinator does not
 make that caller-only environment contract available to validation children.
 
-## Architecture acceptance
+## 架构修复验收
 
 - Detect PowerShell validation commands and add the standard Windows PowerShell module
   roots to a child-only environment when `PSModulePath` is absent or empty.
@@ -42,7 +49,7 @@ make that caller-only environment contract available to validation children.
 - Leave non-PowerShell validation environments unchanged.
 - Prove the installer acceptance runs from the managed finalizer environment.
 
-## Forbidden shortcuts
+## 禁止临时方案
 
 - Do not change the installer test to avoid `Get-FileHash`.
 - Do not require an interactive profile or caller-specific shell startup.

@@ -22,23 +22,24 @@ resolved_at: 2026-08-30
 
 # Coordinator01: Codex spool replace does not flush directory metadata
 
-## Source executor
+## 来源执行者
 
-- Origin plan: `docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
-- Guidance: `TOOL-COORD-P1-040` in `docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md`
-- Fix owner: Coordinator01
+- 来源计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 来源执行切片：`TOOL-COORD-P1-040` in `docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md`
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 交接原因：Coordinator01 owns the Codex spool namespace durability contract.
 
-## Failure and reproduction
+## 失败现象与复现证据
 
 `CodexTriggerSpool` fsyncs each temporary file and atomically replaces it into `pending`, `quarantine`, or a repository marker path, but it never flushes the containing directory. A successful Hook therefore proves file-content flush and namespace atomicity, not persistence of the new directory entry across power loss. Acknowledgement and overflow rejection unlink entries with the same gap.
 
 Focused tests patch the directory durability boundary. Current enqueue, quarantine, and acknowledgement paths never call it, and no portable Windows/POSIX implementation exists.
 
-## Lowest shared cause
+## 最低共享层根因
 
 File-content durability and namespace durability were treated as the same operation. `fsync(file)` does not make a later `replace` or `unlink` directory entry durable. Windows additionally requires a write-capable directory handle opened with `FILE_FLAG_BACKUP_SEMANTICS` before `FlushFileBuffers` can flush directory metadata.
 
-## Architecture acceptance
+## 架构修复验收
 
 - Provide one fail-closed directory flush primitive for Windows and POSIX.
 - On Windows, use an exact existing directory handle with write access, full sharing, `OPEN_EXISTING`, and `FILE_FLAG_BACKUP_SEMANTICS`, then require `FlushFileBuffers` success.
@@ -46,7 +47,7 @@ File-content durability and namespace durability were treated as the same operat
 - Flush the affected directory after successful enqueue/marker replacement, quarantine moves, acknowledgement unlink, and overflow rejection cleanup.
 - Reject regular files and propagate unsupported/failed durability rather than claiming file-only persistence.
 
-## Forbidden shortcuts
+## 禁止临时方案
 
 - Do not treat close, rename, file fsync, or `Move-Item` as directory durability.
 - Do not swallow a failed directory flush on accepted enqueue/marker paths.

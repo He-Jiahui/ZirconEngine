@@ -22,23 +22,24 @@ resolved_at: 2026-08-29
 
 # Coordinator01: Codex sync spool overflow silently drops pending triggers
 
-## Source executor
+## 来源执行者
 
-- Origin plan: `docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
-- Guidance: `TOOL-COORD-P1-039` in `docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md`
-- Fix owner: Coordinator01
+- 来源计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 来源执行切片：`TOOL-COORD-P1-039` in `docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md`
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 交接原因：Coordinator01 owns the bounded Codex sync spool admission contract.
 
-## Failure and reproduction
+## 失败现象与复现证据
 
 `CodexTriggerSpool.enqueue()` writes a new trigger and then `_enforce_cap()` unlinks the oldest pending JSON files whenever the queue exceeds `max_pending`. The deleted trigger was already accepted by the hook, but no rejection, overflow marker, receipt, metric, or control-plane state records the loss.
 
 A spool with `max_pending=3` accepts five triggers, silently deletes sessions 0 and 1, and reports only the surviving three items. Operators cannot distinguish this data loss from a normally drained queue.
 
-## Lowest shared cause
+## 最低共享层根因
 
 Queue admission and overflow reporting are coupled to a destructive post-write trim. The spool has no durable overflow state, and `CodexSyncWorker.snapshot()` exposes no spool overflow projection. Capacity therefore preserves a numeric bound by discarding accepted work without an observable terminal outcome.
 
-## Architecture acceptance
+## 架构修复验收
 
 - Never delete an older accepted pending trigger to admit a newer trigger.
 - When the queue is full, reject the new trigger and preserve every accepted pending file.
@@ -47,7 +48,7 @@ Queue admission and overflow reporting are coupled to a destructive post-write t
 - Keep corrupt marker handling fail-closed and avoid exposing trigger payload or session identifiers.
 - Preserve valid pending reconciliation and acknowledgement behavior.
 
-## Forbidden shortcuts
+## 禁止临时方案
 
 - Do not increase the 1,024 item cap or silently rotate overflow markers.
 - Do not move accepted triggers into quarantine or claim that deletion is acknowledgement.

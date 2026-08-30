@@ -19,23 +19,24 @@ resolved_at: 2026-08-30
 
 # Coordinator01: Codex Hook installer binds compatibility to DB schema 28
 
-## Source executor
+## 来源执行者
 
-- Origin plan: `docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
-- Guidance: `TOOL-COORD-P1-042` in `docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md`
-- Fix owner: Coordinator01
+- 来源计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 来源执行切片：`TOOL-COORD-P1-042` in `docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md`
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 交接原因：Coordinator01 owns the public Hook-to-daemon compatibility contract.
 
-## Failure and reproduction
+## 失败现象与复现证据
 
 `Test-DaemonCompatible` in `tools/install-codex-session-hook.ps1` requires `runtime.schema_version -eq 28`. The live Coordinator runtime descriptor is version 2, advertises control API v1, and currently uses internal database schema 69, so installer `Query` reports `daemonCompatible=false` for the healthy supported daemon.
 
 The acceptance fixture reproduces the defect with descriptor v2, exact repository identity, loopback host, and control API v1 across schema 68, 69, and 70. All three are protocol-compatible, but the current implementation rejects every one because none equals the obsolete internal schema 28.
 
-## Lowest shared cause
+## 最低共享层根因
 
 The installer treats the Coordinator database migration version as a public Hook protocol compatibility version. Internal schema migration is not part of the Hook-to-daemon control contract; the runtime descriptor version and advertised control API versions are.
 
-## Architecture acceptance
+## 架构修复验收
 
 - Determine compatibility from the supported runtime descriptor version window and required control API capability.
 - Preserve exact loopback host and repository identity checks.
@@ -43,7 +44,7 @@ The installer treats the Coordinator database migration version as a public Hook
 - Accept current, immediately preceding, and immediately following internal schemas when the public descriptor/API contract is unchanged.
 - Reject unsupported old/future descriptor versions, missing control API v1, malformed descriptors, and foreign repository identity.
 
-## Forbidden shortcuts
+## 禁止临时方案
 
 - Do not update the literal from 28 to the current schema number.
 - Do not accept arbitrary runtime descriptor versions or omit repository identity validation.
