@@ -25,7 +25,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
                 .slot(UiSlotSchema::new("endAdornment")),
         ),
         textarea_autosize_descriptor(),
-        with_text_input_state_props(
+        with_text_input_events(
             editor_panel_component(
                 "SearchField",
                 "Search Field",
@@ -33,14 +33,8 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
                 "search-field",
             )
             .with_prop(string_prop("query")),
-        )
-        .events([
-            UiComponentEventKind::KeyboardText,
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::Commit,
-        ])
-        .requires_host_capability(UiHostCapability::TextInput),
-        with_text_input_state_props(
+        ),
+        with_text_input_events(
             editor_panel_component(
                 "FieldEditor",
                 "Field Editor",
@@ -50,13 +44,8 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(text_prop())
             .with_prop(value_text_prop())
             .slot(UiSlotSchema::new("field").required(true)),
-        )
-        .events([
-            UiComponentEventKind::KeyboardText,
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::Commit,
-        ]),
-        with_text_input_state_props(
+        ),
+        with_text_input_events(
             editor_panel_component(
                 "SourceEditor",
                 "Source Editor",
@@ -64,13 +53,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
                 "source-editor",
             )
             .with_prop(text_prop()),
-        )
-        .events([
-            UiComponentEventKind::KeyboardText,
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::Commit,
-        ])
-        .requires_host_capability(UiHostCapability::TextInput),
+        ),
     ]
 }
 
@@ -87,6 +70,15 @@ fn text_field_descriptor() -> UiComponentDescriptor {
         .with_prop(string_prop("label"))
         .with_prop(string_prop("placeholder"))
         .with_prop(string_prop("helper_text"))
+        .with_prop(enum_prop_with_options(
+            "input_kind",
+            "text",
+            [
+                "text", "password", "email", "search", "number", "tel", "url",
+            ]
+            .into_iter()
+            .map(enum_option_descriptor),
+        ))
         .with_prop(enum_prop_with_options(
             "variant",
             "outlined",

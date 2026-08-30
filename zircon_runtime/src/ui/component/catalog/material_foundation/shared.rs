@@ -298,7 +298,6 @@ pub(super) fn with_text_input_events(descriptor: UiComponentDescriptor) -> UiCom
     with_text_input_state_props(descriptor)
         .events([
             UiComponentEventKind::Focus,
-            UiComponentEventKind::KeyboardText,
             UiComponentEventKind::ValueChanged,
             UiComponentEventKind::Commit,
         ])
@@ -359,18 +358,24 @@ pub(super) fn enum_option_descriptor(option: &str) -> UiOptionDescriptor {
 }
 
 fn enum_label(option: &str) -> String {
-    option
-        .split('_')
-        .map(|part| {
-            let mut chars = part.chars();
-            match chars.next() {
-                Some(first) => format!("{}{}", first.to_ascii_uppercase(), chars.as_str()),
-                None => String::new(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+    let mut label = String::with_capacity(option.len());
+    for (index, part) in option.split('_').enumerate() {
+        if index != 0 {
+            label.push(' ');
+        }
+
+        let mut chars = part.chars();
+        if let Some(first) = chars.next() {
+            label.push(first.to_ascii_uppercase());
+            label.push_str(chars.as_str());
+        }
+    }
+    label
 }
+
+#[cfg(test)]
+#[path = "shared/enum_label_tests.rs"]
+mod enum_label_tests;
 
 pub(super) fn int_prop(name: &str, default: i64) -> UiPropSchema {
     UiPropSchema::new(name, UiValueKind::Int).default_value(UiValue::Int(default))

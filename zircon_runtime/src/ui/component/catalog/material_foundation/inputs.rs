@@ -10,6 +10,13 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             "number-field",
         )
         .with_prop(field_number_value_prop())
+        .with_prop(enum_prop_with_options(
+            "number_format",
+            "invariant_ascii",
+            [enum_option_descriptor("invariant_ascii")],
+        ))
+        .with_prop(bool_prop("number_publish_per_key", false))
+        .with_prop(bool_prop("number_snap_on_commit", false))
         .with_prop(float_prop("min", 0.0))
         .with_prop(float_prop("max", 100.0))
         .with_prop(float_prop("step", 1.0))
@@ -19,6 +26,10 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .default_prop("max", UiValue::Float(100.0))
         .default_prop("step", UiValue::Float(1.0))
         .default_prop("large_step", UiValue::Float(10.0))
+        .state(value_text_prop())
+        .state(bool_prop("number_edit_active", false))
+        .state(int_prop("number_value_revision", 0))
+        .state(int_prop("number_edit_base_revision", 0))
         .events([
             UiComponentEventKind::KeyboardAction,
             UiComponentEventKind::Focus,

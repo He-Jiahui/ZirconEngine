@@ -42,6 +42,9 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .with_prop(value_text_prop())
         .events([
             UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::OpenPopup,
+            UiComponentEventKind::SelectOption,
+            UiComponentEventKind::ClosePopup,
             UiComponentEventKind::ValueChanged,
         ]),
         dropdown_popup(),

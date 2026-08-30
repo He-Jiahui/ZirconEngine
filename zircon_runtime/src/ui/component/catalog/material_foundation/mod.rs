@@ -30,8 +30,13 @@ mod surface_subcomponents;
 mod surfaces;
 mod text_inputs;
 
+#[cfg(test)]
+mod capacity_tests;
+
 static MATERIAL_EDITOR_FOUNDATION_REGISTRY: OnceLock<UiComponentDescriptorRegistry> =
     OnceLock::new();
+
+const MATERIAL_FOUNDATION_DESCRIPTOR_GROUP_COUNT: usize = 25;
 
 impl UiComponentDescriptorRegistry {
     /// Builds the component catalog for the Material Dark editor foundation.
@@ -56,31 +61,40 @@ fn build_material_editor_foundation_registry() -> UiComponentDescriptorRegistry 
 }
 
 fn material_editor_foundation_descriptors() -> Vec<UiComponentDescriptor> {
-    let mut descriptors = Vec::new();
-    descriptors.extend(button_inputs::descriptors());
-    descriptors.extend(inputs::descriptors());
-    descriptors.extend(selection_inputs::descriptors());
-    descriptors.extend(text_inputs::descriptors());
-    descriptors.extend(form_controls::descriptors());
-    descriptors.extend(data_display::descriptors());
-    descriptors.extend(data_display_editor::descriptors());
-    descriptors.extend(data_display_subcomponents::descriptors());
-    descriptors.extend(data_display_table::descriptors());
-    descriptors.extend(data_display_visuals::descriptors());
-    descriptors.extend(feedback::descriptors());
-    descriptors.extend(feedback_editor_overlays::descriptors());
-    descriptors.extend(surface_subcomponents::descriptors());
-    descriptors.extend(surfaces::descriptors());
-    descriptors.extend(navigation::descriptors());
-    descriptors.extend(navigation_subcomponents::descriptors());
-    descriptors.extend(navigation_secondary::descriptors());
-    descriptors.extend(navigation_editor::descriptors());
-    descriptors.extend(layout_mui::descriptors());
-    descriptors.extend(layout::descriptors());
-    descriptors.extend(layout_utilities::descriptors());
-    descriptors.extend(layout_transitions::descriptors());
-    descriptors.extend(layout_editor::descriptors());
-    descriptors.extend(mui_x::descriptors());
-    descriptors.extend(lab_subcomponents::descriptors());
+    let descriptor_groups: [Vec<UiComponentDescriptor>;
+        MATERIAL_FOUNDATION_DESCRIPTOR_GROUP_COUNT] = [
+        button_inputs::descriptors(),
+        inputs::descriptors(),
+        selection_inputs::descriptors(),
+        text_inputs::descriptors(),
+        form_controls::descriptors(),
+        data_display::descriptors(),
+        data_display_editor::descriptors(),
+        data_display_subcomponents::descriptors(),
+        data_display_table::descriptors(),
+        data_display_visuals::descriptors(),
+        feedback::descriptors(),
+        feedback_editor_overlays::descriptors(),
+        surface_subcomponents::descriptors(),
+        surfaces::descriptors(),
+        navigation::descriptors(),
+        navigation_subcomponents::descriptors(),
+        navigation_secondary::descriptors(),
+        navigation_editor::descriptors(),
+        layout_mui::descriptors(),
+        layout::descriptors(),
+        layout_utilities::descriptors(),
+        layout_transitions::descriptors(),
+        layout_editor::descriptors(),
+        mui_x::descriptors(),
+        lab_subcomponents::descriptors(),
+    ];
+    let descriptor_capacity = descriptor_groups.iter().fold(0usize, |capacity, group| {
+        capacity.saturating_add(group.len())
+    });
+    let mut descriptors = Vec::with_capacity(descriptor_capacity);
+    for group in descriptor_groups {
+        descriptors.extend(group);
+    }
     descriptors
 }

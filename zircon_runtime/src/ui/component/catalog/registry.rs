@@ -4,9 +4,23 @@ use zircon_runtime_interface::ui::component::{
     UiComponentCategory, UiComponentDescriptor, UiHostCapability, UiHostCapabilitySet,
 };
 
-use super::super::descriptor::{validate_component_descriptor, UiComponentDescriptorError};
+use super::super::descriptor::{UiComponentDescriptorError, validate_component_descriptor};
 
 use super::palette_view::UiComponentPaletteEntry;
+
+const COMPONENT_CATEGORIES: [UiComponentCategory; 8] = [
+    UiComponentCategory::Visual,
+    UiComponentCategory::Input,
+    UiComponentCategory::Numeric,
+    UiComponentCategory::Selection,
+    UiComponentCategory::Reference,
+    UiComponentCategory::Collection,
+    UiComponentCategory::Container,
+    UiComponentCategory::Feedback,
+];
+
+type UiComponentCategoryIter =
+    std::iter::Flatten<std::array::IntoIter<Option<UiComponentCategory>, 8>>;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiComponentDescriptorRegistry {
@@ -72,12 +86,12 @@ impl UiComponentDescriptorRegistry {
     }
 
     /// Iterates component categories represented by the registry.
-    pub fn categories(&self) -> impl Iterator<Item = UiComponentCategory> {
-        self.descriptors
-            .values()
-            .map(|descriptor| descriptor.category)
-            .collect::<BTreeSet<_>>()
-            .into_iter()
+    pub fn categories(&self) -> UiComponentCategoryIter {
+        unique_component_categories(
+            self.descriptors
+                .values()
+                .map(|descriptor| descriptor.category),
+        )
     }
 
     /// Iterates all registered descriptors in deterministic component-id order.
@@ -121,5 +135,73 @@ impl UiComponentDescriptorRegistry {
     ) -> Option<BTreeSet<UiHostCapability>> {
         self.descriptor(component_id)
             .map(|descriptor| host_capabilities.missing(&descriptor.required_host_capabilities))
+    }
+}
+
+fn unique_component_categories(
+    categories: impl IntoIterator<Item = UiComponentCategory>,
+) -> UiComponentCategoryIter {
+    let mut ordered = [None; COMPONENT_CATEGORIES.len()];
+    for category in categories {
+        ordered[component_category_index(category)] = Some(category);
+    }
+    ordered.into_iter().flatten()
+}
+
+const fn component_category_index(category: UiComponentCategory) -> usize {
+    match category {
+        UiComponentCategory::Visual => 0,
+        UiComponentCategory::Input => 1,
+        UiComponentCategory::Numeric => 2,
+        UiComponentCategory::Selection => 3,
+        UiComponentCategory::Reference => 4,
+        UiComponentCategory::Collection => 5,
+        UiComponentCategory::Container => 6,
+        UiComponentCategory::Feedback => 7,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{UiComponentCategory, unique_component_categories};
+
+    #[test]
+    fn allocation_free_categories_preserve_enum_order() {
+        let categories = unique_component_categories([
+            UiComponentCategory::Feedback,
+            UiComponentCategory::Numeric,
+            UiComponentCategory::Visual,
+        ])
+        .collect::<Vec<_>>();
+
+        assert_eq!(
+            categories,
+            [
+                UiComponentCategory::Visual,
+                UiComponentCategory::Numeric,
+                UiComponentCategory::Feedback,
+            ]
+        );
+    }
+
+    #[test]
+    fn allocation_free_categories_deduplicate_repeated_values() {
+        let categories = unique_component_categories([
+            UiComponentCategory::Input,
+            UiComponentCategory::Input,
+            UiComponentCategory::Selection,
+            UiComponentCategory::Input,
+        ])
+        .collect::<Vec<_>>();
+
+        assert_eq!(
+            categories,
+            [UiComponentCategory::Input, UiComponentCategory::Selection]
+        );
+    }
+
+    #[test]
+    fn allocation_free_categories_handle_empty_input() {
+        assert_eq!(unique_component_categories([]).next(), None);
     }
 }

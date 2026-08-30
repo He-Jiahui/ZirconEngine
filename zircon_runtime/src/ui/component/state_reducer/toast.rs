@@ -75,10 +75,11 @@ fn sync_toast_state(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
 ) -> Result<(), UiComponentEventError> {
-    let entries = toast_entries(state, descriptor);
-    write_queue_length(state, entries.len());
+    let current_id = string_setting(state, descriptor, CURRENT_TOAST_ID).unwrap_or_default();
+    let scan = scan_toast_queue(queue_value(state, descriptor), &current_id);
+    write_queue_length(state, scan.len);
 
-    if entries.is_empty() {
+    if scan.len == 0 {
         if has_explicit_queue(state) {
             clear_current_toast(state, descriptor)?;
             return Ok(());
@@ -87,12 +88,10 @@ fn sync_toast_state(
         return Ok(());
     }
 
-    let current_id = string_setting(state, descriptor, CURRENT_TOAST_ID).unwrap_or_default();
-    let current = entries
-        .iter()
-        .find(|entry| entry.matches_id(&current_id))
-        .unwrap_or(&entries[0]);
-    write_current_toast(state, descriptor, current)?;
+    let current = scan
+        .current
+        .expect("a non-empty toast queue scan must select one display entry");
+    write_current_toast(state, descriptor, &current)?;
     Ok(())
 }
 
@@ -152,25 +151,25 @@ fn expire_toast(
         return Ok(());
     }
 
-    let entries = toast_entries(state, descriptor);
-    if entries.is_empty() {
+    let mut entry_count = 0;
+    let mut removed = false;
+    let mut remaining = Vec::new();
+    if let Some(queue) = queue_value(state, descriptor) {
+        visit_toast_entries(queue, &mut |entry| {
+            entry_count += 1;
+            if !removed && entry.matches_id(&expired_id) {
+                removed = true;
+            } else {
+                remaining.push(entry.raw.to_owned_value());
+            }
+        });
+    }
+    if entry_count == 0 {
         write_expired_toast(state, &expired_id);
         clear_current_toast(state, descriptor)?;
         return Ok(());
     }
 
-    let mut removed = false;
-    let remaining = entries
-        .into_iter()
-        .filter_map(|entry| {
-            if !removed && entry.matches_id(&expired_id) {
-                removed = true;
-                None
-            } else {
-                Some(entry.raw)
-            }
-        })
-        .collect::<Vec<_>>();
     if !removed {
         sync_toast_state(state, descriptor)?;
         return Ok(());
@@ -184,7 +183,7 @@ fn expire_toast(
 fn write_current_toast(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
-    entry: &ToastEntry,
+    entry: &ToastDisplayEntry,
 ) -> Result<(), UiComponentEventError> {
     super::set_value(
         state,
@@ -276,56 +275,51 @@ fn toast_sync_property(property: &str) -> bool {
     )
 }
 
-fn toast_entries(state: &UiComponentState, descriptor: &UiComponentDescriptor) -> Vec<ToastEntry> {
-    queue_value(state, descriptor)
-        .map(|value| toast_entry_list(value, 0))
-        .unwrap_or_default()
-}
-
-fn toast_entry_list(value: &UiValue, start_index: i64) -> Vec<ToastEntry> {
+fn visit_toast_entries<'a>(value: &'a UiValue, visitor: &mut impl FnMut(BorrowedToastEntry<'a>)) {
     match value {
-        UiValue::Array(values) => values
-            .iter()
-            .enumerate()
-            .flat_map(|(offset, value)| toast_entry_list(value, start_index + offset as i64))
-            .collect(),
-        UiValue::String(value) | UiValue::Enum(value) => {
-            toast_entry_from_string(value, start_index)
-                .into_iter()
-                .collect()
+        UiValue::Array(values) => {
+            for value in values {
+                visit_toast_entries(value, visitor);
+            }
         }
-        UiValue::Map(values) => toast_entry_from_map(values, start_index)
-            .into_iter()
-            .collect(),
-        _ => Vec::new(),
+        UiValue::String(text) | UiValue::Enum(text) => {
+            if let Some(entry) = borrowed_toast_entry_from_string(text) {
+                visitor(entry);
+            }
+        }
+        UiValue::Map(values) => {
+            if let Some(entry) = borrowed_toast_entry_from_map(values) {
+                visitor(entry);
+            }
+        }
+        _ => {}
     }
 }
 
-fn toast_entry_from_string(value: &str, _index: i64) -> Option<ToastEntry> {
+fn borrowed_toast_entry_from_string(value: &str) -> Option<BorrowedToastEntry<'_>> {
     let mut parts = value.split('|');
-    let id = parts.next()?.trim().to_string();
+    let id = parts.next()?.trim();
     if id.is_empty() {
         return None;
     }
 
-    let mut entry = ToastEntry {
-        id: id.clone(),
+    let mut entry = BorrowedToastEntry {
+        id,
         message: id,
-        action_label: String::new(),
+        action_label: "",
         duration_ms: None,
-        raw: UiValue::String(value.to_string()),
+        raw: BorrowedToastRaw::String(value),
     };
     for part in parts {
         let Some((key, value)) = part.split_once('=') else {
             continue;
         };
+        let value = value.trim();
         match key.trim() {
-            "message" | "text" | "label" | "title" => entry.message = value.trim().to_string(),
-            "action" | "action_label" | "actionLabel" => {
-                entry.action_label = value.trim().to_string()
-            }
+            "message" | "text" | "label" | "title" => entry.message = value,
+            "action" | "action_label" | "actionLabel" => entry.action_label = value,
             "duration" | "duration_ms" | "auto_hide_duration_ms" | "autoHideDuration" => {
-                entry.duration_ms = value.trim().parse::<i64>().ok()
+                entry.duration_ms = value.parse::<i64>().ok()
             }
             _ => {}
         }
@@ -333,18 +327,20 @@ fn toast_entry_from_string(value: &str, _index: i64) -> Option<ToastEntry> {
     Some(entry)
 }
 
-fn toast_entry_from_map(values: &BTreeMap<String, UiValue>, _index: i64) -> Option<ToastEntry> {
-    let id = first_string_value(values, &["id", "toast_id", "toastId", "value", "key"])?;
+fn borrowed_toast_entry_from_map(
+    values: &BTreeMap<String, UiValue>,
+) -> Option<BorrowedToastEntry<'_>> {
+    let id = first_string_value_ref(values, &["id", "toast_id", "toastId", "value", "key"])?;
     if id.is_empty() {
         return None;
     }
 
-    let message = first_string_value(values, &["message", "text", "label", "title"])
-        .unwrap_or_else(|| id.clone());
-    Some(ToastEntry {
+    let message =
+        first_string_value_ref(values, &["message", "text", "label", "title"]).unwrap_or(id);
+    Some(BorrowedToastEntry {
         id,
         message,
-        action_label: first_string_value(values, &["action_label", "actionLabel", "action"])
+        action_label: first_string_value_ref(values, &["action_label", "actionLabel", "action"])
             .unwrap_or_default(),
         duration_ms: first_int_value(
             values,
@@ -355,7 +351,7 @@ fn toast_entry_from_map(values: &BTreeMap<String, UiValue>, _index: i64) -> Opti
                 "autoHideDuration",
             ],
         ),
-        raw: UiValue::Map(values.clone()),
+        raw: BorrowedToastRaw::Map(values),
     })
 }
 
@@ -364,19 +360,76 @@ fn is_toast_control(descriptor: &UiComponentDescriptor) -> bool {
         || matches!(descriptor.id.as_str(), "Snackbar" | "Toast")
 }
 
-#[derive(Clone, Debug, PartialEq)]
-struct ToastEntry {
+struct ToastQueueScan {
+    len: usize,
+    current: Option<ToastDisplayEntry>,
+}
+
+fn scan_toast_queue(value: Option<&UiValue>, current_id: &str) -> ToastQueueScan {
+    let mut len = 0;
+    let mut first = None;
+    let mut current = None;
+    if let Some(value) = value {
+        visit_toast_entries(value, &mut |entry| {
+            len += 1;
+            first.get_or_insert(entry);
+            if current.is_none() && entry.matches_id(current_id) {
+                current = Some(entry);
+            }
+        });
+    }
+    ToastQueueScan {
+        len,
+        current: current
+            .or(first)
+            .map(BorrowedToastEntry::into_display_entry),
+    }
+}
+
+#[derive(Clone, Copy)]
+struct BorrowedToastEntry<'a> {
+    id: &'a str,
+    message: &'a str,
+    action_label: &'a str,
+    duration_ms: Option<i64>,
+    raw: BorrowedToastRaw<'a>,
+}
+
+impl BorrowedToastEntry<'_> {
+    fn matches_id(&self, id: &str) -> bool {
+        !id.is_empty() && self.id == id
+    }
+
+    fn into_display_entry(self) -> ToastDisplayEntry {
+        ToastDisplayEntry {
+            id: self.id.to_string(),
+            message: self.message.to_string(),
+            action_label: self.action_label.to_string(),
+            duration_ms: self.duration_ms,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum BorrowedToastRaw<'a> {
+    String(&'a str),
+    Map(&'a BTreeMap<String, UiValue>),
+}
+
+impl BorrowedToastRaw<'_> {
+    fn to_owned_value(self) -> UiValue {
+        match self {
+            Self::String(value) => UiValue::String(value.to_string()),
+            Self::Map(values) => UiValue::Map(values.clone()),
+        }
+    }
+}
+
+struct ToastDisplayEntry {
     id: String,
     message: String,
     action_label: String,
     duration_ms: Option<i64>,
-    raw: UiValue,
-}
-
-impl ToastEntry {
-    fn matches_id(&self, id: &str) -> bool {
-        !id.is_empty() && self.id == id
-    }
 }
 
 fn queue_value<'a>(
@@ -420,9 +473,12 @@ fn string_setting(
     value_setting(state, descriptor, property).and_then(string_value)
 }
 
-fn first_string_value(values: &BTreeMap<String, UiValue>, keys: &[&str]) -> Option<String> {
+fn first_string_value_ref<'a>(
+    values: &'a BTreeMap<String, UiValue>,
+    keys: &[&str],
+) -> Option<&'a str> {
     keys.iter()
-        .filter_map(|key| values.get(*key).and_then(string_value))
+        .filter_map(|key| values.get(*key).and_then(string_value_ref))
         .find(|value| !value.is_empty())
 }
 
@@ -432,8 +488,12 @@ fn first_int_value(values: &BTreeMap<String, UiValue>, keys: &[&str]) -> Option<
 }
 
 fn string_value(value: &UiValue) -> Option<String> {
+    string_value_ref(value).map(str::to_owned)
+}
+
+fn string_value_ref(value: &UiValue) -> Option<&str> {
     match value {
-        UiValue::String(value) | UiValue::Enum(value) => Some(value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) => Some(value),
         _ => None,
     }
 }
@@ -470,5 +530,46 @@ fn set_optional_int(
 ) {
     if descriptor.prop(property).is_some() || state.values.contains_key(property) {
         super::set_value(state, property.to_string(), UiValue::Int(value));
+    }
+}
+
+#[cfg(test)]
+mod scan_tests {
+    use super::*;
+
+    #[test]
+    fn borrowed_toast_scan_flattens_and_selects_current_entry() {
+        let mut mapped = BTreeMap::new();
+        mapped.insert("id".to_string(), UiValue::String("second".to_string()));
+        mapped.insert(
+            "message".to_string(),
+            UiValue::String("Second message".to_string()),
+        );
+        let queue = UiValue::Array(vec![
+            UiValue::String("first|message=First message".to_string()),
+            UiValue::Array(vec![UiValue::Map(mapped)]),
+        ]);
+
+        let scan = scan_toast_queue(Some(&queue), "second");
+
+        assert_eq!(scan.len, 2);
+        let current = scan.current.unwrap();
+        assert_eq!(current.id, "second");
+        assert_eq!(current.message, "Second message");
+    }
+
+    #[test]
+    fn borrowed_toast_raw_preserves_enum_to_string_normalization() {
+        let queue = UiValue::Enum("notice|message=Hello".to_string());
+        let mut retained = Vec::new();
+
+        visit_toast_entries(&queue, &mut |entry| {
+            retained.push(entry.raw.to_owned_value());
+        });
+
+        assert_eq!(
+            retained,
+            vec![UiValue::String("notice|message=Hello".to_string())]
+        );
     }
 }
