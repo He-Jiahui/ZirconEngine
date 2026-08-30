@@ -808,6 +808,43 @@ class FailureGraphTests(unittest.TestCase):
             [(row["event_kind"], row["artifact_path"]) for row in replayed_events],
         )
 
+    def test_return_rejects_source_schema_errors_without_moving_failure(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        failure = self.fixture.add_handoff(origin, fixing, "malformed-source")
+        source_text = failure.read_text(encoding="utf-8")
+        source_text = source_text.replace(
+            "## 来源执行者", "## Source executor"
+        ).replace(
+            "## 失败现象与复现证据", "## Failure and reproduction"
+        ).replace(
+            "## 最低共享层根因", "## Lowest shared cause"
+        ).replace(
+            "## 架构修复验收", "## Architecture acceptance"
+        ).replace(
+            "## 禁止临时方案", "## Forbidden shortcuts"
+        )
+        failure.write_text(source_text, encoding="utf-8")
+        node = next(
+            node
+            for node in self.service.import_repository().nodes
+            if node.summary_slug == "malformed-source"
+        )
+
+        with self.assertRaises(CoordinatorError) as raised:
+            self.service.return_fixed(
+                node.lifecycle_key,
+                FailureResolution("root", "architecture", "validation", "return"),
+                resolved_at=date(2026, 7, 17),
+            )
+
+        self.assertEqual("invalid_handoff", raised.exception.code)
+        self.assertIn("missing required heading", raised.exception.message)
+        self.assertTrue(failure.exists())
+        self.assertFalse(
+            (origin.child / "fixed-2026-07-17-malformed-source.md").exists()
+        )
+
     def test_return_rewrites_only_source_link_tokens_inside_table_rows(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/07-editor.md")
         fixing = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")

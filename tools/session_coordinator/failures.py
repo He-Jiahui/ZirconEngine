@@ -1062,6 +1062,13 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
                 f"Fixed destination already exists: {self._relative(destination)}",
             )
         source_text = source.read_text(encoding="utf-8")
+        source_errors = self._source_validation_errors(source)
+        if source_errors:
+            raise CoordinatorError(
+                "invalid_handoff",
+                "Failure artifact does not satisfy the canonical handoff schema: "
+                + "; ".join(source_errors),
+            )
         if self._is_child_record_only(source_text):
             return self._return_child_record_only(
                 node,
@@ -1101,6 +1108,16 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
             self.import_repository()
             raise
         return destination
+
+    def _source_validation_errors(self, source: Path) -> tuple[str, ...]:
+        """Reject returns that would preserve source-only handoff schema errors."""
+        relative_source = self._relative(source).replace("\\", "/")
+        prefix = f"{relative_source}:"
+        return tuple(
+            error
+            for error in self._validator_module().validate_repository(self.repo_root)
+            if error.replace("\\", "/").startswith(prefix)
+        )
 
     def _return_child_record_only(
         self,
