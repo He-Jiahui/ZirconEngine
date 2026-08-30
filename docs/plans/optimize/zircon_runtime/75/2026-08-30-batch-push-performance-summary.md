@@ -42,6 +42,22 @@ Random checkpoint evidence (P50/P95, us; sizes 1/64/1024/65536):
 - Runtime75 managed contract：`9` tests passed。
 - `git diff --check` 和相关脚本 AST parse：通过。
 
+## 测试闭环补充
+
+- 协调器收口提交：`657177e5b6fde13cb799588190bc476f75e98d93`。
+- 本提交补回 `material_foundation/shared.rs` 的 `cfg(test)` 所引用的
+  `shared/enum_label_tests.rs`，使 Runtime75 的干净源码快照具备完整测试模块；不改变运行时
+  性能算法或产品行为。
+- 托管 Runtime75 静态验证请求 `d422af283de64c1c9569ceeda1a84a38` / ticket
+  `0dddcab62c8d4e81adb9b295226f0efa`：9/9 通过。
+- Rust `fmt --check` 和 `git diff --check`：通过。
+- Cargo release/debug 验证仍受外部 materialization 治理阻塞：缺失的未跟踪 RHI 源文件、受管
+  目标目录中的 unmanaged artifact，以及 `F:\cargo-targets\zircon-engine\ephemeral`；这些
+  路径不属于本 Session，未修改或认领。
+- 该收口提交继承本批次性能证据，未新增可信 ProductReceipt-bound P50/P95；状态继续保持
+  `pushed_not_promoted`，不得宣称最终产品性能资格已完成。
+- 收口通知已推送企微（`errcode=0`，2026-08-30 09:39:30 +08:00）。
+
 ## 资格边界
 
 以上是已推送提交的局部性能证据，不等同于 Runtime75 全量产品资格。组件 authority、live
