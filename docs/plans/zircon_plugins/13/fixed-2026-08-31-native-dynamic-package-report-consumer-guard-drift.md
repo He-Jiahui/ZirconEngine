@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-28
 summary_slug: native-dynamic-package-report-consumer-guard-drift
 origin_plan: docs/plans/zircon_plugins/13-standalone-plugin-build.md
@@ -10,11 +10,13 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_package_path.py
-  - tools/zircon_export/pipeline_report_native_dynamic_stage_package_report.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_owner_boundaries.py
 tests:
   - tools/tests/test_zircon_export_native_dynamic_payload_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_package_path_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_stage_package_report_owner_boundaries.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload_package_report.py
+resolved_at: 2026-08-31
 ---
 
 # Plugins13 NativeDynamic package report consumer guard drift
@@ -53,10 +55,15 @@ package-report validation moved out of PlatformBundle payload orchestration.
 
 ## 修复结果与回传
 
-The guard now follows the committed two-leaf delegation boundary. Focused
-package-report, package-path, and stage-package owner checks plus package-report
-behavior pass 18/18. The changed test compiles and the scoped diff gate is
-clean. The exact-two coordinator finalizer must reproduce these suites without
-foreign worktree inputs.
-
-Open state: `source_validated / failure_return_pending`.
+- 根因：The static guard retained the former orchestration edge after package
+  path and stage package-report validation moved to named leaves.
+- 架构修复：Commit `049721890` names both leaves as direct consumers and
+  explicitly rejects a direct package-report import in the PlatformBundle
+  payload orchestrator.
+- 验证：Managed ticket/run `b864223dae944cd1a9fec050549fb90d`, validation
+  copy `15de9137587441c08e41968620e292fd`, and immutable input manifest
+  `8472aa0f298a699e1f8619bc6b0174bc81c5c618a6d0ca639f73df895d8c8c70`
+  passed the focused package-report, package-path, stage-package owner, and
+  package-report behavior suites 18/18.
+- 回传：The stale consumer inventory is removed without modifying or absorbing
+  the three clean production owners.
