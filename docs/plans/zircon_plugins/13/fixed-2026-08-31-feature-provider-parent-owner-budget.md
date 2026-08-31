@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-28
 summary_slug: feature-provider-parent-owner-budget
 origin_plan: docs/plans/zircon_plugins/13-standalone-plugin-build.md
@@ -15,6 +15,7 @@ related_code:
 tests:
   - tools/tests/test_plugin_validate_feature_provider_owner_boundaries.py
   - tools/zircon_export/tests/test_plugin_validate_feature_provider.py
+resolved_at: 2026-08-31
 ---
 
 # Plugins13 feature-provider parent owner budget
@@ -30,7 +31,7 @@ tests:
 
 The feature-provider projection parent reached 93 lines while its focused-owner
 guard permits 90. It still parsed generated package TOML locally after metadata
-schema and projection checks had already moved to named child owners.
+schema and projection checks had moved to named child owners.
 
 ## 最低共享层根因
 
@@ -55,11 +56,15 @@ field checks, schema dispatch, distribution checks, and extension dispatch.
 
 ## 修复结果与回传
 
-The parent now contains 72 lines and the generated-manifest parse leaf contains
-30. The complete feature-provider owner-boundary suite passes 11/11, the
-feature-provider behavior suite passes 8/8, all three changed Python files
-compile, and the scoped diff gate is clean. The exact-four coordinator
-finalizer must reproduce the focused owner and behavior suites without foreign
-worktree inputs.
-
-Open state: `source_validated / failure_return_pending`.
+- 根因：Generated-manifest decoding was coupled to projection orchestration,
+  leaving the parent responsible for parsing as well as routing.
+- 架构修复：Commit `e2d29a4a9` moved TOML decoding and its typed diagnostics
+  into the 30-line `plugin_validate_feature_provider_manifest_parse.py` leaf.
+  The parent now remains at 72 lines and retains projection and known-field
+  routing without weakening diagnostics or raising the 90-line budget.
+- 验证：Managed ticket/run `d97a67484db24bbcbaea27a5a74e230c`, validation copy
+  `ced8d81a7b2847799835ac087479598c`, and immutable input manifest
+  `4ce12353bbf274892c2ef7bb35b6186bcd5b68b717e2abb7591e715519829ab3`
+  passed the focused owner-boundary and feature-provider behavior suites 19/19.
+- 回传：The owner-budget failure is removed from the open graph while invalid
+  TOML and non-table diagnostics remain unchanged.
