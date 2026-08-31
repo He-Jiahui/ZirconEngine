@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-28
 summary_slug: compile-host-link-plan-guard-drift
 origin_plan: docs/plans/zircon_plugins/13-standalone-plugin-build.md
@@ -14,6 +14,7 @@ related_code:
 tests:
   - tools/tests/test_zircon_export_pipeline_report_stage_metadata_test_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_compile_host_stage_schema.py
+resolved_at: 2026-08-31
 ---
 
 # Plugins13 compile host link plan guard drift
@@ -55,10 +56,15 @@ legacy link-plan payload was retired.
 
 ## 修复结果与回传
 
-The owner guard now follows the committed hard cutover and protects the
-dedicated legacy-field rejection. The owner-boundary and CompileHost stage
-schema suites pass 12/12, the changed test compiles, and the scoped diff gate
-is clean. The exact-two coordinator finalizer must reproduce both suites
-without foreign worktree inputs.
+- 根因：The owner inventory encoded the retired root-test location instead of
+  the current dedicated legacy-field rejection owner.
+- 架构修复：Commit `b7eb49496` keeps general CompileHost schema coverage in the
+  root owner and protects legacy `link_plan` rejection in the focused stage
+  schema test owner without reintroducing the retired field.
+- 验证：Managed validation copy `4d721a1988e34e94a8b634da2ba5fade`, run
+  `0d22310219bf475f9e8cfe4f0d2369ff`, and immutable input manifest
+  `e24f4c6433806f5c3fa7adbb6534811abbad46a52853a41e26e9ee4e64f77deb`
+  passed the owner-boundary and CompileHost schema suites 12/12.
+- 回传：The stale owner guard is removed from the open graph and the hard
+  cutover remains enforced by the dedicated rejection test.
 
-Open state: `source_validated / failure_return_pending`.
