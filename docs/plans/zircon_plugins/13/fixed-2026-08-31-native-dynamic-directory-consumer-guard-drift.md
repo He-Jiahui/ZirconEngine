@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-28
 summary_slug: native-dynamic-directory-consumer-guard-drift
 origin_plan: docs/plans/zircon_plugins/13-standalone-plugin-build.md
@@ -10,10 +10,13 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_bundle_evidence.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_directory_owner_boundaries.py
 tests:
   - tools/tests/test_zircon_export_native_dynamic_payload_directory_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_bundle_evidence_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py
+  - tools/zircon_export/tests/test_platform_bundle_native_dynamic_pipeline_payload.py
+resolved_at: 2026-08-31
 ---
 
 # Plugins13 NativeDynamic directory consumer guard drift
@@ -53,10 +56,15 @@ location instead of the current direct dependency edge.
 
 ## 修复结果与回传
 
-The guard now follows the committed evidence delegation boundary. Focused
-directory, bundle-evidence, and PlatformBundle handoff owner checks plus payload
-behavior pass 14/14. The changed test compiles and the scoped diff gate is
-clean. The exact-two coordinator finalizer must reproduce these suites without
-foreign worktree inputs.
-
-Open state: `source_validated / failure_return_pending`.
+- 根因：The static guard described the former orchestration edge instead of
+  the current bundle-evidence delegation boundary.
+- 架构修复：Commit `d5ffe84d0` names the bundle-evidence leaf and stage payload
+  as direct directory-helper consumers while explicitly rejecting a direct
+  PlatformBundle orchestrator import.
+- 验证：Managed ticket/run `2ad7311c68ae4eaf8094538ec0b6acad`, validation
+  copy `8b72823cf16049bcbd314e09ed064c9c`, and immutable input manifest
+  `9adc772e5165b6eb1d8bc7eb0e397293a62919f08647a93f07efd21b7847e566`
+  passed the focused directory, bundle-evidence, PlatformBundle handoff, and
+  payload behavior suites 14/14.
+- 回传：The stale consumer inventory is removed from the open graph without
+  changing either clean production owner.
