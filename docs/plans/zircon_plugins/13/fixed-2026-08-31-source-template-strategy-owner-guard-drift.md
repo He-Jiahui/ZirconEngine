@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-28
 summary_slug: source-template-strategy-owner-guard-drift
 origin_plan: docs/plans/zircon_plugins/13-standalone-plugin-build.md
@@ -10,10 +10,14 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/source_template.py
-  - tools/zircon_export/source_template_plan_command.py
+  - tools/tests/test_zircon_export_stage_handoff_strategy_owner_boundaries.py
 tests:
   - tools/tests/test_zircon_export_stage_handoff_strategy_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_build_handoff_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_plan_command_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_stage_owner_boundaries.py
+resolved_at: 2026-08-31
 ---
 
 # Plugins13 source template strategy owner guard drift
@@ -30,7 +34,7 @@ tests:
 The strategy owner-boundary suite required `source_template.py` to import the
 strategy leaf directly. Current committed source delegates plan construction to
 `source_template_plan_command.py`, which is the file that imports and calls the
-strategy helpers, so the guard failed despite a correct production boundary.
+strategy helpers.
 
 ## 最低共享层根因
 
@@ -43,7 +47,7 @@ instead of the current direct dependency edge.
 - Name `source_template_plan_command.py` as the direct strategy consumer.
 - Assert that `source_template.py` delegates to the plan-command owner.
 - Assert that orchestration does not regain a direct strategy dependency.
-- Pass the complete stage-handoff strategy owner-boundary suite.
+- Pass the complete stage-handoff strategy and adjacent owner suites.
 
 ## 禁止临时方案
 
@@ -53,10 +57,14 @@ instead of the current direct dependency edge.
 
 ## 修复结果与回传
 
-The guard now follows the committed direct import and separately protects the
-orchestration delegation boundary. The complete strategy and adjacent
-source-template owner suites pass 20/20, the changed test compiles, and the
-scoped diff gate is clean. The exact-two coordinator finalizer must reproduce
-the same owner-boundary suite without foreign worktree inputs.
-
-Open state: `source_validated / failure_return_pending`.
+- 根因：The owner guard retained the former source-template orchestration edge
+  after plan construction moved to its named command owner.
+- 架构修复：Commit `6350cb00b` names the plan-command owner as the direct
+  strategy consumer and separately asserts that source-template orchestration
+  delegates without importing the strategy leaf.
+- 验证：Managed ticket/run `9cb70906006d470dbf9b5a084cab71a8`, validation
+  copy `725026a7079b4d188d8e3b0c6cdae752`, and immutable input manifest
+  `41e5b205df4abc42406c14063478722f4b3dc41542f7b582a7cd4df093861c3b`
+  passed the complete strategy and adjacent SourceTemplate owner suites 20/20.
+- 回传：The guard follows the committed plan-command boundary without changing
+  or absorbing either clean production owner.
